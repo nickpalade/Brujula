@@ -1,18 +1,5 @@
 # Brújula — Demo Runbook
 
-> **TODO — stale as of the `server/agent/` removal:** this entire runbook is
-> written against the legacy, unprefixed pipeline (`/board/reset`,
-> `/board/seed`, `/dispatches/DSP-001/confirm`, `/incidents/INC-003`,
-> `/sitrep`, and `npm run verify:agent` as the fire-drill fallback), all of
-> which were deleted along with `server/agent/*` and `verify-agent.js`. The
-> real demo now runs on the `/api/*` stack (`POST /api/reports`,
-> `GET /api/incidents`, `POST /api/incidents/{id}/dispatch`,
-> `GET /api/sync`, `GET /api/sitrep`) driven through the Command Post /
-> Field client UI at `/command` and `/field` — this script needs a rewrite
-> against that flow (and a new backup-footage plan, since `verify:agent` no
-> longer exists — `npm run verify` is today's equivalent acceptance test)
-> before the next rehearsal.
-
 The PRD §7 script mapped to exact commands. Target: 3 minutes, one take.
 Everything below works with **zero internet** after setup. The demo runs
 through the React app: **Command Post** on the laptop, **field client
@@ -89,6 +76,12 @@ ENVIAR REPORTE:
 > necesitamos maquinaria pesada YA*
 
 The outbox chip flips QUEUED → SYNCED the moment the hub accepts it.
+
+> **Optional photo beat** (feature landed Sat 4 Jul — only include if
+> rehearsed): tap **📷 Añadir foto** and attach a rubble photo before sending.
+> Multimodal Gemma reads damage/hazards/people from the image — a photo can
+> raise urgency or fill fields the text missed. Photos are compressed on the
+> phone and ride the same offline outbox.
 
 **0:45–1:05 — Gemma parses it live.** On the Command Post, the incident card
 appears: `rescue · Playa Grande, Catia La Mar · ~20 people · CRITICAL` —
