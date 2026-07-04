@@ -118,6 +118,22 @@ export async function loadedModels(endpoint = OLLAMA_HOST) {
   }
 }
 
+// Load the model into memory (empty prompt = no generation) and pin it for
+// an hour. Used by POST /warmup so the first real report is instant.
+export async function warmupModel(name, { endpoint = OLLAMA_HOST, cpuOnly = false } = {}) {
+  const body = { model: name, keep_alive: "60m" };
+  if (cpuOnly) body.options = { num_gpu: 0 };
+  const resp = await fetch(`${endpoint}/api/generate`, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify(body),
+    signal: AbortSignal.timeout(600_000),
+  });
+  if (!resp.ok) {
+    throw new OllamaError(`Warmup failed: HTTP ${resp.status}`);
+  }
+}
+
 export async function unloadModel(name, endpoint = OLLAMA_HOST) {
   try {
     await fetch(`${endpoint}/api/generate`, {

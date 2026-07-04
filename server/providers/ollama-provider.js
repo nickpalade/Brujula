@@ -39,6 +39,9 @@ export class OllamaProvider {
       stream: false,
       format: jsonSchema,
       options,
+      // Keep the model resident between reports — the default 4-minute idle
+      // unload would make the first request after any lull pay a full reload.
+      keep_alive: "60m",
     };
     let resp;
     try {

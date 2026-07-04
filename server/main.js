@@ -115,6 +115,33 @@ app.get("/health", async (req, res) => {
   });
 });
 
+// Pre-load the active model so the first report of the demo is instant.
+app.post("/warmup", async (req, res) => {
+  const provider = getProvider();
+  if (provider.name !== "ollama") {
+    return envelope(res, { data: { warmed: false, detail: "cloud provider needs no warmup" } });
+  }
+  try {
+    const model = await provider.resolveModel();
+    await ollamaManager.warmupModel(model, {
+      cpuOnly: modelConfig.getComputeMode() === "cpu",
+    });
+    const loaded = await ollamaManager.loadedModels(OLLAMA_HOST);
+    envelope(res, {
+      data: {
+        warmed: true,
+        model,
+        gpu_in_use: loaded.some((m) => (m.size_vram ?? 0) > 0),
+      },
+    });
+  } catch (err) {
+    if (err instanceof OllamaError) {
+      return envelope(res, { error: err.message, status: 503 });
+    }
+    throw err;
+  }
+});
+
 app.get("/compute-config", async (req, res) => {
   const loaded = await ollamaManager.loadedModels(OLLAMA_HOST);
   const gpuInUse = loaded.some((m) => (m.size_vram ?? 0) > 0);

@@ -110,6 +110,7 @@ is set on the machine (it force-disables GPU discovery).
 | `GET`/`POST /compute-config` | read / set CPU vs GPU mode |
 | `GET`/`POST /language-config` | read / set the summary output language |
 | `GET /health` | ok + active provider, model, Ollama reachability |
+| `POST /warmup` | pre-load the active model into memory (do this before a demo); inference calls keep it resident for 60 min |
 | `GET /models` | auto-detected list of models on the Ollama server |
 | `GET /models/recommended` | curated install list (edit in `server/config.js`) |
 | `POST /models/pull` | `{"name": "gemma3:1b"}` — background download, dedup-guarded |
