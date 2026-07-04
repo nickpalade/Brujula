@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" role="img" aria-label="Brújula rings">
+  <!-- Rings layer only (broken circle + signal arcs), split out of logo-brujula.svg.
+       Transparent background; same 256 viewBox as logo-compass.svg so the two
+       layers overlay pixel-perfectly. -->
+  <g id="rings">
+    <!-- broken circle: the gap at NE suggests a signal/radio arc -->
+    <path d="M 191.9 84.1 A 78 78 0 1 1 172.6 66.7" fill="none" stroke="#eff4f1" stroke-width="8" stroke-linecap="round"/>
+    <!-- signal arcs through the gap -->
+    <path d="M 186 52 A 20 20 0 0 1 204 70" fill="none" stroke="#b03a46" stroke-width="7" stroke-linecap="round"/>
+    <path d="M 196 30 A 42 42 0 0 1 226 60" fill="none" stroke="#b03a46" stroke-width="7" stroke-linecap="round" opacity="0.55"/>
+  </g>
+</svg>
