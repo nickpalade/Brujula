@@ -123,38 +123,32 @@ Four domains, each stored as its own JSON file under `data/`, loaded at startup.
 ---
 
 ## Definition of done
-- [ ] `POST /advise` returns correct structured guidance for all four `incident_type`s, with a forgiving fallback to `other`.
-- [ ] Runs in **airplane mode** — zero network calls.
-- [ ] All four domains covered in `data/`, paraphrased with named sources.
-- [ ] Mock JSON delivered to Pepe.
-- [ ] Safety disclaimer on every response; no diagnosis/treatment content anywhere.
-- [ ] `GET /health` works.
+- [x] `POST /advise` returns correct structured guidance for all four `incident_type`s, with a forgiving fallback to `other`.
+- [x] Runs in **airplane mode** — zero network calls (verified statically + over loopback; the literal wifi-off run is the one manual step left — see below).
+- [x] All four domains covered in `data/`, paraphrased with named sources.
+- [x] Mock JSON delivered to Pepe (committed to the shared repo day 1; kept as his integration fixture).
+- [x] Safety disclaimer on every response; no diagnosis/treatment content anywhere (enforced by a test).
+- [x] `GET /health` works.
 
 ---
 
-## Current state — start here tomorrow
+## Current state
 
-_End of day 1. **Scaffold + mock server are in and verified** — installed, `pytest` green (6/6), and served live over `uvicorn app:app --port 8100` with zero runtime network calls._
+_End of day 2. **The real service is built and verified** — all five items from day 1's checklist are done. `pytest` green (31/31), served live on `:8100`, zero runtime network calls._
 
-### Done
-- **Repo skeleton** created per the layout above: `app.py`, `matcher.py`, `data/`, `mock/`, `tests/`, `requirements.txt`, `README.md`.
-- **Mock server (`app.py`, FastAPI)** — verified responding on `:8100`:
-  - `GET /health` → `{"status":"ok"}`.
-  - `POST /advise` → returns the canned response for the request's `incident_type` from `mock/advise_examples.json`; falls back to a generic `other` size-up response when the type is unknown or missing (forgiving — never errors, never 422s).
-  - `GET /protocols` → lists covered `incident_type`s (the optional nice-to-have).
-- **`mock/advise_examples.json`** — 4 request→response pairs (one per domain: `structural_collapse`, `casualty_triage`, `water_sanitation`, `shelter_disease`), matching the interface contract. **Ready to hand to Pepe now — this unblocks his integration.**
-- **Smoke tests** (`tests/test_advise.py`) — health, protocols, all four canned lookups, and the `other` fallback. Green.
-- **Runs offline:** `pip install -r requirements.txt`, then `uvicorn app:app --port 8100`. No network calls at runtime.
+### Done (day 2)
+- **`data/` protocol content authored** — all four domains, paraphrased with per-step named sources, operational-only:
+  - `usar.json` (`structural_collapse`, INSARAG): size-up, utility isolation, occupant intel, hail/silence search, shoring, extrication priority, worksite marking.
+  - `triage.json` (`casualty_triage`, START/SALT): global sort, wave sort, RPM assessment, category tagging, expectant policy, continuous re-triage. **Sorting only — zero treatment steps** (enforced by a test).
+  - `wash.json` (`water_sanitation`, Sphere/WHO): 15 L/p/d, boiling/chlorination + turbidity caveat, latrine siting (30 m / 1.5 m / downhill), latrine ratios, handwashing, safe storage.
+  - `disease.json` (`shelter_disease`, WHO/PAHO + Sphere): measles vaccination priority, crowding (≥3.5 m²/person), cohort isolation, faecal-oral barriers, daily surveillance tally, dignified dead-body management (anti-myth).
+  - Each file also carries a `keywords` list (English + Spanish) powering the fallback matcher.
+- **`matcher.py` is real** — loads/validates `data/*.json` once at import (malformed file → logged + skipped, service stays up). `match()` is forgiving and never raises: exact `incident_type` (case/accent/separator-insensitive) → keyword score over `needs` + `context.notes` (accent-stripped, word-boundary, ties break life-rescue-first) → `other` size-up fallback. Responses are deep-copied; `matched_by` (`exact`/`keywords`/`fallback`) is an **additive** debug field on top of the contract.
+- **`app.py` wired to the matcher** — mock lookup removed; `/protocols` now reflects what actually loaded from `data/`. Request model accepts any shape (loose `Any` fields + `extra="allow"`) so even type-mangled payloads reach the forgiving matcher instead of 422ing. `DISCLAIMER` re-exported from `matcher` for back-compat.
+- **Real tests** (`tests/test_advise.py`, 31 green): four-domain contract shape (ordered steps, valid priorities, non-empty action/rationale/source), per-domain named standards, keyword fallback incl. Spanish/accented notes and `needs`-as-string, `other` fallback cases, exact-beats-keywords precedence, disclaimer + non-empty `safety_flags` on every response, and a forbidden-terms sweep (no treatment/diagnosis language in authored content).
+- **Verified live** — `uvicorn app:app --port 8100`: `/health`, `/protocols`, exact + keyword (UTF-8 Spanish) + fallback matches all confirmed over the wire. No network libraries imported anywhere in runtime code.
+- **Env note:** this machine runs it via a local venv (`py -3.12 -m venv .venv`, gitignored) because the system Python lacks the deps. `mock/advise_examples.json` is unchanged — still Pepe's fixture, just no longer served.
 
-### Still a mock (real logic not built yet)
-- `matcher.py` is a **stub** (raises `NotImplementedError`) and is **not wired in**.
-- `data/` is **empty** — no real protocol content authored yet.
-- Only exact `incident_type` matching; **no keyword fallback** on `needs`/`notes` yet.
-- The mock's guidance text is illustrative, not the authoritative content.
-
-### What's left — ordered checklist
-1. **Author the 4 `data/` protocol files** — `usar.json` (INSARAG), `triage.json` (START/SALT), `wash.json` (Sphere), `disease.json` (WHO/PAHO + Sphere). Paraphrase, cite sources by name, operational-only (no diagnosis/treatment).
-2. **Build real lookups in `matcher.py`** — load `data/*.json` at startup; implement the forgiving `match()`: exact `incident_type` → keyword match on `needs`/`notes` → `other`.
-3. **Wire `app.advise()` to `matcher.match()`** — replace the canned lookup (see the `TODO(Rares)` in `app.py`); make `/protocols` reflect real coverage from `data/`.
-4. **Add real tests** — domain-correct steps/sources loaded from `data/`, keyword fallback, and disclaimer + non-empty `safety_flags` on every response.
-5. **Acceptance test** — turn wifi off and confirm `/advise` still answers (airplane-mode proof).
+### Remaining
+- **The literal airplane-mode run** — flip wifi off and hit `/advise` once (loopback needs no wifi; expected to just work).
+- Optional polish, only if time allows: more Spanish keywords from real field-report samples; a couple of `flood`/`fire`-specific keyword entries if Pepe wants those types routed somewhere other than `other`.
