@@ -1,0 +1,245 @@
+{
+  "_comment": "MOCK canned POST /advise responses for the Brujula knowledge-service. Four request->response pairs, one per incident_type (structural_collapse, casualty_triage, water_sanitation, shelter_disease). Delivered to Pepe FIRST so he can integrate before the real matcher exists. Shape follows the interface contract in CLAUDE.md. Content is illustrative operational guidance for trained responders, paraphrased from named humanitarian standards - the authoritative content will live in data/*.json. No patient diagnosis or treatment.",
+  "examples": [
+    {
+      "request": {
+        "incident_type": "structural_collapse",
+        "needs": ["heavy_lifting", "medical"],
+        "context": {
+          "signs_of_life": true,
+          "casualty_count": 6,
+          "hazards": ["gas_leak_suspected"],
+          "location_label": "Calle Sucre blue building",
+          "notes": "knocking heard inside"
+        }
+      },
+      "response": {
+        "incident_type": "structural_collapse",
+        "guidance": [
+          {
+            "step": 1,
+            "action": "Establish a safe perimeter and complete a size-up; assess structural stability before any entry.",
+            "priority": "critical",
+            "rationale": "Size-up precedes entry to prevent secondary responder casualties.",
+            "source": "INSARAG USAR"
+          },
+          {
+            "step": 2,
+            "action": "Isolate utilities: shut off suspected gas and cut electricity before using powered tools.",
+            "priority": "critical",
+            "rationale": "Sparks or ignition near a gas leak can trigger a secondary explosion.",
+            "source": "INSARAG USAR"
+          },
+          {
+            "step": 3,
+            "action": "Call structured silence periods and hail; listen and watch for signs of life to locate survivors.",
+            "priority": "high",
+            "rationale": "Quiet periods let teams pinpoint live victims by sound before committing to a dig.",
+            "source": "INSARAG USAR"
+          },
+          {
+            "step": 4,
+            "action": "Shore and stabilize voids before entry; never work under an unsupported load.",
+            "priority": "high",
+            "rationale": "Unshored voids collapse when disturbed and kill rescuers.",
+            "source": "INSARAG USAR"
+          },
+          {
+            "step": 5,
+            "action": "Apply the standard INSARAG worksite marking once the structure is assessed.",
+            "priority": "routine",
+            "rationale": "Consistent marking stops different teams from re-searching the same site.",
+            "source": "INSARAG USAR"
+          }
+        ],
+        "safety_flags": [
+          "Do not enter unshored voids",
+          "Isolate suspected gas before using powered tools",
+          "Watch for aftershock-triggered secondary collapse"
+        ],
+        "disclaimer": "Operational guidance for trained responders. Not medical diagnosis or treatment advice.",
+        "source_standards": ["INSARAG"]
+      }
+    },
+    {
+      "request": {
+        "incident_type": "casualty_triage",
+        "needs": ["triage", "medical"],
+        "context": {
+          "signs_of_life": true,
+          "casualty_count": 24,
+          "hazards": [],
+          "location_label": "Improvised clinic, Catia La Mar",
+          "notes": "mass casualties arriving, few responders"
+        }
+      },
+      "response": {
+        "incident_type": "casualty_triage",
+        "guidance": [
+          {
+            "step": 1,
+            "action": "Separate the walking wounded first: direct anyone able to walk to the MINOR (green) collection point.",
+            "priority": "high",
+            "rationale": "Clearing ambulatory casualties shrinks the pool that needs rapid assessment.",
+            "source": "START"
+          },
+          {
+            "step": 2,
+            "action": "Assess each remaining casualty by respirations, perfusion, and mental status (RPM) to assign a category.",
+            "priority": "critical",
+            "rationale": "A fast, consistent RPM check sorts limited responders toward those most likely to benefit.",
+            "source": "START"
+          },
+          {
+            "step": 3,
+            "action": "Tag IMMEDIATE (red) for life-threatening findings, DELAYED (yellow) for serious but stable, MINOR (green) for walking wounded.",
+            "priority": "critical",
+            "rationale": "Category tags let the team allocate transport and care by survival benefit, not arrival order.",
+            "source": "START / SALT"
+          },
+          {
+            "step": 4,
+            "action": "Assign EXPECTANT for injuries not survivable with the resources on hand; revisit as capacity changes.",
+            "priority": "high",
+            "rationale": "An explicit expectant category preserves scarce capacity for salvageable casualties and is reassessed as resources grow.",
+            "source": "SALT"
+          },
+          {
+            "step": 5,
+            "action": "Re-triage continuously: categories change as casualties deteriorate or resources arrive.",
+            "priority": "routine",
+            "rationale": "Triage is dynamic; a single pass under-serves a changing scene.",
+            "source": "START / SALT"
+          }
+        ],
+        "safety_flags": [
+          "Sorting only: this service does not direct treatment",
+          "Re-triage as conditions and resources change",
+          "Do not enter an unsecured scene to reach casualties"
+        ],
+        "disclaimer": "Operational guidance for trained responders. Not medical diagnosis or treatment advice.",
+        "source_standards": ["START", "SALT"]
+      }
+    },
+    {
+      "request": {
+        "incident_type": "water_sanitation",
+        "needs": ["water", "sanitation"],
+        "context": {
+          "signs_of_life": null,
+          "people_count": 800,
+          "hazards": ["sewage_contamination_suspected"],
+          "location_label": "Shelter at Playa Grande school",
+          "notes": "no safe drinking water, latrines overflowing"
+        }
+      },
+      "response": {
+        "incident_type": "water_sanitation",
+        "guidance": [
+          {
+            "step": 1,
+            "action": "Plan for a minimum of about 15 litres of safe water per person per day for drinking, cooking, and hygiene.",
+            "priority": "critical",
+            "rationale": "Sphere basic survival quantity; below it, dehydration and disease risk climb sharply.",
+            "source": "Sphere Handbook"
+          },
+          {
+            "step": 2,
+            "action": "Make water potable: bring to a rolling boil for one minute, or chlorinate to a free residual of about 0.2-0.5 mg/L at the point of use.",
+            "priority": "critical",
+            "rationale": "Untreated water in a contaminated zone spreads diarrhoeal disease and cholera.",
+            "source": "Sphere Handbook / WHO"
+          },
+          {
+            "step": 3,
+            "action": "Site latrines at least 30 m from any water source and keep the pit base about 1.5 m above the water table, downhill of wells.",
+            "priority": "high",
+            "rationale": "Separation prevents faecal contamination of drinking-water sources.",
+            "source": "Sphere Handbook"
+          },
+          {
+            "step": 4,
+            "action": "Provide at least one latrine per 20 people, segregated by sex and lit for night safety.",
+            "priority": "high",
+            "rationale": "Adequate, safe sanitation ratios curb open defecation and protect users.",
+            "source": "Sphere Handbook"
+          },
+          {
+            "step": 5,
+            "action": "Set up handwashing points with soap at every latrine and water point.",
+            "priority": "routine",
+            "rationale": "Hand hygiene is the highest-leverage barrier to faecal-oral transmission.",
+            "source": "Sphere Handbook / WHO"
+          }
+        ],
+        "safety_flags": [
+          "Verify chlorine residual before distributing treated water",
+          "Keep latrines at least 30 m from and downhill of water sources",
+          "Isolate suspected sewage contamination from the water supply"
+        ],
+        "disclaimer": "Operational guidance for trained responders. Not medical diagnosis or treatment advice.",
+        "source_standards": ["Sphere Handbook", "WHO/PAHO"]
+      }
+    },
+    {
+      "request": {
+        "incident_type": "shelter_disease",
+        "needs": ["disease_control", "shelter"],
+        "context": {
+          "signs_of_life": null,
+          "people_count": 1200,
+          "hazards": ["overcrowding", "low_vaccination_coverage"],
+          "location_label": "Stadium shelter, Caraballeda",
+          "notes": "measles suspected, crowded conditions"
+        }
+      },
+      "response": {
+        "incident_type": "shelter_disease",
+        "guidance": [
+          {
+            "step": 1,
+            "action": "Reduce crowding: aim for at least about 3.5 m2 of covered floor space per person to lower airborne transmission.",
+            "priority": "high",
+            "rationale": "Overcrowding drives measles and respiratory spread in shelters.",
+            "source": "Sphere Handbook"
+          },
+          {
+            "step": 2,
+            "action": "Make measles vaccination of children an early public-health priority on shelter entry.",
+            "priority": "critical",
+            "rationale": "Measles spreads explosively in crowded, low-coverage settings and is a leading cause of preventable outbreak deaths.",
+            "source": "WHO/PAHO"
+          },
+          {
+            "step": 3,
+            "action": "Stand up basic isolation: separate suspected measles or cholera/diarrhoeal cases from the general shelter population.",
+            "priority": "high",
+            "rationale": "Cohorting suspected cases slows transmission before laboratory confirmation.",
+            "source": "WHO/PAHO"
+          },
+          {
+            "step": 4,
+            "action": "Cut faecal-oral spread with safe water, handwashing, and rapid safe management of excreta.",
+            "priority": "high",
+            "rationale": "Diarrhoeal disease and cholera are the shelter's second major outbreak threat after measles.",
+            "source": "WHO/PAHO / Sphere"
+          },
+          {
+            "step": 5,
+            "action": "Run simple daily surveillance: tally fever/rash and watery-diarrhoea cases to detect an outbreak early.",
+            "priority": "routine",
+            "rationale": "Early case detection triggers a response before an outbreak overwhelms the shelter.",
+            "source": "WHO/PAHO"
+          }
+        ],
+        "safety_flags": [
+          "Coordinate any vaccination campaign with the responsible health authority",
+          "Isolate suspected cases early",
+          "This is population-level disease control, not individual patient care"
+        ],
+        "disclaimer": "Operational guidance for trained responders. Not medical diagnosis or treatment advice.",
+        "source_standards": ["WHO/PAHO", "Sphere Handbook"]
+      }
+    }
+  ]
+}
