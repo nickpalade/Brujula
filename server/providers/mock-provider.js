@@ -36,6 +36,21 @@ function parseReport(text = "") {
         ? "Escuela Simon Bolivar, Catia La Mar"
         : null;
 
+  if (/\bnick\b/.test(lower)) {
+    return {
+      kind: "need",
+      category: "rescue",
+      location,
+      people_count: people ?? 1,
+      urgency: "critical",
+      resource_label: null,
+      summary: lower.includes("rubble")
+        ? "Nick is trapped in rubble with the other victims."
+        : "Nick is trapped inside a building.",
+      persons: [{ name: "Nick", status: "missing", detail: "trapped at the incident" }],
+    };
+  }
+
   if (lower.includes("maria lopez") || lower.includes("maría lopez")) {
     const isSafe = /safe|found|encontrad|a salvo|refugio/.test(lower);
     return {
@@ -132,6 +147,7 @@ function dedupDecision(text = "") {
   const match = incidents.find(
     (incident) =>
       incident.category === newReport.category &&
+      Boolean(normalizeLocation(newReport.location)) &&
       normalizeLocation(incident.location) === normalizeLocation(newReport.location),
   );
 
@@ -154,16 +170,10 @@ function matchDecision(text = "") {
     resources = [];
   }
 
-  const preferredType =
-    incident.category === "rescue"
-      ? "machinery"
-      : incident.category === "medical"
-        ? "medical"
-        : incident.category;
-  const match =
-    resources.find((r) => r.type === preferredType) ||
-    resources.find((r) => r.status === "available") ||
-    null;
+  const compatibleTypes = incident.category === "rescue"
+    ? new Set(["rescue", "machinery"])
+    : new Set([incident.category]);
+  const match = resources.find((resource) => compatibleTypes.has(resource.type)) ?? null;
 
   return {
     resource_id: match?.id ?? null,

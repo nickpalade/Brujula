@@ -195,7 +195,7 @@ npm run fetch:tiles        # default Vargas region, ~4k tiles / ~6 MB → data/t
 TILES_BBOX="10.50,-67.12,10.70,-66.68" TILES_ZOOM="11-16" npm run fetch:tiles
 ```
 
-Both use CARTO's dark basemap (OSM data; do NOT point them at
+Both use CARTO's full-color Voyager basemap (OSM data; do NOT point them at
 tile.openstreetmap.org — bulk downloads violate their policy and get blocked
 mid-fetch). Already-downloaded tiles are skipped, so re-running just fills
 gaps. The incident map clamps panning to the demo region so the coordinator

@@ -550,6 +550,7 @@ export function syncSince(since) {
       .map((r) => publicView(JSON.parse(r.data)));
   return {
     seq: currentSeq(),
+    reports: changed("reports"),
     incidents: changed("incidents"),
     dispatches: changed("dispatches"),
     resources: changed("resources"),

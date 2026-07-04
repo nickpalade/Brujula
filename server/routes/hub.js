@@ -473,6 +473,40 @@ function fallbackPrioritize(incidents) {
   });
 }
 
+const ACTIONABLE_DISPATCH_STATES = new Set(["proposed", "confirmed", "accepted", "en_route", "on_site"]);
+
+async function proposeDispatchForIncident(incident, pipeline) {
+  if (!incident || incident.kind !== "need" || incident.status !== "open") return null;
+  const alreadyActioned = store.listDispatches().some(
+    (dispatch) =>
+      dispatch.incident_id === incident.id && ACTIONABLE_DISPATCH_STATES.has(dispatch.state),
+  );
+  if (alreadyActioned || typeof pipeline?.proposeMatch !== "function") return null;
+
+  const match = await pipeline.proposeMatch(incident, store.matchableResources());
+  if (!match?.resource_id || !store.getResource(match.resource_id)) return null;
+
+  const dispatch = store.addDispatch({
+    incident_id: incident.id,
+    resource_id: match.resource_id,
+    rationale: [match.rationale, match.distance_note].filter(Boolean).join(" "),
+    proposed_by_ai: true,
+  });
+  store.updateIncident(incident.id, { proposed_dispatch_id: dispatch.id });
+  return dispatch;
+}
+
+async function proposeDispatchesForUnmatchedNeeds() {
+  const pipeline = await loadPipeline();
+  if (!pipeline) return [];
+  const proposals = [];
+  for (const incident of store.openIncidents()) {
+    const dispatch = await proposeDispatchForIncident(incident, pipeline);
+    if (dispatch) proposals.push(dispatch);
+  }
+  return proposals;
+}
+
 function fallbackSitrep(brd) {
   const open = brd.incidents.filter((i) => i.status === "open");
   const confirmed = brd.dispatches.filter((d) => d.state === "confirmed");
@@ -525,6 +559,8 @@ async function runReportPipeline(reportId, { text, lang, images, coords }) {
 
     // 1. PARSE (only this step is allowed to throw — CONTRACTS §4).
     const fields = await pipeline.parseReport(text, lang, images);
+    const correctedPeopleCount = pipeline.explicitCorrectionPeopleCount?.(text);
+    if (correctedPeopleCount != null) fields.people_count = correctedPeopleCount;
 
     // Persist the parsed projection on the report record right away, so
     // report evidence surfaces (graph report nodes, GET /api/reports) show
@@ -541,7 +577,7 @@ async function runReportPipeline(reportId, { text, lang, images, coords }) {
     let dedup = { is_duplicate: false };
     try {
       if (typeof pipeline.dedupCheck === "function") {
-        dedup = await pipeline.dedupCheck(fields, store.openIncidents());
+        dedup = await pipeline.dedupCheck({ ...fields, raw_text: text }, store.openIncidents());
       }
     } catch (err) {
       logger.warn(`[hub] dedupCheck failed, treating as new incident: ${err.message}`);
@@ -567,6 +603,25 @@ async function runReportPipeline(reportId, { text, lang, images, coords }) {
     }
 
     store.updateReport(reportId, { parsed_into: incident.id });
+
+    // Explicit corrections can move a named person out of a falsely separate
+    // incident. Retire that stale node while preserving its audit trail.
+    if (dedup?.reason?.startsWith("Explicit correction")) {
+      for (const person of Array.isArray(fields.persons) ? fields.persons : []) {
+        const tracked = person.name
+          ? store.findPersonByNameKey(normalizePersonName(person.name))
+          : null;
+        if (!tracked?.incident_id || tracked.incident_id === incident.id) continue;
+        const stale = store.getIncident(tracked.incident_id);
+        if (!stale || stale.status === "resolved") continue;
+        store.updateIncident(stale.id, {
+          status: "resolved",
+          superseded_by: incident.id,
+          outcome: `Corrected report linked this case to incident ${incident.id}.`,
+        });
+        store.updatePerson(tracked.id, { incident_id: incident.id });
+      }
+    }
 
     // 2.5. PERSONS — extract missing-persons registry from parsed fields.
     // Wrapped in try-catch so person handling can never break report processing.
@@ -808,7 +863,7 @@ function resourceFieldsFor(person) {
 // Upsert by device_id (safe to call on every app launch). Volunteers and crews
 // also get (or refresh) a linked resource on the board, which the pipeline's
 // match step reads — Gemma proposes dispatching them like any other resource.
-hubRouter.post("/api/register", (req, res) => {
+hubRouter.post("/api/register", async (req, res) => {
   const parsed = RegisterRequest.safeParse(req.body);
   if (!parsed.success) {
     return envelope(res, {
@@ -850,7 +905,20 @@ hubRouter.post("/api/register", (req, res) => {
     logger.info(`[hub] registered reporter '${name}' (${device_id})`);
   }
 
-  envelope(res, { data: { personnel: person, resource } });
+  // A need can arrive before the capable crew does. Revisit unmatched open
+  // needs whenever registration adds or refreshes an available field resource,
+  // otherwise the graph remains at "0 proposed dispatches" until a human
+  // manually presses Re-match on every incident.
+  let proposed_dispatches = [];
+  if (resource && store.matchableResources().some((item) => item.id === resource.id)) {
+    try {
+      proposed_dispatches = await proposeDispatchesForUnmatchedNeeds();
+    } catch (err) {
+      logger.warn(`[hub] late-resource matching failed: ${err.message}`);
+    }
+  }
+
+  envelope(res, { data: { personnel: person, resource, proposed_dispatches } });
 });
 
 // GET /api/personnel — the roster (registered devices), for the command side.

@@ -123,6 +123,16 @@ export async function dedupCheck(parsedIncident, openIncidents) {
     raw_text: parsedIncident.raw_text ?? undefined,
   };
 
+  const corrected = findExplicitCorrectionMatch(newReport, open);
+  if (corrected) {
+    return {
+      is_duplicate: true,
+      matching_incident_id: corrected.id,
+      confidence: 0.99,
+      reason: "Explicit correction references this incident's existing people count.",
+    };
+  }
+
   try {
     const decision = await generateValidated({
       step: "dedup",
@@ -167,6 +177,34 @@ export async function dedupCheck(parsedIncident, openIncidents) {
       reason: "Dedup step unavailable — treated as a new incident.",
     };
   }
+}
+
+export function findExplicitCorrectionMatch(parsedIncident, openIncidents) {
+  const raw = String(parsedIncident?.raw_text ?? "");
+  if (!raw) return null;
+
+  const correctionCue =
+    /\b(?:not|isn't|isnt|actually|in fact|correction|correcting|same|rather|no esta|no está|en realidad|de hecho|correcci[oó]n|mismo|misma)\b/i;
+  if (!correctionCue.test(raw)) return null;
+
+  const referencedCounts = new Set(
+    [...raw.matchAll(/\b(\d{1,4})\b/g)].map((match) => Number.parseInt(match[1], 10)),
+  );
+  const candidates = (Array.isArray(openIncidents) ? openIncidents : []).filter(
+    (incident) =>
+      categoriesCompatible(incident.category, parsedIncident.category) &&
+      Number.isInteger(incident.people_count) &&
+      referencedCounts.has(incident.people_count),
+  );
+  return candidates.length === 1 ? candidates[0] : null;
+}
+
+export function explicitCorrectionPeopleCount(rawText) {
+  const raw = String(rawText ?? "");
+  const match = raw.match(
+    /\b(?:now|total(?: is| of)?|ahora|en total(?: son| hay)?)\s*(?:is|are|son|hay)?\s*(\d{1,4})\s*(?:people|persons|personas|victims|v[ií]ctimas)?\b/i,
+  );
+  return match ? Number.parseInt(match[1], 10) : null;
 }
 
 // ========================================================= 3. PRIORITIZE

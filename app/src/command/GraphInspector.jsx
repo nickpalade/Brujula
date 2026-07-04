@@ -4,6 +4,7 @@ import Button from '../shared/Button.jsx';
 import Icon from '../shared/Icon.jsx';
 import { CATEGORY_LABEL, formatAge } from '../shared/urgency.js';
 import { patchIncident } from './dataSource.js';
+import { getReportTitle } from './reportPresentation.js';
 
 const CATEGORIES = ['rescue', 'medical', 'water', 'shelter', 'food', 'machinery', 'hazard', 'status'];
 const URGENCIES = ['critical', 'high', 'medium', 'low'];
@@ -24,7 +25,7 @@ function getItemTitle({ selectedGraphItem, incident, dispatch, resource, report,
     case 'incident':
       return incident?.location ?? 'Incident';
     case 'report':
-      return report?.source_device ?? 'Field report';
+      return getReportTitle(report);
     case 'dispatch':
       return resource?.label ?? dispatch?.resource_id ?? 'Dispatch';
     case 'resource':

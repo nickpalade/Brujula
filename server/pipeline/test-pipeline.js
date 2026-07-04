@@ -47,6 +47,10 @@ const REPORT_UNRELATED =
   "En el refugio de la escuela en Catia La Mar no hay agua potable desde ayer, " +
   "somos como 200 personas y los niños están tomando agua sucia.";
 
+const REPORT_CORRECTION =
+  "Nick is not trapped in a separate building, he is in fact trapped in the " +
+  "rubble with the 12 people. It is now 13 people.";
+
 // ------------------------------------------------------------- assert plumbing
 let currentChecks = [];
 
@@ -125,6 +129,28 @@ async function runOnce(runIdx, only) {
       dupB.matching_incident_id === "inc-collapse-1",
       String(dupB.matching_incident_id),
     );
+
+    console.log("  2a. DEDUP  (explicit correction joins Nick to the rubble incident)");
+    const rubble = {
+      ...incidentA,
+      id: "inc-rubble-12",
+      location: null,
+      people_count: 12,
+      summary: "12 people trapped in rubble.",
+    };
+    const separate = {
+      ...incidentA,
+      id: "inc-separate-building",
+      location: null,
+      people_count: 1,
+      summary: "Nick is trapped inside a separate building.",
+    };
+    const parsedCorrection = await timed("parse", () => parseReport(REPORT_CORRECTION, "en"));
+    const corrected = await timed("dedup", () =>
+      dedupCheck({ ...parsedCorrection, raw_text: REPORT_CORRECTION }, [rubble, separate]),
+    );
+    console.log(`      dedup(correction) → ${JSON.stringify(corrected)}`);
+    check("correction merges into the rubble incident", corrected.matching_incident_id === rubble.id);
 
     console.log("  2b. DEDUP  (unrelated water report — must NOT merge)");
     const parsedU = await timed("parse", () => parseReport(REPORT_UNRELATED, "es"));

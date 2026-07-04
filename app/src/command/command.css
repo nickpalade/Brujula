@@ -347,8 +347,8 @@
 .cmd-map__canvas {
   height: 300px;
   width: 100%;
-  /* Tiles are CARTO dark_all — already dark, no filter needed. */
-  background: var(--bru-surface, #14161c);
+  /* Neutral fallback while conventional-color Voyager tiles load. */
+  background: #e8e5dc;
   /* Leaflet's controls carry z-index:1000; without a stacking context here
      they'd float over modals (z-index 140) and steal their clicks. */
   isolation: isolate;

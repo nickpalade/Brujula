@@ -20,6 +20,17 @@ test.beforeEach(async ({ request }) => {
 });
 
 test('field report reaches the live hub and drives command decisions', async ({ browser, page, request }) => {
+  await hub(request, '/api/register', {
+    method: 'POST',
+    data: {
+      role: 'crew',
+      name: 'Live Excavator Crew',
+      skill: 'machinery',
+      location: 'Caraballeda',
+      team_size: 5,
+      device_id: 'live-excavator-command',
+    },
+  });
   await page.goto('/field');
   await page.evaluate(() => localStorage.clear());
   await page.reload();
@@ -60,7 +71,7 @@ test('field report reaches the live hub and drives command decisions', async ({ 
   await expect(incidentCard).toBeVisible({ timeout: 10_000 });
   await expect(incidentCard).toContainText('LIVE VICTIMS');
   await expect(command.locator('.cmd-proposal', { hasText: 'Playa Grande' })).toContainText(
-    'Excavator + 5-person crew',
+    'Live Excavator Crew',
   );
 
   await incidentCard.click();
@@ -71,7 +82,7 @@ test('field report reaches the live hub and drives command decisions', async ({ 
 
   const proposal = drawer.locator('.cmd-proposal', { hasText: 'Playa Grande' });
   await proposal.getByRole('button', { name: /^CONFIRM$/ }).click();
-  await expect(command.locator('.cmd-resource[data-committed="true"]')).toContainText('Excavator', {
+  await expect(command.locator('.cmd-resource[data-committed="true"]')).toContainText('Live Excavator Crew', {
     timeout: 10_000,
   });
   await drawer.getByRole('button', { name: 'Close incident detail' }).click();
