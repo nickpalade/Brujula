@@ -10,6 +10,9 @@ export default defineConfig({
   testMatch: /live-.*\.spec\.js/,
   timeout: 60_000,
   fullyParallel: false,
+  // All live specs share one stateful hub (POST /__test/reset), so spec files
+  // must not run in parallel workers.
+  workers: 1,
   forbidOnly: !!process.env.CI,
   retries: 0,
   reporter: [['list'], ['html', { open: 'never', outputFolder: 'playwright-report-live' }]],

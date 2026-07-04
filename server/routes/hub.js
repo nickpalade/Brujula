@@ -410,6 +410,17 @@ async function runReportPipeline(reportId, { text, lang, images, coords }) {
     // 1. PARSE (only this step is allowed to throw — CONTRACTS §4).
     const fields = await pipeline.parseReport(text, lang, images);
 
+    // Persist the parsed projection on the report record right away, so
+    // report evidence surfaces (graph report nodes, GET /api/reports) show
+    // what Gemma extracted even if a later step fails.
+    store.updateReport(reportId, {
+      parsed_kind: fields.kind ?? null,
+      parsed_category: fields.category ?? null,
+      parsed_location: fields.location ?? null,
+      parsed_people_count: fields.people_count ?? null,
+      parsed_urgency: fields.urgency ?? null,
+    });
+
     // 2. DEDUP — merge into an existing open incident when the model says so.
     let dedup = { is_duplicate: false };
     try {
@@ -424,7 +435,14 @@ async function runReportPipeline(reportId, { text, lang, images, coords }) {
 
     if (dedup?.is_duplicate && dedup.matching_incident_id) {
       const existing = store.getIncident(dedup.matching_incident_id);
-      if (existing) {
+      if (existing && !dedupKindsCompatible(existing.kind, fields.kind)) {
+        // Deterministic backstop: never merge across the resource/need split,
+        // even when the model matched on category + location.
+        logger.warn(
+          `[hub] rejected cross-kind dedup merge (report kind '${fields.kind}' → ` +
+            `incident ${existing.id} kind '${existing.kind}'); creating a new incident`,
+        );
+      } else if (existing) {
         incident = mergeReportIntoIncident(existing, reportId, fields, resolved);
       }
     }
@@ -596,6 +614,19 @@ hubRouter.post("/api/reports", async (req, res) => {
 
   envelope(res, { data: { report: store.getReport(report.id), incident: outcome } });
 });
+
+// Deterministic dedup backstop: a resource-offer report must never merge into
+// a need incident (or vice versa) — offered water is not more of the same need
+// just because the model matched category + location. Cross-kind resource/need
+// matches are rejected and the report becomes its own incident; every other
+// combination keeps the prompt-based dedup decision. (Exported for tests.)
+export function dedupKindsCompatible(incidentKind, reportKind) {
+  const a = incidentKind ?? "need";
+  const b = reportKind ?? "need";
+  if (a === b) return true;
+  const pair = new Set([a, b]);
+  return !(pair.has("resource") && pair.has("need"));
+}
 
 // Merge a new report's parsed fields into an existing incident. Raises what we
 // know (max urgency, max people_count for need reports, fill missing location)

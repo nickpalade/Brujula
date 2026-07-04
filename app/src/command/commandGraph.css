@@ -239,6 +239,135 @@
   stroke: var(--bru-high);
 }
 
+/* Column headings rendered as sectionLabel nodes — never interactive. */
+.cmd-graph-main .react-flow__node-sectionLabel {
+  pointer-events: none !important;
+  cursor: default;
+}
+
+.cmd-graph-section-label {
+  width: 252px;
+  color: var(--bru-text-mute);
+  font: 700 12px var(--bru-mono);
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  pointer-events: none;
+  user-select: none;
+}
+
+.cmd-graph-filters {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 8px 10px;
+  background: var(--bru-bg-1);
+  border: 1px solid var(--bru-border);
+  border-radius: 8px;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.32);
+}
+
+.cmd-graph-filters__chip {
+  appearance: none;
+  padding: 4px 11px;
+  color: var(--bru-text-dim);
+  background: transparent;
+  border: 1px solid var(--bru-border);
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.cmd-graph-filters__chip:hover {
+  color: var(--bru-text);
+  background: var(--bru-bg-2);
+}
+
+.cmd-graph-filters__chip[aria-pressed='true'] {
+  color: var(--bru-text);
+  background: var(--bru-accent-bg);
+  border-color: var(--bru-accent-border);
+}
+
+.cmd-graph-filters__chip:focus-visible {
+  outline: 2px solid var(--bru-accent);
+  outline-offset: 2px;
+}
+
+.cmd-graph-filters__chip--reset {
+  color: var(--bru-text);
+  border-color: var(--bru-accent-border);
+  border-style: dashed;
+}
+
+.cmd-graph-legend {
+  padding: 10px 12px;
+  background: var(--bru-bg-1);
+  border: 1px solid var(--bru-border);
+  border-radius: 8px;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.32);
+}
+
+.cmd-graph-legend strong {
+  display: block;
+  margin-bottom: 6px;
+  color: var(--bru-text);
+  font: 700 10px var(--bru-mono);
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+}
+
+.cmd-graph-legend ul {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.cmd-graph-legend li {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  color: var(--bru-text-dim);
+  font-size: 11.5px;
+}
+
+.cmd-graph-legend__swatch {
+  flex: none;
+  width: 18px;
+  height: 3px;
+  border-radius: 2px;
+}
+
+/* Swatches mirror the .cmd-graph-edge--* stroke colors above. */
+.cmd-graph-legend__swatch--evidence {
+  background: rgba(86, 160, 190, 0.78);
+}
+
+.cmd-graph-legend__swatch--brain {
+  background: var(--bru-brand);
+}
+
+.cmd-graph-legend__swatch--dispatch {
+  background: var(--bru-accent);
+}
+
+.cmd-graph-legend__swatch--person {
+  background: rgba(180, 120, 220, 0.78);
+}
+
+.cmd-graph-legend__swatch--alert,
+.cmd-graph-legend__swatch--high {
+  background: var(--bru-high);
+}
+
+.cmd-graph-legend__swatch--critical {
+  background: var(--bru-critical);
+}
+
 .cmd-graph-inspector-hero {
   padding: var(--bru-s-4);
   background: var(--bru-bg-0);
@@ -299,6 +428,64 @@
   gap: var(--bru-s-2);
   flex-wrap: wrap;
   justify-content: flex-end;
+}
+
+.cmd-graph-inspector .cmd-drawer__foot-actions {
+  flex-wrap: wrap;
+}
+
+.cmd-graph-inspector-edit {
+  display: flex;
+  flex-direction: column;
+  gap: var(--bru-s-3);
+}
+
+.cmd-graph-inspector-edit__grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--bru-s-3);
+}
+
+.cmd-graph-inspector-edit__field label {
+  display: block;
+  margin-bottom: 6px;
+  color: var(--bru-text-dim);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.cmd-graph-inspector-edit__field textarea,
+.cmd-graph-inspector-edit__field input {
+  width: 100%;
+  padding: 9px 10px;
+  color: var(--bru-text);
+  background: var(--bru-bg-0);
+  border: 1px solid var(--bru-border-strong);
+  border-radius: var(--bru-r-sm);
+  font-family: var(--bru-sans);
+  font-size: 13px;
+}
+
+.cmd-graph-inspector-edit__field textarea {
+  min-height: 80px;
+  resize: vertical;
+}
+
+.cmd-graph-inspector-edit__actions {
+  display: flex;
+  gap: var(--bru-s-2);
+}
+
+.cmd-graph-inspector-override {
+  display: flex;
+  flex-direction: column;
+  gap: var(--bru-s-2);
+}
+
+.cmd-graph-inspector-error {
+  margin: 0 0 var(--bru-s-2);
+  color: var(--bru-critical);
+  font-size: 12.5px;
 }
 
 .cmd-graph-chat {

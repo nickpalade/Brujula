@@ -3,6 +3,7 @@ import {
   Background,
   Controls,
   Handle,
+  Panel,
   Position,
   ReactFlow,
   ReactFlowProvider,
@@ -29,6 +30,7 @@ import {
   getPersons,
   confirmDispatch,
   createAlert,
+  deactivateAlert,
   rematchIncident,
 } from './dataSource.js';
 
@@ -36,7 +38,7 @@ const POLL_MS = 4000;
 
 const GRAPH_LAYOUT = {
   report: { x: -520, y: 80, gap: 155 },
-  person: { x: -520, y: 780, gap: 155 },
+  person: { x: -520, gap: 155 },
   intake: { x: -120, y: -120 },
   brain: { x: -120, y: 260 },
   incident: { x: 280, y: 80, gap: 190 },
@@ -44,6 +46,28 @@ const GRAPH_LAYOUT = {
   resource: { x: 1100, y: 80, gap: 170 },
   alert: { x: 280, y: -160, gap: 310 },
 };
+
+// The People column shares x=-520 with reports, so it starts below the last
+// visible report. The break leaves room for tall report nodes (min-height 132,
+// content can exceed the 155 gap) plus the "People" section label.
+const PERSON_SECTION_BREAK = 140;
+const SECTION_LABEL_OFFSET = 56;
+
+const GRAPH_FILTERS = [
+  { id: 'all', label: 'All' },
+  { id: 'critical', label: 'Critical only' },
+  { id: 'open', label: 'Open only' },
+  { id: 'dispatch', label: 'With dispatch' },
+  { id: 'people', label: 'People' },
+  { id: 'reports', label: 'Reports' },
+];
+
+function alertRelatesToIncident(alert, incident) {
+  if (!alert || !incident) return false;
+  if (!alert.zone) return true;
+  const zone = alert.zone.toLowerCase();
+  return `${incident.location ?? ''} ${incident.category ?? ''} ${incident.summary ?? ''}`.toLowerCase().includes(zone);
+}
 
 function mergeById(prev, incoming) {
   if (!incoming || incoming.length === 0) return prev;
@@ -319,6 +343,16 @@ function IntakeNode({ data }) {
   );
 }
 
+// Non-interactive column heading; the wrapper node is pointer-events: none
+// (commandGraph.css) so it never intercepts clicks meant for the pane.
+function SectionLabelNode({ data }) {
+  return (
+    <div className="cmd-graph-section-label" aria-hidden="true">
+      {data.label}
+    </div>
+  );
+}
+
 const nodeTypes = {
   gemma: GemmaNode,
   incident: IncidentNode,
@@ -328,6 +362,7 @@ const nodeTypes = {
   report: ReportNode,
   person: PersonNode,
   intake: IntakeNode,
+  sectionLabel: SectionLabelNode,
 };
 
 function CommandGraph() {
@@ -343,6 +378,11 @@ function CommandGraph() {
   const [lastSync, setLastSync] = useState(null);
   const [now, setNow] = useState(() => Date.now());
   const [selectedGraphItem, setSelectedGraphItem] = useState(null);
+  const [graphFilter, setGraphFilter] = useState('all');
+  // Positions the operator dragged nodes to, keyed by node id. Layout memos
+  // recompute deterministic positions every sync; these overrides win so a
+  // hand-arranged graph survives the 4s poll.
+  const [nodeOverrides, setNodeOverrides] = useState({});
   const [dispatchBusy, setDispatchBusy] = useState(false);
   const [rematchBusyId, setRematchBusyId] = useState(null);
   const [sitrepOpen, setSitrepOpen] = useState(false);
@@ -539,6 +579,11 @@ function CommandGraph() {
     [refresh],
   );
 
+  const handleOverride = useCallback(
+    (dispatch, resourceId) => handleConfirm(dispatch, 'override', resourceId),
+    [handleConfirm],
+  );
+
   const handleRematch = useCallback(
     async (incidentId) => {
       setRematchBusyId(incidentId);
@@ -554,26 +599,129 @@ function CommandGraph() {
     [refresh],
   );
 
+  const handleDeactivateAlert = useCallback(
+    async (alert) => {
+      try {
+        await deactivateAlert(alert.id);
+        await refresh();
+        setSelectedGraphItem(null);
+      } catch (error) {
+        setSyncError(error.message || 'alert deactivate failed');
+      }
+    },
+    [refresh],
+  );
+
+  // Escape dismisses the topmost graph surface: the map overlay first (it has
+  // no Escape handler of its own), then the inspector. SitrepModal and
+  // AlertComposer sit above both and own their window Escape handlers.
+  useEffect(() => {
+    if (!selectedGraphItem && !mapOpen) return undefined;
+    const onKeyDown = (event) => {
+      if (event.key !== 'Escape') return;
+      if (sitrepOpen || alertComposerOpen) return;
+      if (mapOpen) {
+        setMapOpen(false);
+        return;
+      }
+      setSelectedGraphItem(null);
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [selectedGraphItem, sitrepOpen, alertComposerOpen, mapOpen]);
+
   const visibleIncidents = useMemo(
     () => ordered.filter((incident) => incident.status !== 'resolved').slice(0, 12),
     [ordered],
   );
 
-  const nodes = useMemo(() => {
-    const visibleIncidentIds = new Set(visibleIncidents.map((incident) => incident.id));
-    const visibleReports = reports
-      .filter((report) => visibleIncidentIds.has(report.parsed_into))
+  // Single source of truth for what the graph shows: the active filter picks
+  // the incidents (or the people/report chains), then only their connected
+  // nodes stay visible. Both the nodes and edges memos read from this.
+  const visibleGraph = useMemo(() => {
+    if (graphFilter === 'people') {
+      const graphPersons = persons.slice(0, 16);
+      const personIncidentIds = new Set(graphPersons.map((person) => person.incident_id).filter(Boolean));
+      const personReportIds = new Set(graphPersons.map((person) => person.report_id).filter(Boolean));
+      return {
+        incidents: visibleIncidents.filter((incident) => personIncidentIds.has(incident.id)),
+        reports: reports.filter((report) => personReportIds.has(report.id)).slice(0, 24),
+        persons: graphPersons,
+        dispatches: [],
+        resources: [],
+        alerts: [],
+      };
+    }
+    if (graphFilter === 'reports') {
+      const visibleIncidentIds = new Set(visibleIncidents.map((incident) => incident.id));
+      const graphReports = reports
+        .filter((report) => visibleIncidentIds.has(report.parsed_into))
+        .slice(0, 24);
+      const reportIncidentIds = new Set(graphReports.map((report) => report.parsed_into));
+      return {
+        incidents: visibleIncidents.filter((incident) => reportIncidentIds.has(incident.id)),
+        reports: graphReports,
+        persons: [],
+        dispatches: [],
+        resources: [],
+        alerts: [],
+      };
+    }
+
+    let graphIncidents = visibleIncidents;
+    if (graphFilter === 'critical') {
+      graphIncidents = visibleIncidents.filter((incident) => incident.urgency === 'critical');
+    } else if (graphFilter === 'open') {
+      graphIncidents = visibleIncidents.filter((incident) => incident.status === 'open');
+    } else if (graphFilter === 'dispatch') {
+      graphIncidents = visibleIncidents.filter((incident) => (dispatchesByIncident[incident.id] ?? []).length > 0);
+    }
+    const incidentIds = new Set(graphIncidents.map((incident) => incident.id));
+    const graphReports = reports
+      .filter((report) => incidentIds.has(report.parsed_into))
       .slice(0, 24);
-    const visiblePersons = persons
-      .filter((person) => !person.incident_id || visibleIncidentIds.has(person.incident_id))
+    const graphPersons = persons
+      .filter((person) => (graphFilter === 'all' && !person.incident_id) || incidentIds.has(person.incident_id))
       .slice(0, 16);
-    const visibleDispatches = dispatches
-      .filter((dispatch) => visibleIncidentIds.has(dispatch.incident_id))
+    const graphDispatches = dispatches
+      .filter((dispatch) => incidentIds.has(dispatch.incident_id))
       .slice(0, 16);
-    const resourceIdsFromDispatches = new Set(visibleDispatches.map((dispatch) => dispatch.resource_id));
-    const visibleResources = resources
-      .filter((resource) => resourceIdsFromDispatches.has(resource.id) || resource.status === 'available')
+    const resourceIdsFromDispatches = new Set(graphDispatches.map((dispatch) => dispatch.resource_id));
+    const graphResources = resources
+      .filter((resource) =>
+        resourceIdsFromDispatches.has(resource.id) ||
+        (graphFilter === 'all' && resource.status === 'available'))
       .slice(0, 16);
+    const graphAlerts = activeAlerts
+      .filter((alert) =>
+        graphFilter === 'all' ||
+        graphIncidents.some((incident) => alertRelatesToIncident(alert, incident)))
+      .slice(0, 4);
+    return {
+      incidents: graphIncidents,
+      reports: graphReports,
+      persons: graphPersons,
+      dispatches: graphDispatches,
+      resources: graphResources,
+      alerts: graphAlerts,
+    };
+  }, [activeAlerts, dispatches, dispatchesByIncident, graphFilter, persons, reports, resources, visibleIncidents]);
+
+  const nodes = useMemo(() => {
+    const {
+      incidents: graphIncidents,
+      reports: visibleReports,
+      persons: visiblePersons,
+      dispatches: visibleDispatches,
+      resources: visibleResources,
+      alerts: visibleAlerts,
+    } = visibleGraph;
+
+    // People start below the last visible report so the two x=-520 columns
+    // can never collide, however many reports are shown (deterministic).
+    const personColumnY = visibleReports.length > 0
+      ? GRAPH_LAYOUT.report.y + visibleReports.length * GRAPH_LAYOUT.report.gap + PERSON_SECTION_BREAK
+      : GRAPH_LAYOUT.report.y;
 
     const reportNodes = visibleReports.map((report, index) => ({
       id: `report-${report.id}`,
@@ -594,7 +742,7 @@ function CommandGraph() {
       type: 'person',
       position: {
         x: GRAPH_LAYOUT.person.x,
-        y: GRAPH_LAYOUT.person.y + index * GRAPH_LAYOUT.person.gap,
+        y: personColumnY + index * GRAPH_LAYOUT.person.gap,
       },
       data: {
         person,
@@ -603,7 +751,7 @@ function CommandGraph() {
       },
     }));
 
-    const incidentNodes = visibleIncidents.map((incident, index) => {
+    const incidentNodes = graphIncidents.map((incident, index) => {
       const dispatch = dispatchByIncident[incident.id];
       const needsAction =
         incident.status === 'open' &&
@@ -658,7 +806,7 @@ function CommandGraph() {
       },
     }));
 
-    const alertNodes = activeAlerts.slice(0, 4).map((alert, index) => ({
+    const alertNodes = visibleAlerts.map((alert, index) => ({
       id: `alert-${alert.id}`,
       type: 'alert',
       position: {
@@ -672,7 +820,39 @@ function CommandGraph() {
       },
     }));
 
+    // Column headings — rendered as pointer-events: none nodes so they pan
+    // and zoom with their columns without intercepting clicks.
+    const sectionLabelNodes = [];
+    const addSectionLabel = (id, label, x, y) => {
+      sectionLabelNodes.push({
+        id,
+        type: 'sectionLabel',
+        position: { x, y },
+        draggable: false,
+        selectable: false,
+        focusable: false,
+        data: { label },
+      });
+    };
+    addSectionLabel('label-gemma', 'Gemma', GRAPH_LAYOUT.intake.x, GRAPH_LAYOUT.intake.y - SECTION_LABEL_OFFSET);
+    if (visibleReports.length > 0) {
+      addSectionLabel('label-reports', 'Reports', GRAPH_LAYOUT.report.x, GRAPH_LAYOUT.report.y - SECTION_LABEL_OFFSET);
+    }
+    if (visiblePersons.length > 0) {
+      addSectionLabel('label-people', 'People', GRAPH_LAYOUT.person.x, personColumnY - SECTION_LABEL_OFFSET);
+    }
+    if (graphIncidents.length > 0) {
+      addSectionLabel('label-situations', 'Situations', GRAPH_LAYOUT.incident.x, GRAPH_LAYOUT.incident.y - SECTION_LABEL_OFFSET);
+    }
+    if (visibleDispatches.length > 0) {
+      addSectionLabel('label-dispatches', 'Dispatches', GRAPH_LAYOUT.dispatch.x, GRAPH_LAYOUT.dispatch.y - SECTION_LABEL_OFFSET);
+    }
+    if (visibleResources.length > 0) {
+      addSectionLabel('label-resources', 'Resources', GRAPH_LAYOUT.resource.x, GRAPH_LAYOUT.resource.y - SECTION_LABEL_OFFSET);
+    }
+
     return [
+      ...sectionLabelNodes,
       {
         id: 'field-intake',
         type: 'intake',
@@ -699,11 +879,9 @@ function CommandGraph() {
       ...resourceNodes,
     ];
   }, [
-    activeAlerts,
     availableResources.length,
     dispatchBusy,
     dispatchByIncident,
-    dispatches,
     escalated,
     handleConfirm,
     handleRematch,
@@ -712,14 +890,35 @@ function CommandGraph() {
     openSitrep,
     ordered,
     proposals,
-    reports,
     rematchBusyId,
     resourceById,
-    resources,
-    persons,
     selectGraphItem,
-    visibleIncidents,
+    visibleGraph,
   ]);
+
+  // Drag support: React Flow is controlled here (nodes come from the memo
+  // above), so position changes must be captured and re-applied or nodes
+  // snap back on the next sync repaint.
+  const handleNodesChange = useCallback((changes) => {
+    setNodeOverrides((prev) => {
+      let next = prev;
+      for (const change of changes) {
+        if (change.type !== 'position' || !change.position) continue;
+        if (next === prev) next = { ...prev };
+        next[change.id] = change.position;
+      }
+      return next;
+    });
+  }, []);
+
+  const hasCustomLayout = Object.keys(nodeOverrides).length > 0;
+
+  const positionedNodes = useMemo(() => {
+    if (!hasCustomLayout) return nodes;
+    return nodes.map((node) =>
+      nodeOverrides[node.id] ? { ...node, position: nodeOverrides[node.id] } : node,
+    );
+  }, [hasCustomLayout, nodeOverrides, nodes]);
 
   const nodeSetKey = useMemo(
     () => nodes.map((node) => node.id).sort().join('|'),
@@ -727,31 +926,40 @@ function CommandGraph() {
   );
 
   useEffect(() => {
-    if (!flowRef.current) return undefined;
+    // Auto-refit when the node set changes — but never fight the operator:
+    // once they've dragged nodes around, leave the viewport alone.
+    if (!flowRef.current || hasCustomLayout) return undefined;
     const frame = requestAnimationFrame(() => {
       flowRef.current?.fitView({ padding: 0.18, duration: 350 });
     });
     return () => cancelAnimationFrame(frame);
-  }, [nodeSetKey]);
+  }, [nodeSetKey, hasCustomLayout]);
+
+  const resetLayout = useCallback(() => {
+    setNodeOverrides({});
+    requestAnimationFrame(() => {
+      flowRef.current?.fitView({ padding: 0.18, duration: 350 });
+    });
+  }, []);
 
   const edges = useMemo(() => {
-    const visibleIncidentIds = new Set(visibleIncidents.map((incident) => incident.id));
-    const visibleReports = reports.filter((report) => visibleIncidentIds.has(report.parsed_into)).slice(0, 24);
-    const visiblePersons = persons.filter((person) => !person.incident_id || visibleIncidentIds.has(person.incident_id)).slice(0, 16);
-    const visibleDispatches = dispatches.filter((dispatch) => visibleIncidentIds.has(dispatch.incident_id)).slice(0, 16);
-    const visibleResourceIds = new Set([
-      ...visibleDispatches.map((dispatch) => dispatch.resource_id),
-      ...resources.filter((resource) => resource.status === 'available').map((resource) => resource.id),
-    ]);
+    const {
+      incidents: graphIncidents,
+      reports: visibleReports,
+      persons: visiblePersons,
+      dispatches: visibleDispatches,
+      resources: visibleResources,
+      alerts: visibleAlerts,
+    } = visibleGraph;
     const nodeIds = new Set([
       'field-intake',
       'gemma-brain',
-      ...visibleIncidents.map((incident) => `incident-${incident.id}`),
+      ...graphIncidents.map((incident) => `incident-${incident.id}`),
       ...visibleReports.map((report) => `report-${report.id}`),
       ...visiblePersons.map((person) => `person-${person.id}`),
       ...visibleDispatches.map((dispatch) => `dispatch-${dispatch.id}`),
-      ...resources.filter((resource) => visibleResourceIds.has(resource.id)).slice(0, 16).map((resource) => `resource-${resource.id}`),
-      ...activeAlerts.slice(0, 4).map((alert) => `alert-${alert.id}`),
+      ...visibleResources.map((resource) => `resource-${resource.id}`),
+      ...visibleAlerts.map((alert) => `alert-${alert.id}`),
     ]);
 
     const addEdge = (list, edge) => {
@@ -789,7 +997,7 @@ function CommandGraph() {
       });
     }
 
-    for (const incident of visibleIncidents) {
+    for (const incident of graphIncidents) {
       addEdge(graphEdges, {
         id: `gemma-incident-${incident.id}`,
         source: 'gemma-brain',
@@ -843,11 +1051,10 @@ function CommandGraph() {
       }
     }
 
-    for (const alert of activeAlerts.slice(0, 4)) {
-      const zone = alert.zone?.toLowerCase();
-      const relatedIncidents = zone
-        ? visibleIncidents.filter((incident) => `${incident.location ?? ''} ${incident.category ?? ''}`.toLowerCase().includes(zone))
-        : visibleIncidents.slice(0, 3);
+    for (const alert of visibleAlerts) {
+      const relatedIncidents = alert.zone
+        ? graphIncidents.filter((incident) => alertRelatesToIncident(alert, incident))
+        : graphIncidents.slice(0, 3);
       addEdge(graphEdges, {
         id: `gemma-alert-${alert.id}`,
         source: 'gemma-brain',
@@ -865,14 +1072,7 @@ function CommandGraph() {
     }
 
     return graphEdges;
-  }, [activeAlerts, dispatchByIncident, dispatches, escalated, persons, reports, resources, visibleIncidents]);
-
-  const alertRelatesToIncident = useCallback((alert, incident) => {
-    if (!alert || !incident) return false;
-    if (!alert.zone) return true;
-    const zone = alert.zone.toLowerCase();
-    return `${incident.location ?? ''} ${incident.category ?? ''} ${incident.summary ?? ''}`.toLowerCase().includes(zone);
-  }, []);
+  }, [dispatchByIncident, escalated, visibleGraph]);
 
   const connectedDispatches = useMemo(() => {
     if (selectedDispatch) return [selectedDispatch];
@@ -910,7 +1110,7 @@ function CommandGraph() {
     if (selectedAlert) return [selectedAlert];
     if (selectedIncident) return activeAlerts.filter((alert) => alertRelatesToIncident(alert, selectedIncident));
     return [];
-  }, [activeAlerts, alertRelatesToIncident, selectedAlert, selectedIncident]);
+  }, [activeAlerts, selectedAlert, selectedIncident]);
 
   return (
     <div className="bru-app cmd-root cmd-graph-root">
@@ -965,13 +1165,20 @@ function CommandGraph() {
         ) : (
           <ReactFlowProvider>
             <ReactFlow
-              nodes={nodes}
+              nodes={positionedNodes}
               edges={edges}
               nodeTypes={nodeTypes}
+              onNodesChange={handleNodesChange}
               fitView
               fitViewOptions={{ padding: 0.18 }}
-              minZoom={0.35}
-              maxZoom={1.35}
+              minZoom={0.15}
+              maxZoom={2}
+              nodesDraggable
+              nodesConnectable={false}
+              panOnDrag
+              zoomOnScroll
+              zoomOnPinch
+              zoomOnDoubleClick
               onInit={(instance) => {
                 flowRef.current = instance;
               }}
@@ -982,6 +1189,61 @@ function CommandGraph() {
             >
               <Background color="rgba(140, 170, 150, 0.18)" gap={28} size={1} />
               <Controls position="bottom-left" />
+              <Panel position="top-left" className="cmd-graph-filters" role="group" aria-label="Graph filters">
+                {GRAPH_FILTERS.map((filter) => (
+                  <button
+                    key={filter.id}
+                    type="button"
+                    className="cmd-graph-filters__chip"
+                    aria-pressed={graphFilter === filter.id}
+                    onClick={() => setGraphFilter(filter.id)}
+                  >
+                    {filter.label}
+                  </button>
+                ))}
+                {hasCustomLayout && (
+                  <button
+                    type="button"
+                    className="cmd-graph-filters__chip cmd-graph-filters__chip--reset"
+                    onClick={resetLayout}
+                  >
+                    Reset layout
+                  </button>
+                )}
+              </Panel>
+              <Panel position="bottom-right" className="cmd-graph-legend" aria-label="Edge color legend">
+                <strong>Edge colors</strong>
+                <ul>
+                  <li>
+                    <span className="cmd-graph-legend__swatch cmd-graph-legend__swatch--evidence" aria-hidden="true" />
+                    Report evidence
+                  </li>
+                  <li>
+                    <span className="cmd-graph-legend__swatch cmd-graph-legend__swatch--brain" aria-hidden="true" />
+                    Gemma / AI
+                  </li>
+                  <li>
+                    <span className="cmd-graph-legend__swatch cmd-graph-legend__swatch--dispatch" aria-hidden="true" />
+                    Dispatch / resource
+                  </li>
+                  <li>
+                    <span className="cmd-graph-legend__swatch cmd-graph-legend__swatch--person" aria-hidden="true" />
+                    Person
+                  </li>
+                  <li>
+                    <span className="cmd-graph-legend__swatch cmd-graph-legend__swatch--alert" aria-hidden="true" />
+                    Alert
+                  </li>
+                  <li>
+                    <span className="cmd-graph-legend__swatch cmd-graph-legend__swatch--critical" aria-hidden="true" />
+                    Critical re-match loop
+                  </li>
+                  <li>
+                    <span className="cmd-graph-legend__swatch cmd-graph-legend__swatch--high" aria-hidden="true" />
+                    High-urgency re-match loop
+                  </li>
+                </ul>
+              </Panel>
             </ReactFlow>
           </ReactFlowProvider>
         )}
@@ -1038,14 +1300,20 @@ function CommandGraph() {
           connectedAlerts={connectedAlerts}
           incidentById={incidentById}
           resourceById={resourceById}
+          availableResources={availableResources}
           dispatchBusy={dispatchBusy}
           rematchBusy={rematchBusyId === selectedIncident?.id}
           escalated={selectedIncident ? escalated[selectedIncident.id] : null}
           onClose={() => setSelectedGraphItem(null)}
           onSelect={selectGraphItem}
           onConfirm={(dispatch) => handleConfirm(dispatch)}
+          onOverride={handleOverride}
           onOpenSitrep={openSitrep}
           onRematchIncident={handleRematch}
+          onPatchIncident={async () => {
+            await refresh();
+          }}
+          onDeactivateAlert={handleDeactivateAlert}
         />
       )}
 

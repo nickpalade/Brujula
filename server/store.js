@@ -263,7 +263,7 @@ export function board() {
 
 // ---- writes ----------------------------------------------------------------
 
-export function addReport({ raw_text, source_device = null, lang = null, parsed_into = null, has_image = false, client_ref = null, reported_by = null, lat = null, lon = null, accuracy = null }) {
+export function addReport({ raw_text, source_device = null, lang = null, parsed_into = null, has_image = false, client_ref = null, reported_by = null, lat = null, lon = null, accuracy = null, parsed_kind = null, parsed_category = null, parsed_location = null, parsed_people_count = null, parsed_urgency = null }) {
   const report = {
     id: newId("rep"),
     raw_text,
@@ -277,6 +277,14 @@ export function addReport({ raw_text, source_device = null, lang = null, parsed_
     lat,
     lon,
     accuracy,
+    // What the pipeline's parse step extracted (null until parsing completes;
+    // stays null for pending/unparsed reports). Report evidence surfaces —
+    // graph report nodes, GET /api/reports — read these directly.
+    parsed_kind,
+    parsed_category,
+    parsed_location,
+    parsed_people_count,
+    parsed_urgency,
     _seq: bump(),
   };
   db.prepare("INSERT INTO reports (id, seq, data) VALUES (?, ?, ?)").run(

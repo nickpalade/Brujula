@@ -39,6 +39,30 @@ test("store reset seeds the board and sync deltas hide internal sequence fields"
   assert.equal(Object.hasOwn(delta.incidents[0], "_seq"), false);
 });
 
+test("reports carry null parsed fields until the pipeline fills them in", () => {
+  const report = store.addReport({ raw_text: "Pending report, model offline" });
+  assert.equal(report.parsed_kind, null);
+  assert.equal(report.parsed_category, null);
+  assert.equal(report.parsed_location, null);
+  assert.equal(report.parsed_people_count, null);
+  assert.equal(report.parsed_urgency, null);
+
+  store.updateReport(report.id, {
+    parsed_kind: "need",
+    parsed_category: "water",
+    parsed_location: "Escuela Simon Bolivar",
+    parsed_people_count: 60,
+    parsed_urgency: "high",
+  });
+
+  const stored = store.getReport(report.id);
+  assert.equal(stored.parsed_kind, "need");
+  assert.equal(stored.parsed_category, "water");
+  assert.equal(stored.parsed_location, "Escuela Simon Bolivar");
+  assert.equal(stored.parsed_people_count, 60);
+  assert.equal(stored.parsed_urgency, "high");
+});
+
 test("matchable resources include returning crews but exclude engaged crews", () => {
   const idle = store.addResource({
     type: "medical",

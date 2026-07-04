@@ -58,6 +58,22 @@ function parseReport(text = "") {
     };
   }
 
+  if (/\b(offer|offering|ofrecemos|ofrezco)\b/.test(lower)) {
+    const isWater = /\b(water|agua)\b/.test(lower);
+    return {
+      kind: "resource",
+      category: isWater ? "water" : "machinery",
+      location,
+      people_count: people,
+      urgency: "low",
+      resource_label: isWater ? "Water tanker offer" : "Equipment offer",
+      summary: isWater
+        ? "Water tanker offered for distribution."
+        : "Heavy equipment offered to responders.",
+      persons: [],
+    };
+  }
+
   if (/insulin|medical|medic|doctor|clinic|injur|herid|fever|fiebre/.test(lower)) {
     return {
       kind: "need",

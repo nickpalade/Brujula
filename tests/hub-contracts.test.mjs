@@ -11,7 +11,7 @@ process.env.BRUJULA_CHAT_PROVIDER = "mock";
 process.env.REPORT_ACK_TIMEOUT_MS = "5000";
 
 const store = await import("../server/store.js");
-const { hubRouter, mergeReportIntoIncident } = await import("../server/routes/hub.js");
+const { hubRouter, mergeReportIntoIncident, dedupKindsCompatible } = await import("../server/routes/hub.js");
 
 let server;
 let base;
@@ -217,6 +217,82 @@ test("human corrections, resources, alerts, trends, and chat use stable envelope
   const trends = expectOk(await api("/api/trends?window=45"));
   assert.equal(trends.window_minutes, 45);
   assert.ok(Array.isArray(trends.categories));
+});
+
+test("parsed report fields are persisted and returned by GET /api/reports", async () => {
+  const created = expectOk(await api("/api/reports", {
+    method: "POST",
+    body: {
+      text: "Need drinking water for 60 people at Escuela Simon Bolivar.",
+      client_ref: "parsed-fields-ref",
+    },
+  }));
+
+  assert.equal(created.report.parsed_kind, "need");
+  assert.equal(created.report.parsed_category, "water");
+  assert.equal(created.report.parsed_location, "Escuela Simon Bolivar, Catia La Mar");
+  assert.equal(created.report.parsed_people_count, 60);
+  assert.equal(created.report.parsed_urgency, "high");
+
+  const byId = expectOk(await api(`/api/reports?ids=${created.report.id}`));
+  assert.equal(byId.length, 1);
+  assert.equal(byId[0].parsed_kind, "need");
+  assert.equal(byId[0].parsed_category, "water");
+  assert.equal(byId[0].parsed_people_count, 60);
+
+  const listed = expectOk(await api("/api/reports")).find((report) => report.id === created.report.id);
+  assert.equal(listed.parsed_kind, "need");
+  assert.equal(listed.parsed_urgency, "high");
+});
+
+test("resource-offer reports do not dedup-merge into need incidents", async () => {
+  const need = expectOk(await api("/api/reports", {
+    method: "POST",
+    body: {
+      text: "Need drinking water for 60 people at Escuela Simon Bolivar.",
+      client_ref: "need-water-ref",
+    },
+  }));
+  assert.equal(need.incident.kind, "need");
+  assert.equal(need.incident.category, "water");
+
+  const offer = expectOk(await api("/api/reports", {
+    method: "POST",
+    body: {
+      text: "We offer a water tanker ready to distribute at Escuela Simon Bolivar.",
+      client_ref: "offer-water-ref",
+    },
+  }));
+
+  assert.equal(offer.report.parsed_kind, "resource");
+  assert.ok(offer.incident, "offer should still produce its own incident");
+  assert.equal(offer.incident.kind, "resource");
+  assert.notEqual(offer.incident.id, need.incident.id);
+
+  const needAfterOffer = store.getIncident(need.incident.id);
+  assert.equal(needAfterOffer.people_count, 60);
+  assert.deepEqual(needAfterOffer.merged_report_ids, [need.report.id]);
+
+  // Same-kind dedup still merges: another need report at the same place.
+  const followUp = expectOk(await api("/api/reports", {
+    method: "POST",
+    body: {
+      text: "Still no drinking water at Escuela Simon Bolivar, people are thirsty.",
+      client_ref: "need-water-again-ref",
+    },
+  }));
+  assert.equal(followUp.incident.id, need.incident.id);
+  assert.deepEqual(
+    store.getIncident(need.incident.id).merged_report_ids,
+    [need.report.id, followUp.report.id],
+  );
+
+  // The deterministic backstop itself, both directions.
+  assert.equal(dedupKindsCompatible("need", "resource"), false);
+  assert.equal(dedupKindsCompatible("resource", "need"), false);
+  assert.equal(dedupKindsCompatible("need", "need"), true);
+  assert.equal(dedupKindsCompatible("status", "need"), true);
+  assert.equal(dedupKindsCompatible(undefined, "resource"), false);
 });
 
 test("resource reports merged as evidence do not inflate need people counts", () => {

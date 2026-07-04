@@ -29,6 +29,13 @@ test.describe('graph command interface', () => {
     await expect(inspector).toContainText('Field Reports');
     await expect(inspector).toContainText('Dispatches & Resources');
     await expect(inspector).toContainText('People');
+
+    // Focus lands on the close control when the inspector opens.
+    await expect(inspector.getByRole('button', { name: 'Close graph inspector' })).toBeFocused();
+
+    // Escape closes the inspector.
+    await page.keyboard.press('Escape');
+    await expect(inspector).toBeHidden();
   });
 
   test('clicking report, dispatch, resource, and person nodes opens connected context', async ({ page }) => {
@@ -66,6 +73,99 @@ test.describe('graph command interface', () => {
     await page.getByTestId('graph-node-alert').first().click();
     await expect(page.getByTestId('graph-inspector')).toContainText('Aftershock warning near Playa Grande');
     await expect(page.getByTestId('graph-inspector')).toContainText('Alerts');
+
+    // Deactivating the alert closes the inspector and removes the node.
+    await page.getByRole('button', { name: 'Deactivate alert' }).click();
+    await expect(page.getByTestId('graph-inspector')).toBeHidden();
+    await expect(page.getByTestId('graph-node-alert')).toHaveCount(0);
+  });
+
+  test('graph filters change the visible nodes and the legend is present', async ({ page }) => {
+    await openGraph(page);
+
+    const filters = page.getByRole('group', { name: 'Graph filters' });
+    await expect(filters.getByRole('button', { name: 'All', exact: true })).toHaveAttribute('aria-pressed', 'true');
+
+    await filters.getByRole('button', { name: 'Critical only' }).click();
+    await expect(filters.getByRole('button', { name: 'Critical only' })).toHaveAttribute('aria-pressed', 'true');
+    await expect(filters.getByRole('button', { name: 'All', exact: true })).toHaveAttribute('aria-pressed', 'false');
+    await expect(page.getByTestId('graph-node-incident')).toHaveCount(1);
+    await expect(page.getByTestId('graph-node-report')).toHaveCount(2);
+    await expect(page.getByTestId('graph-node-dispatch')).toHaveCount(1);
+    await expect(page.getByTestId('graph-node-resource')).toHaveCount(1);
+    await expect(page.getByTestId('graph-node-person')).toHaveCount(1);
+
+    await filters.getByRole('button', { name: 'People', exact: true }).click();
+    await expect(page.getByTestId('graph-node-person')).toHaveCount(2);
+    await expect(page.getByTestId('graph-node-incident')).toHaveCount(2);
+    await expect(page.getByTestId('graph-node-dispatch')).toHaveCount(0);
+    await expect(page.getByTestId('graph-node-resource')).toHaveCount(0);
+
+    await filters.getByRole('button', { name: 'All', exact: true }).click();
+    await expect(page.getByTestId('graph-node-incident')).toHaveCount(3);
+    await expect(page.getByTestId('graph-node-report')).toHaveCount(4);
+
+    const legend = page.locator('.cmd-graph-legend');
+    await expect(legend).toBeVisible();
+    await expect(legend).toContainText('Edge colors');
+    await expect(legend).toContainText('Report evidence');
+    await expect(legend).toContainText('Gemma / AI');
+    await expect(legend).toContainText('Dispatch / resource');
+    await expect(legend).toContainText('Critical re-match loop');
+  });
+
+  test('dispatch override reassigns the proposed resource from the inspector', async ({ page }) => {
+    await openGraph(page);
+
+    await page.getByTestId('graph-node-dispatch').first().click();
+    const inspector = page.getByTestId('graph-inspector');
+    await expect(inspector).toContainText(/nearest heavy machinery/i);
+
+    await inspector.getByRole('button', { name: 'Override', exact: true }).click();
+    await inspector.locator('#graph-override-resource').selectOption('res-seed-clinic-catia-la-mar');
+    await inspector.getByRole('button', { name: 'Confirm override' }).click();
+
+    await expect(inspector).toContainText('Improvised clinic with spare capacity');
+    await expect(inspector).toContainText('Confirmed');
+    await expect(inspector).toContainText('Coordinator override');
+  });
+
+  test('graph topbar actions still work', async ({ page }) => {
+    await openGraph(page);
+    const topbar = page.locator('.cmd-topbar__actions');
+
+    // Map overlay
+    await topbar.getByRole('button', { name: 'Open compact map' }).click();
+    const map = page.getByRole('dialog', { name: 'Incident map' });
+    await expect(map).toBeVisible();
+    await map.getByRole('button', { name: 'Close map' }).click();
+    await expect(map).toBeHidden();
+
+    // Alert composer
+    await topbar.getByRole('button', { name: 'Broadcast alert' }).click();
+    const composer = page.getByRole('dialog', { name: 'Broadcast Alert' });
+    await expect(composer).toBeVisible();
+    await composer.getByRole('button', { name: 'Close broadcast alert' }).click();
+    await expect(composer).toBeHidden();
+
+    // SITREP modal
+    await topbar.getByRole('button', { name: 'SITREP' }).click();
+    const sitrep = page.getByRole('dialog', { name: 'Situation report' });
+    await expect(sitrep).toBeVisible();
+    await expect(sitrep).toContainText('SITREP — Situation Report');
+    await sitrep.getByRole('button', { name: 'Close' }).click();
+    await expect(sitrep).toBeHidden();
+
+    // Gemma chat panel (opened from the Gemma brain node)
+    await page.getByRole('button', { name: 'Ask Gemma' }).click();
+    const chat = page.getByRole('complementary', { name: 'Gemma chat panel' });
+    await expect(chat).toBeVisible();
+    await chat.getByRole('button', { name: 'Close Gemma chat' }).click();
+    await expect(chat).toBeHidden();
+
+    // Refresh keeps the sync indicator healthy
+    await topbar.getByRole('button', { name: 'Refresh' }).click();
+    await expect(page.locator('.cmd-sync')).toContainText(/synced \d+s ago/);
   });
 
   test('graph nodes are keyboard inspectable', async ({ page }) => {

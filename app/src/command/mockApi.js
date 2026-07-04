@@ -397,6 +397,51 @@ export async function getAlerts() {
   return clone(alerts.filter((alert) => alert.active !== false));
 }
 
+/* PATCH /api/incidents/:id equivalent — human correction of incident fields. */
+export async function patchIncident(id, patch = {}) {
+  await delay(200);
+  const inc = incidents.find((i) => i.id === id);
+  if (!inc) throw new Error('Incident not found');
+  const editable = ['category', 'location', 'people_count', 'urgency', 'summary', 'status'];
+  for (const key of editable) {
+    if (patch[key] !== undefined) inc[key] = patch[key];
+  }
+  inc.corrected_by_human = true;
+  inc.updated_at = new Date().toISOString();
+  bump();
+  return clone(inc);
+}
+
+/* POST /api/incidents/:id/rematch equivalent — withdraw the old proposal and
+ * propose the nearest available resource again (hub returns { dispatch }). */
+export async function rematchIncident(id) {
+  await delay(400);
+  const inc = incidents.find((i) => i.id === id);
+  if (!inc) throw new Error('Incident not found');
+  const previous = dispatches.find((d) => d.incident_id === id && d.state === 'proposed');
+  if (previous) previous.state = 'withdrawn';
+  const match =
+    resources.find((r) => r.status === 'available' && r.type === inc.category) ??
+    resources.find((r) => r.status === 'available');
+  let dispatch = null;
+  if (match) {
+    dispatch = {
+      id: rid('dsp'),
+      incident_id: inc.id,
+      resource_id: match.id,
+      state: 'proposed',
+      rationale: `Re-match: ${match.label} is the nearest available ${match.type} capability.`,
+      proposed_by_ai: true,
+      confirmed_by_human_at: null,
+    };
+    dispatches.push(dispatch);
+    inc.proposed_dispatch_id = dispatch.id;
+    inc.updated_at = new Date().toISOString();
+  }
+  bump();
+  return { dispatch: dispatch ? clone(dispatch) : null };
+}
+
 /* UI languages the app is translated into (see shared/languages.js). */
 const MOCK_LANGUAGES = [
   { code: 'es', name: 'Español' },
