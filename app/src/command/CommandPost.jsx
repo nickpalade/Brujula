@@ -18,6 +18,16 @@ import {
 
 const POLL_MS = 4000; // CONTRACTS §5: poll /api/sync every 3–5 s
 
+// /api/sync returns DELTAS (records changed since `since`), so accumulate by
+// id — same pattern as the field client's useAssignments. Replacing state with
+// each poll wiped the board on the first quiet tick.
+function mergeById(prev, incoming) {
+  if (!incoming || incoming.length === 0) return prev;
+  const map = new Map(prev.map((x) => [x.id, x]));
+  for (const x of incoming) map.set(x.id, x);
+  return [...map.values()];
+}
+
 function CommandPost() {
   const [incidents, setIncidents] = useState([]);
   const [resources, setResources] = useState([]);
@@ -41,11 +51,9 @@ function CommandPost() {
   const refresh = useCallback(async () => {
     try {
       const data = await getSync(seqRef.current);
-      // Mock/hub returns the full board; if a real delta feed is wired later,
-      // INTEGRATION can merge instead of replace here.
-      if (Array.isArray(data.incidents)) setIncidents(data.incidents);
-      if (Array.isArray(data.resources)) setResources(data.resources);
-      if (Array.isArray(data.dispatches)) setDispatches(data.dispatches);
+      if (Array.isArray(data.incidents)) setIncidents((p) => mergeById(p, data.incidents));
+      if (Array.isArray(data.resources)) setResources((p) => mergeById(p, data.resources));
+      if (Array.isArray(data.dispatches)) setDispatches((p) => mergeById(p, data.dispatches));
       if (typeof data.seq === 'number') {
         seqRef.current = data.seq;
         setSeq(data.seq);
