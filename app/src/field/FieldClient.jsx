@@ -7,7 +7,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import './field.css'
 import { api, USE_MOCKS } from '../shared/api.js'
-import { useAgentBusy } from '../shared/useAgentBusy.js'
 import BrujulaMark from '../shared/BrujulaMark.jsx'
 import DotGrid from '../vendor/DotGrid.jsx'
 import { useOutbox } from './useOutbox.js'
@@ -116,7 +115,6 @@ function FieldClient() {
   const [tab, setTab] = useState('report')
   const [toast, setToast] = useState(null)
   const [statusBusy, setStatusBusy] = useState(false)
-  const agentBusy = useAgentBusy()
 
   useRegistration(profile)
 
@@ -155,7 +153,7 @@ function FieldClient() {
       <div className="field-app">
         <header className="field-header">
           <div className="field-brand">
-            <BrujulaMark size={32} spinning={agentBusy} />
+            <BrujulaMark size={32} spinning />
             <div>
               <h1>Brújula</h1>
               <div className="field-sub">
@@ -208,7 +206,7 @@ function FieldClient() {
       </div>
       <header className="field-header">
         <div className="field-brand">
-          <BrujulaMark size={32} spinning={agentBusy} />
+          <BrujulaMark size={32} spinning />
           <div>
             <h1>Brújula</h1>
             <div className="field-sub">
