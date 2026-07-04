@@ -8,6 +8,10 @@ context/
 data/
 brujula_config.json
 brujula_board.json
+hub.db
+hub.db-shm
+hub.db-wal
+hub.db-journal
 ollama_serve.log
 *.log
 npm-debug.log*

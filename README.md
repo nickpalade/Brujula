@@ -22,7 +22,7 @@ powershell -ExecutionPolicy Bypass -File bootstrap.ps1
 bash bootstrap.sh          # or: make bootstrap
 ```
 
-Node deps (express, zod) — requires Node 18.17+:
+Node deps (express, zod) — requires Node 22.5+ (uses the built-in `node:sqlite`):
 
 ```bash
 npm install
