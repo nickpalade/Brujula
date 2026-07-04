@@ -9,6 +9,30 @@ const STATUS_LABEL = {
   resolved: 'RESOLVED',
 };
 
+// Flat urgency glyphs — the bare symbol in the urgency color. Inline vector
+// (no sprite crop, no plate, no background) so it stays crisp at any size.
+const GLYPH_SHAPES = {
+  critical: (
+    <>
+      <line x1="12" y1="4" x2="12" y2="14" />
+      <line x1="12" y1="19.5" x2="12" y2="19.51" />
+    </>
+  ),
+  high: (
+    <>
+      <line x1="12" y1="19" x2="12" y2="5" />
+      <polyline points="5.5 11.5 12 5 18.5 11.5" />
+    </>
+  ),
+  medium: <line x1="5" y1="12" x2="19" y2="12" />,
+  low: (
+    <>
+      <line x1="12" y1="5" x2="12" y2="19" />
+      <polyline points="5.5 12.5 12 19 18.5 12.5" />
+    </>
+  ),
+};
+
 /*
  * IncidentCard — one line in the prioritized action feed.
  * Live-victim rescues get the alarm treatment (pulsing red glow + LIVE badge).
@@ -44,7 +68,18 @@ function IncidentCard({ incident, selected, hasProposal, escalated, onSelect }) 
           data-urgency={incident.urgency}
           title={URGENCY_LABEL[incident.urgency] ?? incident.urgency}
           aria-hidden="true"
-        />
+        >
+          <svg
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="3.2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            {GLYPH_SHAPES[incident.urgency] ?? GLYPH_SHAPES.medium}
+          </svg>
+        </span>
 
         <div className="cmd-incident__body">
           <div className="cmd-incident__top">
