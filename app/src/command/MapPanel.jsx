@@ -96,6 +96,7 @@ function MapPanel({ incidents = [], onSelect }) {
     }).addTo(map);
     mapRef.current = map;
     return () => {
+      map.stop();
       map.remove();
       mapRef.current = null;
       markersRef.current = new Map();
@@ -170,7 +171,6 @@ function MapPanel({ incidents = [], onSelect }) {
               {unplotted} sin ubicación
             </Badge>
           )}
-          <Badge variant="muted">{plotted.length} pinned</Badge>
           <button
             type="button"
             className="cmd-map__toggle"

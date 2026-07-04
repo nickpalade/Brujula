@@ -41,6 +41,7 @@ export const {
   getPersons,
   setDispatchStatus,
   getTrends,
+  chatContext,
 } = backend;
 
 // Offline map tiles (Settings → Offline maps). These live in shared/api.js

@@ -8,9 +8,11 @@
     "build": "vite build",
     "lint": "oxlint",
     "preview": "vite preview",
-    "test:e2e": "playwright test"
+    "test:e2e": "playwright test",
+    "test:e2e:live": "playwright test --config=playwright.live.config.js"
   },
   "dependencies": {
+    "@xyflow/react": "^12.11.1",
     "gsap": "^3.15.0",
     "leaflet": "^1.9.4",
     "qrcode.react": "^4.2.0",

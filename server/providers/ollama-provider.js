@@ -6,6 +6,10 @@ import { OllamaError } from "../ollama-manager.js";
 export class OllamaProvider {
   name = "ollama";
 
+  constructor({ requireGemma = false } = {}) {
+    this.requireGemma = requireGemma;
+  }
+
   async resolveModel() {
     const models = await ollamaManager.listModels(OLLAMA_HOST);
     if (models.length === 0) {
@@ -15,14 +19,22 @@ export class OllamaProvider {
     }
     const names = models.map((m) => m.name);
     const selected = modelConfig.getSelectedModel();
-    if (selected && names.includes(selected)) return selected;
+    if (selected && names.includes(selected) && (!this.requireGemma || isGemmaModel(selected))) {
+      return selected;
+    }
     for (const candidate of names) {
-      if (candidate === DEFAULT_MODEL || candidate.split(":")[0] === DEFAULT_MODEL) {
+      const isDefaultModel = candidate === DEFAULT_MODEL || candidate.split(":")[0] === DEFAULT_MODEL;
+      if (isDefaultModel && (!this.requireGemma || isGemmaModel(candidate))) {
         return candidate;
       }
     }
     for (const candidate of names) {
-      if (candidate.toLowerCase().startsWith("gemma")) return candidate;
+      if (isGemmaModel(candidate)) return candidate;
+    }
+    if (this.requireGemma) {
+      throw new OllamaError(
+        `No Gemma models found on the Ollama server. Pull one with: ollama pull ${DEFAULT_MODEL}`,
+      );
     }
     return names[0];
   }
@@ -85,4 +97,8 @@ export class OllamaProvider {
       throw err;
     }
   }
+}
+
+function isGemmaModel(name) {
+  return name.toLowerCase().startsWith("gemma");
 }

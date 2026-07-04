@@ -1,0 +1,387 @@
+.cmd-graph-root {
+  background:
+    radial-gradient(circle at 50% 50%, rgba(176, 58, 70, 0.14), transparent 34%),
+    linear-gradient(135deg, rgba(140, 170, 150, 0.06) 0 1px, transparent 1px 100%),
+    var(--bru-bg-0);
+  background-size: auto, 32px 32px, auto;
+}
+
+.cmd-graph-topbar {
+  z-index: 20;
+}
+
+.cmd-graph-main {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+}
+
+.cmd-graph-main .react-flow {
+  background: transparent;
+}
+
+.cmd-graph-main .react-flow__controls {
+  background: var(--bru-bg-1);
+  border: 1px solid var(--bru-border);
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.32);
+}
+
+.cmd-graph-main .react-flow__controls-button {
+  color: var(--bru-text);
+  background: var(--bru-bg-1);
+  border-bottom: 1px solid var(--bru-border);
+}
+
+.cmd-graph-main .react-flow__controls-button:hover {
+  background: var(--bru-bg-2);
+}
+
+.cmd-graph-loading {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  color: var(--bru-text-dim);
+  font: 700 12px var(--bru-mono);
+  letter-spacing: 1px;
+  text-transform: uppercase;
+}
+
+.cmd-graph-node {
+  pointer-events: all;
+  width: 252px;
+  min-height: 132px;
+  padding: 14px;
+  color: var(--bru-text);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.035), transparent),
+    rgba(17, 21, 18, 0.96);
+  border: 1px solid var(--bru-border-strong);
+  border-left: 3px solid var(--bru-text-mute);
+  border-radius: 8px;
+  box-shadow: 0 18px 42px rgba(0, 0, 0, 0.34);
+}
+
+.cmd-graph-node:focus-visible {
+  outline: 2px solid var(--bru-accent);
+  outline-offset: 4px;
+}
+
+.cmd-graph-node button {
+  pointer-events: all;
+}
+
+.cmd-graph-node[data-tone='critical'] {
+  border-left-color: var(--bru-critical);
+  box-shadow: 0 18px 42px rgba(0, 0, 0, 0.34), 0 0 0 1px rgba(255, 59, 71, 0.24);
+}
+
+.cmd-graph-node[data-tone='high'],
+.cmd-graph-node[data-tone='warn'],
+.cmd-graph-node[data-tone='warning'] {
+  border-left-color: var(--bru-high);
+}
+
+.cmd-graph-node[data-tone='medium'],
+.cmd-graph-node[data-tone='accent'] {
+  border-left-color: var(--bru-brand);
+}
+
+.cmd-graph-node[data-tone='low'],
+.cmd-graph-node[data-tone='ok'] {
+  border-left-color: var(--bru-ok);
+}
+
+.cmd-graph-node[data-tone='muted'] {
+  opacity: 0.82;
+}
+
+.cmd-graph-node[data-tone='field'] {
+  border-left-color: var(--bru-accent);
+}
+
+.cmd-graph-node--brain {
+  width: 312px;
+  min-height: 260px;
+  display: grid;
+  justify-items: center;
+  text-align: center;
+  padding: 22px;
+  border: 1px solid rgba(176, 58, 70, 0.7);
+  border-radius: 18px;
+  background:
+    radial-gradient(circle at 50% 28%, rgba(176, 58, 70, 0.28), transparent 42%),
+    rgba(17, 21, 18, 0.98);
+  box-shadow:
+    0 28px 70px rgba(0, 0, 0, 0.44),
+    0 0 0 1px rgba(176, 58, 70, 0.18),
+    0 0 62px rgba(176, 58, 70, 0.22);
+}
+
+.cmd-graph-brain__orb {
+  display: grid;
+  place-items: center;
+  width: 108px;
+  height: 108px;
+  margin-bottom: 10px;
+  border: 1px solid rgba(176, 58, 70, 0.45);
+  border-radius: 999px;
+  background: rgba(176, 58, 70, 0.08);
+}
+
+.cmd-graph-brain__orb img {
+  width: 82px;
+  height: 82px;
+  border-radius: 999px;
+}
+
+.cmd-graph-node__eyebrow {
+  color: var(--bru-brand);
+  font: 700 10px var(--bru-mono);
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+}
+
+.cmd-graph-node h2,
+.cmd-graph-node__title {
+  display: block;
+  margin: 0;
+  color: var(--bru-text);
+  font-size: 16px;
+  line-height: 1.22;
+  letter-spacing: -0.01em;
+}
+
+.cmd-graph-node h2 {
+  margin-top: 4px;
+  font-size: 22px;
+}
+
+.cmd-graph-node p {
+  margin: 9px 0 0;
+  color: var(--bru-text-dim);
+  font-size: 12.5px;
+  line-height: 1.42;
+}
+
+.cmd-graph-node__head,
+.cmd-graph-node__meta,
+.cmd-graph-node__actions {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  flex-wrap: wrap;
+}
+
+.cmd-graph-node__head {
+  margin-bottom: 10px;
+}
+
+.cmd-graph-node__meta {
+  margin-top: 10px;
+  color: var(--bru-text-mute);
+  font: 700 10px var(--bru-mono);
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+}
+
+.cmd-graph-node__actions {
+  margin-top: 12px;
+}
+
+.cmd-graph-node__actions .bru-btn {
+  pointer-events: all;
+  font-size: 11px;
+  padding: 5px 8px;
+}
+
+.cmd-graph-handle {
+  width: 9px;
+  height: 9px;
+  background: var(--bru-brand);
+  border: 1px solid var(--bru-bg-0);
+}
+
+.cmd-graph-edge path {
+  stroke-width: 2;
+}
+
+.cmd-graph-edge--brain path {
+  stroke: var(--bru-brand);
+}
+
+.cmd-graph-edge--critical path {
+  stroke: var(--bru-critical);
+}
+
+.cmd-graph-edge--high path {
+  stroke: var(--bru-high);
+}
+
+.cmd-graph-edge--medium path,
+.cmd-graph-edge--low path {
+  stroke: rgba(140, 170, 150, 0.72);
+}
+
+.cmd-graph-edge--dispatch path {
+  stroke: var(--bru-accent);
+}
+
+.cmd-graph-edge--evidence path {
+  stroke: rgba(86, 160, 190, 0.78);
+}
+
+.cmd-graph-edge--person path {
+  stroke: rgba(180, 120, 220, 0.78);
+}
+
+.cmd-graph-edge--alert path {
+  stroke: var(--bru-high);
+}
+
+.cmd-graph-inspector-hero {
+  padding: var(--bru-s-4);
+  background: var(--bru-bg-0);
+  border: 1px solid var(--bru-border);
+  border-radius: var(--bru-r-sm);
+}
+
+.cmd-graph-inspector-hero p {
+  margin: var(--bru-s-2) 0 0;
+  color: var(--bru-text-dim);
+  font-size: 13.5px;
+  line-height: 1.5;
+}
+
+.cmd-graph-inspector-section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--bru-s-2);
+}
+
+.cmd-graph-inspector-section h3 {
+  margin: 0;
+  color: var(--bru-text);
+  font: 700 12px var(--bru-mono);
+  letter-spacing: 1px;
+  text-transform: uppercase;
+}
+
+.cmd-graph-inspector-card {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--bru-s-3);
+  padding: var(--bru-s-3);
+  background: var(--bru-bg-2);
+  border: 1px solid var(--bru-border);
+  border-radius: var(--bru-r-sm);
+}
+
+.cmd-graph-inspector-card strong {
+  display: block;
+  color: var(--bru-text);
+  font-size: 13px;
+  line-height: 1.35;
+}
+
+.cmd-graph-inspector-card p {
+  margin: 5px 0 0;
+  color: var(--bru-text-dim);
+  font-size: 12.5px;
+  line-height: 1.45;
+}
+
+.cmd-graph-inspector-card__actions {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: var(--bru-s-2);
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.cmd-graph-chat {
+  position: fixed;
+  z-index: 950;
+  right: 18px;
+  bottom: 18px;
+  width: min(430px, calc(100vw - 36px));
+  max-height: min(720px, calc(100svh - 126px));
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  overflow: hidden;
+  background: var(--bru-bg-1);
+  border: 1px solid var(--bru-border-strong);
+  border-radius: 10px;
+  box-shadow: 0 24px 70px rgba(0, 0, 0, 0.55);
+}
+
+.cmd-graph-chat__head,
+.cmd-graph-overlay__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--bru-s-3);
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--bru-border);
+}
+
+.cmd-graph-chat__head strong,
+.cmd-graph-overlay__head strong {
+  color: var(--bru-text);
+  font: 700 12px var(--bru-mono);
+  letter-spacing: 1px;
+  text-transform: uppercase;
+}
+
+.cmd-graph-chat .context-chat {
+  border: 0;
+  border-radius: 0;
+  min-height: 520px;
+}
+
+.cmd-graph-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 940;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background: rgba(2, 4, 3, 0.68);
+  backdrop-filter: blur(4px);
+}
+
+.cmd-graph-overlay__panel {
+  width: min(960px, 100%);
+  max-height: min(760px, calc(100svh - 48px));
+  overflow: auto;
+  background: var(--bru-bg-1);
+  border: 1px solid var(--bru-border-strong);
+  border-radius: 12px;
+  box-shadow: 0 28px 90px rgba(0, 0, 0, 0.58);
+}
+
+.cmd-graph-overlay__panel--map .cmd-map {
+  margin: 12px;
+}
+
+.cmd-graph-overlay__panel--map .cmd-map__canvas {
+  height: min(560px, calc(100svh - 210px));
+}
+
+@media (max-width: 820px) {
+  .cmd-graph-topbar {
+    grid-template-columns: 1fr;
+  }
+
+  .cmd-topbar__status,
+  .cmd-topbar__actions {
+    justify-self: start;
+  }
+
+  .cmd-graph-node {
+    width: 230px;
+  }
+}

@@ -23,8 +23,12 @@ import { logger } from "./logger.js";
 // `_seq` (and any other `_`-prefixed field) is stripped from public output.
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
-const DATA_DIR = path.join(HERE, "..", "data");
-const DB_FILE = path.join(DATA_DIR, "hub.db");
+const DATA_DIR = process.env.BRUJULA_DATA_DIR
+  ? path.resolve(process.env.BRUJULA_DATA_DIR)
+  : path.join(HERE, "..", "data");
+const DB_FILE = process.env.BRUJULA_DB_FILE
+  ? path.resolve(process.env.BRUJULA_DB_FILE)
+  : path.join(DATA_DIR, "hub.db");
 const FIXTURES_DIR = path.join(HERE, "..", "fixtures");
 const SEED_INCIDENTS = path.join(FIXTURES_DIR, "seed_incidents.json");
 const SEED_RESOURCES = path.join(FIXTURES_DIR, "seed_resources.json");

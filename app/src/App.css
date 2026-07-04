@@ -173,7 +173,7 @@
 /* ---------------- Console grid ---------------- */
 .bru-landing__grid {
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
   gap: clamp(var(--bru-s-3), 2vw, var(--bru-s-4));
 }
 
@@ -203,6 +203,11 @@
 .bru-console[data-accent='field'] {
   --c: var(--bru-ok);
   --c-bg: var(--bru-ok-bg);
+}
+
+.bru-console[data-accent='graph'] {
+  --c: var(--bru-accent);
+  --c-bg: var(--bru-accent-bg);
 }
 
 /* Left spine in the station's accent — instant identity, like the cards
@@ -322,15 +327,6 @@
   letter-spacing: -0.01em;
   color: var(--bru-text);
 }
-.bru-console__subtitle {
-  font-family: var(--bru-mono);
-  font-size: 11px;
-  font-weight: 600;
-  letter-spacing: 2px;
-  text-transform: uppercase;
-  color: var(--bru-text-mute);
-}
-
 .bru-console__desc {
   font-size: 13.5px;
   line-height: 1.5;
@@ -392,6 +388,53 @@
 }
 .bru-landing__foot-dot {
   color: var(--bru-border-strong);
+}
+
+.bru-access-blocked__main {
+  align-items: flex-start;
+  max-width: 680px;
+}
+
+.bru-access-blocked h1 {
+  margin: 0;
+  font-family: var(--bru-mono);
+  font-size: clamp(2rem, 6vw, 3.5rem);
+  line-height: 1;
+  letter-spacing: -0.03em;
+  color: var(--bru-text);
+  text-transform: uppercase;
+}
+
+.bru-access-blocked p {
+  max-width: 48ch;
+  margin: 0;
+  color: var(--bru-text-dim);
+  line-height: 1.6;
+}
+
+.bru-access-blocked__link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 48px;
+  padding: 0 var(--bru-s-4);
+  border: 1px solid var(--bru-ok);
+  border-radius: var(--bru-r-md);
+  background: var(--bru-ok-bg);
+  color: var(--bru-ok);
+  font-family: var(--bru-mono);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 1.6px;
+  text-decoration: none;
+  text-transform: uppercase;
+}
+
+.bru-access-blocked__link:focus-visible,
+.bru-access-blocked__link:hover {
+  outline: none;
+  border-color: var(--bru-text);
+  color: var(--bru-text);
 }
 
 /* ---------------- Motion ---------------- */

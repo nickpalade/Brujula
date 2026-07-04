@@ -124,7 +124,7 @@ Every output is a recommendation a human confirms — the coordinator is always 
 
 ### 4.3 Tech stack
 
-- **Model:** Gemma via **Ollama** on the laptop. Start `gemma3:4b` (fast, multimodal, ~3.3 GB, runs on a laptop without a GPU); size up to `gemma3:12b` / `gemma4:e4b` if the hardware allows. Ollama exposes a local REST API on `localhost:11434` — fully offline after the one-time model pull.
+- **Model:** Gemma via **Ollama** on the laptop. Start `gemma3:4b` (fast, multimodal, ~3.3 GB, runs on a laptop without a GPU); size up to `gemma3:12b` / `gemma3n:e4b` if the hardware allows. Ollama exposes a local REST API on `localhost:11434` — fully offline after the one-time model pull.
 - **Hub server:** FastAPI (Python), SQLite for the offline store.
 - **Sync:** phones ↔ hub over local WiFi (laptop hotspot / field router); store-and-forward queue on the client.
 - **Frontend:** React, responsive, one codebase for laptop + mobile, shared design system. **Not Streamlit (banned).**

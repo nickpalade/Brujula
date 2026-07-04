@@ -40,6 +40,17 @@ const POLL_MS = 1000;
 // something meaningful for already-downloaded areas.
 const REMOTE_TILE_URL = 'https://basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png';
 const LOCAL_TILE_URL = '/tiles/{z}/{x}/{y}.png';
+const FALLBACK_TILE_URL = `data:image/svg+xml,${encodeURIComponent(`
+<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 256 256">
+  <rect width="256" height="256" fill="#121a16"/>
+  <path d="M0 64H256M0 128H256M0 192H256M64 0V256M128 0V256M192 0V256" stroke="#26342d" stroke-width="1"/>
+  <path d="M18 170C52 139 81 150 105 119C132 85 163 92 193 54M38 216C78 198 110 210 143 184C174 160 195 165 226 142" fill="none" stroke="#315443" stroke-width="7" stroke-linecap="round" opacity="0.65"/>
+  <circle cx="105" cy="119" r="7" fill="#4ee0a2"/>
+  <circle cx="193" cy="54" r="6" fill="#4ee0a2"/>
+  <text x="128" y="132" text-anchor="middle" fill="#91a79b" font-family="Arial, sans-serif" font-size="13" font-weight="700">MAP PREVIEW</text>
+  <text x="128" y="150" text-anchor="middle" fill="#72877b" font-family="Arial, sans-serif" font-size="11">tile unavailable</text>
+</svg>
+`)}`;
 
 // Client-side slippy-map tile math for the live estimate (mirrors
 // server/tiles.js — worth the ~10 duplicated lines to keep the preview
@@ -96,6 +107,7 @@ function OfflineMapsModal({ open, onClose }) {
   const [estimate, setEstimate] = useState(null); // { bbox, tiles, bytes }
   const [actionError, setActionError] = useState(null);
   const [busy, setBusy] = useState(false);
+  const [previewFailed, setPreviewFailed] = useState(false);
 
   const maxTiles = status?.max_tiles ?? FALLBACK_MAX_TILES;
   const estTileBytes = status?.est_tile_bytes ?? FALLBACK_EST_TILE_BYTES;
@@ -134,6 +146,7 @@ function OfflineMapsModal({ open, onClose }) {
     if (!open) return undefined;
     setActionError(null);
     setOnline(null);
+    setPreviewFailed(false);
     refreshStatus();
 
     let cancelled = false;
@@ -181,15 +194,26 @@ function OfflineMapsModal({ open, onClose }) {
   }, [open, recomputeEstimate]);
 
   // Swap the base layer once we know whether the laptop can reach the CDN.
+  // If tile images fail, Leaflet paints a local placeholder tile instead of a
+  // white panel, so the fixed download box remains understandable.
   useEffect(() => {
     const map = mapRef.current;
     if (!open || !map || online === null) return undefined;
-    const layer = L.tileLayer(online ? REMOTE_TILE_URL : LOCAL_TILE_URL, {
+    setPreviewFailed(false);
+    const tileUrl = online ? REMOTE_TILE_URL : LOCAL_TILE_URL;
+    const layer = L.tileLayer(tileUrl, {
       minZoom: 3,
       maxZoom: ZOOM_MAX,
+      errorTileUrl: FALLBACK_TILE_URL,
+      crossOrigin: tileUrl.startsWith('https://') ? true : false,
     });
+    const markFailed = () => setPreviewFailed(true);
+    layer.on('tileerror', markFailed);
     layer.addTo(map);
-    return () => layer.remove();
+    return () => {
+      layer.off('tileerror', markFailed);
+      layer.remove();
+    };
   }, [open, online]);
 
   // While a download runs, poll status so the progress bar moves.
@@ -278,6 +302,11 @@ function OfflineMapsModal({ open, onClose }) {
 
           <div className="cmd-offline__picker">
             <div ref={containerRef} className="cmd-offline__canvas" />
+            {previewFailed && (
+              <div className="cmd-offline__preview-note" data-testid="offline-map-preview-fallback">
+                Map preview is using placeholder tiles. Check internet before downloading.
+              </div>
+            )}
             <div ref={boxRef} className="cmd-offline__box" aria-hidden="true">
               <span className="cmd-offline__box-tag">DOWNLOAD AREA</span>
             </div>

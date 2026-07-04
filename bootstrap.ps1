@@ -5,7 +5,7 @@
 # Run:  powershell -ExecutionPolicy Bypass -File bootstrap.ps1
 
 # ── TWEAK: model + endpoint ─────────────────────────────────────────────
-$MODEL = "gemma4:e4b"   # the model the demo + verify runs use (multimodal)
+$MODEL = "gemma3n:e4b"   # the model the demo + verify runs use (multimodal)
 $OLLAMA_URL = "http://localhost:11434"
 
 $ErrorActionPreference = "Stop"

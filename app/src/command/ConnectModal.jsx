@@ -3,30 +3,38 @@ import { QRCodeSVG } from 'qrcode.react';
 import Button from '../shared/Button.jsx';
 import Icon from '../shared/Icon.jsx';
 
+const LOCAL_HOSTNAMES = new Set(['localhost', '127.0.0.1', '::1']);
+
 /*
  * ConnectModal — "Connect a phone" helper for the command center.
  *
  * Shows a QR code (and copyable link) that points a field responder's phone at
- * the field client. The URL is derived from the page the command post is served
- * from (window.location.origin + /field), so whatever address the operator
- * opened the console on — typically the hub's LAN IP — the QR points phones at
- * the right place with no manual IP entry.
- *
- * Caveat: if the console itself is opened on localhost, phones on the LAN can't
- * reach it, so we surface a warning telling the operator to reopen the console
- * via the machine's network IP.
+ * the field client. The URL comes from the hub's network-info endpoint, so it
+ * uses the LAN address even when the operator opened Command on localhost.
  */
 function ConnectModal({ open, onClose }) {
   const [copied, setCopied] = useState(false);
+  const [lanOrigin, setLanOrigin] = useState('');
 
-  const { fieldUrl, isLocal } = useMemo(() => {
-    if (typeof window === 'undefined') return { fieldUrl: '', isLocal: false };
-    const { origin, hostname } = window.location;
-    return {
-      fieldUrl: `${origin}/field`,
-      isLocal: hostname === 'localhost' || hostname === '127.0.0.1' || hostname === '[::1]',
-    };
-  }, []);
+  const fieldUrl = useMemo(() => {
+    if (lanOrigin) return `${lanOrigin}/field`;
+    if (typeof window === 'undefined') return '';
+    if (LOCAL_HOSTNAMES.has(window.location.hostname)) return '';
+    return `${window.location.origin}/field`;
+  }, [lanOrigin]);
+
+  useEffect(() => {
+    if (!open) return undefined;
+    const controller = new AbortController();
+    fetch('/api/network-info', { signal: controller.signal })
+      .then((response) => response.ok ? response.json() : null)
+      .then((body) => {
+        const origin = body?.data?.lan_origin;
+        if (typeof origin === 'string' && origin) setLanOrigin(origin.replace(/\/$/, ''));
+      })
+      .catch(() => {});
+    return () => controller.abort();
+  }, [open]);
 
   useEffect(() => {
     if (!open) return undefined;
@@ -77,26 +85,21 @@ function ConnectModal({ open, onClose }) {
           </p>
 
           <div className="cmd-connect__qr">
-            <QRCodeSVG value={fieldUrl} size={224} level="M" marginSize={2} />
+            {fieldUrl ? (
+              <QRCodeSVG value={fieldUrl} size={224} level="M" marginSize={2} />
+            ) : (
+              <span className="cmd-connect__pending">Preparing network link...</span>
+            )}
           </div>
 
           <div className="cmd-connect__linkrow">
-            <code className="cmd-connect__link">{fieldUrl}</code>
-            <Button variant="primary" size="sm" onClick={copy}>
+            <code className="cmd-connect__link">{fieldUrl || 'Preparing network link...'}</code>
+            <Button variant="primary" size="sm" onClick={copy} disabled={!fieldUrl}>
               <Icon name={copied ? 'check' : 'copy'} />
               {copied ? 'Copied' : 'Copy link'}
             </Button>
           </div>
 
-          {isLocal && (
-            <div className="cmd-connect__warn">
-              <strong>Heads up:</strong> this console is open on{' '}
-              <code>localhost</code>, which phones on your network can't reach.
-              Reopen the command center using this computer's network IP address
-              (e.g. <code>http://10.0.0.5:8000/command</code>), then this QR code
-              will point phones to the right place.
-            </div>
-          )}
         </div>
       </div>
     </div>

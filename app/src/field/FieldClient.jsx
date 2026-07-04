@@ -13,6 +13,7 @@ import { useI18n } from '../shared/i18n.jsx'
 import { LANGUAGES } from '../shared/languages.js'
 import { useAgentBusy } from '../shared/useAgentBusy.js'
 import BrujulaMark from '../shared/BrujulaMark.jsx'
+import ContextChat from '../shared/ContextChat.jsx'
 import DotGrid from '../vendor/DotGrid.jsx'
 import { useOutbox } from './useOutbox.js'
 import { useAssignments } from './useAssignments.js'
@@ -259,7 +260,7 @@ function FieldClient() {
     () => items.map((it) => it.incident_id).filter(Boolean),
     [items],
   )
-  const { assignments, acknowledge, unackedCount, alerts } = useAssignments(myIncidentIds)
+  const { assignments, acknowledge, unackedCount, alerts, board } = useAssignments(myIncidentIds)
 
   if (!profile) {
     return (
@@ -358,8 +359,13 @@ function FieldClient() {
           <>
             <ReportForm onSubmit={handleSubmit} />
             <div className="field-queue">
-              <QueueList items={items} onClearSynced={clearSynced} />
+              <QueueList
+                items={items}
+                incidents={board.incidents}
+                onClearSynced={clearSynced}
+              />
             </div>
+            <ContextChat station="field" />
           </>
         )}
       </main>

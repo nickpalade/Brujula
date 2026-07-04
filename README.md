@@ -15,7 +15,7 @@ Demo script: [DEMO.md](DEMO.md). Pipeline consolidation notes:
 
 ## 1. Bootstrap (one time, needs internet)
 
-Installs Ollama, pulls the model (`gemma4:e4b`), starts + verifies the Ollama
+Installs Ollama, pulls the model (`gemma3n:e4b`), starts + verifies the Ollama
 server. Fails fast if Node < 22.5 (the store uses the built-in `node:sqlite`).
 
 ```powershell
@@ -53,7 +53,7 @@ Startup prints the LAN URL to point phones at, e.g.:
 
 ```
   Point phones at:  http://192.168.137.1:8000
-  Provider: ollama   Model: gemma4:e4b
+  Provider: ollama   Model: gemma3n:e4b
 ```
 
 (On a Windows hotspot the laptop is always `192.168.137.1`. Phones must be
@@ -84,7 +84,7 @@ Everything is served from the one Express server; phones need ONE LAN URL.
   (hotspot)  ───►│   ├─ /field, /command  → built React app (app/dist)     │
                  │   ├─ /api/*            → hub (store.js + routes/hub.js)  │
                  │   │     POST /api/reports → parse→dedup→prioritize→match │
-                 │   │       (server/pipeline/* → Ollama gemma4:e4b)        │
+                 │   │       (server/pipeline/* → Ollama gemma3n:e4b)       │
                  │   ├─ /api/advise       → routes/advise.js (proxy+local)  │
                  │   └─ data/hub.db       → SQLite store (survives restart) │
                  └────────────────────────────────────────────────────────┘
@@ -324,7 +324,7 @@ output returns a clean 502, never a crash.
 ## Switching the model
 
 Web console → Models → **Use**, or `BRUJULA_MODEL=gemma3:12b`, or edit
-`DEFAULT_MODEL` in `server/config.js` (default: `gemma4:e4b`). Resolution:
+`DEFAULT_MODEL` in `server/config.js` (default: `gemma3n:e4b`). Resolution:
 saved choice → env/default → any `gemma*` → first installed. Missing models
 never crash the server.
 

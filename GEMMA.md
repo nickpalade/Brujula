@@ -2,7 +2,7 @@
 
 *Track: Google DeepMind — Remote (Edge / On-Device). Compiled July 4, 2026, from Google's official docs/blogs and the Maarten Grootendorst "Visual Guide" series. Sources listed at the end.*
 
-**TL;DR for the team:** Gemma 4 is the current generation of Google DeepMind's open models (Apache 2.0), explicitly built for the edge. The lineup runs from **E2B** (fits in <1.5 GB RAM, runs on a Raspberry Pi) to a **31B dense** model that ranks #3 on the Arena open-source leaderboard. All variants are multimodal (text + image; audio native on E2B/E4B/12B), support **140+ languages** (Spanish is well inside the top tier), and ship with **native function-calling and structured JSON output** — exactly what our parse→dedup→match pipeline needs. Everything runs on Ollama. For Brújula: **`gemma4:e4b` (QAT) on the hub laptop is the sweet spot; E2B is the on-phone stretch.**
+**TL;DR for the team:** Gemma 4 is the current generation of Google DeepMind's open models (Apache 2.0), explicitly built for the edge. The lineup runs from **E2B** (fits in <1.5 GB RAM, runs on a Raspberry Pi) to a **31B dense** model that ranks #3 on the Arena open-source leaderboard. All variants are multimodal (text + image; audio native on E2B/E4B/12B), support **140+ languages** (Spanish is well inside the top tier), and ship with **native function-calling and structured JSON output** — exactly what our parse→dedup→match pipeline needs. Everything runs on Ollama. For Brújula: **`gemma3n:e4b` (QAT) on the hub laptop is the sweet spot; E2B is the on-phone stretch.**
 
 ---
 

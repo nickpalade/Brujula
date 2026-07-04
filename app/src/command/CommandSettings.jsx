@@ -70,29 +70,19 @@ function CommandSettings({ onConnectPhone, onOfflineMaps, onRefresh, refreshing,
       {open && (
         <section className="cmd-settings__panel" role="dialog" aria-label="Command post settings">
           <div className="cmd-settings__head">
-            <div>
-              <span className="cmd-settings__eyebrow">COMMAND POST</span>
-              <h2>Settings</h2>
-            </div>
+            <h2>Settings</h2>
             <button type="button" className="cmd-settings__close" aria-label="Close settings" onClick={() => setOpen(false)}>
               <Icon name="close" />
             </button>
           </div>
 
           <div className="cmd-settings__section">
-            <span className="cmd-settings__section-title">Workspace</span>
             <div className="cmd-settings__field">
-              <span>
-                <strong>Language</strong>
-                <small>Interface, AI summaries and SITREPs</small>
-              </span>
+              <strong>Language</strong>
               <LanguagePicker compact />
             </div>
             <div className="cmd-settings__field cmd-settings__field--stacked">
-              <span>
-                <strong>Display density</strong>
-                <small>Choose how much operational data fits on screen</small>
-              </span>
+              <strong>Display density</strong>
               <div className="cmd-settings__segments" aria-label="Display density">
                 {['comfortable', 'compact'].map((value) => (
                   <button

@@ -5,8 +5,7 @@ import Panel from '../shared/Panel.jsx';
 import Icon from '../shared/Icon.jsx';
 import { CATEGORY_LABEL, formatAge, isLiveVictim } from '../shared/urgency.js';
 import DispatchProposal from './DispatchProposal.jsx';
-import AdvisoryPanel from './AdvisoryPanel.jsx';
-import { advise, getReports, patchIncident, rematchIncident } from './dataSource.js';
+import { getReports, patchIncident, rematchIncident } from './dataSource.js';
 
 const CATEGORIES = ['rescue', 'medical', 'water', 'shelter', 'food', 'machinery', 'hazard', 'status'];
 const URGENCIES = ['critical', 'high', 'medium', 'low'];
@@ -16,7 +15,6 @@ const URGENCIES = ['critical', 'high', 'medium', 'low'];
  *   - header (urgency, category, location, people, age)
  *   - dispatch proposal (confirm/override)
  *   - merged report texts (dedup evidence: "N reports merged")
- *   - protocol advisory panel (fetched on open)
  *   - SITREP button (parent renders the modal)
  */
 function IncidentDrawer({
@@ -33,10 +31,6 @@ function IncidentDrawer({
   onRematchIncident,
   escalated,
 }) {
-  const [advisory, setAdvisory] = useState(null);
-  const [advLoading, setAdvLoading] = useState(false);
-  const [advError, setAdvError] = useState(null);
-
   const [reports, setReports] = useState([]);
   const [repLoading, setRepLoading] = useState(false);
 
@@ -46,7 +40,6 @@ function IncidentDrawer({
   const [editBusy, setEditBusy] = useState(false);
 
   const incidentId = incident?.id;
-  const category = incident?.category;
   const mergedIds = incident?.merged_report_ids;
 
   // Initialize edit data when incident changes
@@ -62,23 +55,6 @@ function IncidentDrawer({
     }
     setEditMode(false);
   }, [incidentId]);
-
-  // Fetch protocol advisory whenever the selected incident's category changes.
-  useEffect(() => {
-    if (!incidentId) return undefined;
-    let cancelled = false;
-    setAdvLoading(true);
-    setAdvError(null);
-    setAdvisory(null);
-    advise({ incident_type: category, context: incident?.summary })
-      .then((a) => !cancelled && setAdvisory(a))
-      .catch((e) => !cancelled && setAdvError(e.message || 'Failed to load advisory'))
-      .finally(() => !cancelled && setAdvLoading(false));
-    return () => {
-      cancelled = true;
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [incidentId, category]);
 
   const handleEditSave = async () => {
     if (!incidentId) return;
@@ -407,9 +383,6 @@ function IncidentDrawer({
               </div>
             )}
           </Panel>
-
-          {/* --- Protocol advisory --- */}
-          <AdvisoryPanel advisory={advisory} loading={advLoading} error={advError} />
         </div>
 
         <footer className="cmd-drawer__foot">

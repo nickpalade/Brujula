@@ -5,8 +5,6 @@ import Panel from '../shared/Panel.jsx';
 import Badge from '../shared/Badge.jsx';
 import Button from '../shared/Button.jsx';
 import Icon from '../shared/Icon.jsx';
-import BrujulaMark from '../shared/BrujulaMark.jsx';
-import { useAgentBusy } from '../shared/useAgentBusy.js';
 import { sortByPriority } from '../shared/urgency.js';
 import IncidentCard from './IncidentCard.jsx';
 import DispatchProposal from './DispatchProposal.jsx';
@@ -17,6 +15,7 @@ import ConnectModal from './ConnectModal.jsx';
 import OfflineMapsModal from './OfflineMapsModal.jsx';
 import CommandSettings from './CommandSettings.jsx';
 import { loadCommandDensity, saveCommandDensity } from './commandSettingsStorage.js';
+import ContextChat from '../shared/ContextChat.jsx';
 import {
   USE_MOCKS,
   getSync,
@@ -24,13 +23,10 @@ import {
   confirmDispatch,
   createAlert,
   deactivateAlert,
-  getPersons,
-  getTrends,
+  rematchIncident,
 } from './dataSource.js';
 import AlertComposer from './AlertComposer.jsx';
 import AlertStrip from './AlertStrip.jsx';
-import PersonsPanel from './PersonsPanel.jsx';
-import TrendsPanel from './TrendsPanel.jsx';
 import { useWatchdog } from './useWatchdog.js';
 
 const POLL_MS = 4000; // CONTRACTS §5: poll /api/sync every 3–5 s
@@ -45,17 +41,24 @@ function mergeById(prev, incoming) {
   return [...map.values()];
 }
 
+function formatSyncAge(lastSync, now) {
+  if (!lastSync) return null;
+  const seconds = Math.max(0, Math.floor((now - lastSync.getTime()) / 1000));
+  const unit = seconds === 1 ? 'second' : 'seconds';
+  return `synced ${seconds} ${unit} ago`;
+}
+
 function CommandPost() {
   const [incidents, setIncidents] = useState([]);
   const [resources, setResources] = useState([]);
   const [dispatches, setDispatches] = useState([]);
   const [alerts, setAlerts] = useState([]);
-  const [persons, setPersons] = useState([]);
   const [seq, setSeq] = useState(0);
 
   const [loading, setLoading] = useState(true);
   const [syncError, setSyncError] = useState(null);
   const [lastSync, setLastSync] = useState(null);
+  const [now, setNow] = useState(() => Date.now());
 
   const [selectedId, setSelectedId] = useState(null);
   const [dispatchBusy, setDispatchBusy] = useState(false);
@@ -68,8 +71,8 @@ function CommandPost() {
   const [connectOpen, setConnectOpen] = useState(false);
   const [offlineMapsOpen, setOfflineMapsOpen] = useState(false);
   const [alertComposerOpen, setAlertComposerOpen] = useState(false);
-  const agentBusy = useAgentBusy();
   const [density, setDensity] = useState(loadCommandDensity);
+  const [rematchBusyId, setRematchBusyId] = useState(null);
 
   const seqRef = useRef(0);
 
@@ -80,18 +83,24 @@ function CommandPost() {
       if (Array.isArray(data.resources)) setResources((p) => mergeById(p, data.resources));
       if (Array.isArray(data.dispatches)) setDispatches((p) => mergeById(p, data.dispatches));
       if (Array.isArray(data.alerts)) setAlerts((p) => mergeById(p, data.alerts));
-      if (Array.isArray(data.persons)) setPersons((p) => mergeById(p, data.persons));
       if (typeof data.seq === 'number') {
         seqRef.current = data.seq;
         setSeq(data.seq);
       }
       setSyncError(null);
-      setLastSync(new Date());
+      const syncedAt = new Date();
+      setLastSync(syncedAt);
+      setNow(syncedAt.getTime());
     } catch (e) {
       setSyncError(e.message || 'sync failed');
     } finally {
       setLoading(false);
     }
+  }, []);
+
+  useEffect(() => {
+    const id = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(id);
   }, []);
 
   useEffect(() => {
@@ -124,6 +133,16 @@ function CommandPost() {
     [resources],
   );
 
+  const constrainedResources = useMemo(
+    () => resources.filter((r) => r.status !== 'available' || (r.field_status && r.field_status !== 'idle')),
+    [resources],
+  );
+
+  const activeAlerts = useMemo(
+    () => alerts.filter((alert) => alert.active !== false),
+    [alerts],
+  );
+
   const resourceById = useMemo(() => {
     const m = {};
     for (const r of resources) m[r.id] = r;
@@ -138,6 +157,20 @@ function CommandPost() {
 
   const selected = selectedId ? incidentById[selectedId] : null;
   const selectedDispatch = selected ? dispatchByIncident[selected.id] : null;
+
+  const needsAttention = useMemo(() => {
+    const seen = new Set();
+    return ordered.filter((incident) => {
+      if (incident.status !== 'open') return false;
+      const dispatch = dispatchByIncident[incident.id];
+      const isUnmatched = !dispatch || dispatch.state === 'withdrawn';
+      const isEscalated = Boolean(escalated[incident.id]?.escalated);
+      if (!isUnmatched && !isEscalated) return false;
+      if (seen.has(incident.id)) return false;
+      seen.add(incident.id);
+      return true;
+    });
+  }, [dispatchByIncident, escalated, ordered]);
 
   const handleConfirm = useCallback(
     async (dispatch, action = 'confirm', resourceId) => {
@@ -163,6 +196,21 @@ function CommandPost() {
     [handleConfirm],
   );
 
+  const handleRematch = useCallback(
+    async (incidentId) => {
+      setRematchBusyId(incidentId);
+      try {
+        await rematchIncident(incidentId);
+        await refresh();
+      } catch (e) {
+        setSyncError(e.message || 'rematch failed');
+      } finally {
+        setRematchBusyId(null);
+      }
+    },
+    [refresh],
+  );
+
   const openSitrep = useCallback(async () => {
     setSitrepOpen(true);
     setSitrepLoading(true);
@@ -177,6 +225,19 @@ function CommandPost() {
     }
   }, []);
 
+  const handleDeactivateAlert = useCallback(
+    async (id) => {
+      try {
+        const updated = await deactivateAlert(id);
+        setAlerts((prev) => mergeById(prev, [updated || { id, active: false }]));
+        await refresh();
+      } catch (e) {
+        setSyncError(e.message || 'alert deactivate failed');
+      }
+    },
+    [refresh],
+  );
+
   const criticalCount = ordered.filter((i) => i.urgency === 'critical' && i.status === 'open').length;
 
   const changeDensity = (next) => {
@@ -188,7 +249,13 @@ function CommandPost() {
     <div className={`bru-app cmd-root${density === 'compact' ? ' cmd-root--compact' : ''}`}>
       <header className="cmd-topbar">
         <div className="cmd-topbar__brand">
-          <BrujulaMark size={60} spinning={agentBusy} title="Brújula — Command Post" />
+          <img
+            className="cmd-topbar__logo"
+            src="/logo-animated.svg"
+            alt="Brújula — Command Post"
+            width="60"
+            height="60"
+          />
           <div className="cmd-topbar__wordmark">
             <div className="cmd-topbar__title">BRÚJULA</div>
             <div className="cmd-topbar__sub">Command Post · La Guaira</div>
@@ -196,12 +263,6 @@ function CommandPost() {
         </div>
 
         <div className="cmd-topbar__status">
-          <Badge variant="warn" dot title="No internet — everything runs locally">
-            OFFLINE
-          </Badge>
-          <Badge variant="ok" dot title="Gemma running on this laptop">
-            GEMMA · LOCAL
-          </Badge>
           <span
             className={`cmd-sync ${syncError ? 'cmd-sync--err' : ''}`}
             title={`sync seq ${seq}`}
@@ -210,7 +271,7 @@ function CommandPost() {
             {syncError
               ? 'SYNC ERROR'
               : lastSync
-                ? `SYNCED ${lastSync.toLocaleTimeString()}`
+                ? formatSyncAge(lastSync, now)
                 : 'CONNECTING…'}
           </span>
         </div>
@@ -229,7 +290,6 @@ function CommandPost() {
             <Icon name="sitrep" />
             SITREP
           </Button>
-        </div>
           <CommandSettings
             density={density}
             onDensityChange={changeDensity}
@@ -238,11 +298,12 @@ function CommandPost() {
             onRefresh={refresh}
             refreshing={loading}
           />
+        </div>
       </header>
 
       {/* --- Active alerts strip --- */}
-      {alerts.length > 0 && (
-        <AlertStrip alerts={alerts} onDeactivate={deactivateAlert} />
+      {activeAlerts.length > 0 && (
+        <AlertStrip alerts={activeAlerts} onDeactivate={handleDeactivateAlert} />
       )}
 
       <main className="cmd-main">
@@ -262,7 +323,6 @@ function CommandPost() {
                   {criticalCount} CRITICAL
                 </Badge>
               )}
-              <Badge variant="muted">{ordered.length} incidents</Badge>
             </div>
           }
         >
@@ -294,27 +354,19 @@ function CommandPost() {
         </Panel>
         </div>
 
-        {/* --- Right rail: AI proposals + resources --- */}
+        {/* --- Right rail: decisions, gaps, and constraints --- */}
         <div className="cmd-rail">
-          <Panel
-            title="AI Dispatch Proposals"
-            icon={<Icon name="dispatch" />}
-            className="cmd-rail__panel"
-            actions={
-              proposals.length > 0 ? (
+          {proposals.length > 0 && (
+            <Panel
+              title="Needs Human Decision"
+              icon={<Icon name="dispatch" />}
+              className="cmd-rail__panel"
+              actions={
                 <Badge variant="accent" dot pulse>
                   {proposals.length} AWAITING
                 </Badge>
-              ) : (
-                <Badge variant="muted">clear</Badge>
-              )
-            }
-          >
-            {proposals.length === 0 ? (
-              <div className="bru-empty">
-                <span>No dispatch proposals awaiting confirmation.</span>
-              </div>
-            ) : (
+              }
+            >
               <div className="cmd-rail__list">
                 {proposals.map((d) => (
                   <DispatchProposal
@@ -329,26 +381,83 @@ function CommandPost() {
                   />
                 ))}
               </div>
+            </Panel>
+          )}
+
+          <Panel
+            title="Unmatched / Escalated"
+            icon={<Icon name="feed" />}
+            className="cmd-rail__panel"
+            actions={
+              needsAttention.length > 0 ? (
+                <Badge variant="critical" dot pulse>
+                  {needsAttention.length} NEEDS ACTION
+                </Badge>
+              ) : (
+                <Badge variant="ok" dot>clear</Badge>
+              )
+            }
+          >
+            {needsAttention.length === 0 ? (
+              <div className="bru-empty">
+                <span>Every open incident has an actionable dispatch path.</span>
+              </div>
+            ) : (
+              <div className="cmd-attention">
+                {needsAttention.map((incident) => {
+                  const itemEscalated = escalated[incident.id];
+                  return (
+                    <article key={incident.id} className="cmd-attention__item">
+                      <button
+                        type="button"
+                        className="cmd-attention__summary"
+                        onClick={() => setSelectedId(incident.id)}
+                      >
+                        <span>{incident.location ?? 'Location unknown'}</span>
+                        <small>{incident.summary}</small>
+                      </button>
+                      <div className="cmd-attention__actions">
+                        <Badge variant={itemEscalated?.escalated ? 'critical' : 'muted'} dot>
+                          {itemEscalated?.escalated ? itemEscalated.label : 'unmatched'}
+                        </Badge>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleRematch(incident.id)}
+                          disabled={rematchBusyId === incident.id}
+                        >
+                          {rematchBusyId === incident.id ? 'Re-evaluating…' : 'Re-evaluate'}
+                        </Button>
+                      </div>
+                    </article>
+                  );
+                })}
+              </div>
             )}
           </Panel>
 
           <Panel
-            title="Resource Inventory"
+            title="Resource Constraints"
             icon={<Icon name="resource" />}
             className="cmd-rail__panel cmd-rail__panel--resources"
             actions={
-              <Badge variant="muted">
-                {availableResources.length}/{resources.length} available
+              <Badge variant={constrainedResources.length > 0 ? 'warn' : 'ok'} dot>
+                {availableResources.length} matchable
               </Badge>
             }
           >
             {resources.length === 0 ? (
               <div className="bru-empty">
-                <span>No resources in inventory.</span>
+                <span>No resources known to Gemma.</span>
+              </div>
+            ) : constrainedResources.length === 0 ? (
+              <div className="bru-empty">
+                <strong>All resources are matchable.</strong>
+                <span>Overrides can use any currently available resource.</span>
               </div>
             ) : (
               <ul className="cmd-resources">
-                {resources.map((r) => (
+                {constrainedResources.map((r) => (
                   <li key={r.id} className="cmd-resource" data-committed={r.status === 'committed'}>
                     <div className="cmd-resource__main">
                       <span className="cmd-resource__label">{r.label}</span>
@@ -358,7 +467,7 @@ function CommandPost() {
                       </span>
                     </div>
                     <Badge variant={r.status === 'available' ? 'ok' : 'muted'} dot>
-                      {r.status}
+                      {r.field_status && r.field_status !== 'idle' ? r.field_status : r.status}
                     </Badge>
                   </li>
                 ))}
@@ -366,9 +475,7 @@ function CommandPost() {
             )}
           </Panel>
 
-          <TrendsPanel getTrends={getTrends} />
-
-          <PersonsPanel persons={persons} />
+          <ContextChat station="command" />
         </div>
       </main>
 
@@ -383,10 +490,10 @@ function CommandPost() {
           onConfirm={(dsp) => handleConfirm(dsp)}
           onOverride={handleOverride}
           onOpenSitrep={openSitrep}
-          onPatchIncident={async (id, patch) => {
+          onPatchIncident={async () => {
             await refresh();
           }}
-          onRematchIncident={async (id) => {
+          onRematchIncident={async () => {
             await refresh();
           }}
           escalated={escalated[selected.id]}
@@ -402,7 +509,7 @@ function CommandPost() {
         resources={resources}
         dispatches={dispatches}
         alerts={alerts}
-        persons={persons}
+        persons={[]}
         escalated={escalated}
         onClose={() => setSitrepOpen(false)}
         onRegenerate={openSitrep}

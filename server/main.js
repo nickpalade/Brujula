@@ -92,6 +92,41 @@ function detectLanIp() {
   });
 }
 
+function normalizeRemoteAddress(address) {
+  return String(address || "")
+    .replace(/^::ffff:/, "")
+    .replace(/^\[|\]$/g, "")
+    .split("%")[0];
+}
+
+function hostMachineAddresses() {
+  const addresses = new Set(["127.0.0.1", "::1", "0:0:0:0:0:0:0:1"]);
+  for (const infos of Object.values(os.networkInterfaces())) {
+    for (const info of infos ?? []) {
+      addresses.add(normalizeRemoteAddress(info.address));
+    }
+  }
+  return addresses;
+}
+
+function isLoopbackAddress(address) {
+  return address === "::1" || address === "0:0:0:0:0:0:0:1" || address.startsWith("127.");
+}
+
+function isHostingMachineRequest(req) {
+  const remoteAddress = normalizeRemoteAddress(req.socket.remoteAddress || req.ip);
+  return isLoopbackAddress(remoteAddress) || hostMachineAddresses().has(remoteAddress);
+}
+
+function requireHostingMachine(req, res, next) {
+  if (isHostingMachineRequest(req)) {
+    return next();
+  }
+  res.status(403).type("text/plain").send(
+    "Command center is only available on the hosting machine. Use /field from phones.",
+  );
+}
+
 function envelope(res, { data = null, error = null, status = 200 } = {}) {
   res.status(status).json({ success: error === null, data, error });
 }
@@ -203,6 +238,18 @@ app.post("/language-config", (req, res) => {
     return envelope(res, { error: err.message, status: 400 });
   }
   envelope(res, { data: { language: parsed.data.language } });
+});
+
+// The command UI may itself be opened through localhost, but a phone cannot
+// use that hostname. Give the UI the hub address detected on this machine so
+// its QR code works without requiring the operator to rewrite the URL.
+app.get("/api/network-info", async (req, res) => {
+  const lanIp = await detectLanIp();
+  envelope(res, { data: { lan_origin: `http://${lanIp}:${PORT}` } });
+});
+
+app.get("/api/access/command", (req, res) => {
+  envelope(res, { data: { allowed: isHostingMachineRequest(req) } });
 });
 
 app.get("/models", async (req, res) => {
@@ -407,7 +454,7 @@ app.use(createTilesRouter(createTilesService({ tilesDir: TILES_DIR })));
 if (fs.existsSync(APP_DIST)) {
   app.use(express.static(APP_DIST));
   const sendApp = (req, res) => res.sendFile("index.html", { root: APP_DIST });
-  app.get("/command", sendApp);
+  app.get("/command", requireHostingMachine, sendApp);
   app.get("/field", sendApp);
   logger.info(`[web] serving built React app from ${APP_DIST} at /command and /field`);
 } else {

@@ -140,3 +140,36 @@ export const ResourcePatchRequest = z
     (v) => Object.values(v).some((val) => val !== undefined),
     { message: "at least one field must be present" }
   );
+
+// POST /api/chat — grounded natural-language Q&A over the current hub board
+// and offline KB protocols. The client may identify the station for tone only.
+export const ChatRequest = z.object({
+  question: z.string().min(1).max(1000),
+  station: z.enum(["command", "field"]).default("command"),
+});
+
+export const ChatAnswer = z.object({
+  answer: z.string().min(1).max(2500),
+  sources: z
+    .array(z.object({
+      label: z.string().min(1).max(120),
+      type: z.enum([
+        "incident",
+        "resource",
+        "report",
+        "dispatch",
+        "person",
+        "alert",
+        "personnel",
+        "trend",
+        "kb",
+        "board",
+      ]),
+    }))
+    .max(8)
+    .default([]),
+});
+
+export function chatAnswerJsonSchema() {
+  return z.toJSONSchema(ChatAnswer);
+}

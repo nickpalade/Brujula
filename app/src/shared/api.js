@@ -266,7 +266,7 @@ export const api = {
   // absent so the drawer falls back to the merged-count view.
   async getReports(ids = []) {
     if (USE_MOCKS) return mock.getReports(ids)
-    if (!ids || ids.length === 0) return []
+    if (!ids || ids.length === 0) return request('/api/reports')
     try {
       return await request(`/api/reports?ids=${ids.map(encodeURIComponent).join(',')}`)
     } catch {
@@ -391,6 +391,16 @@ export const api = {
     if (USE_MOCKS) return mock.clearTiles()
     return request('/api/tiles', { method: 'DELETE' })
   },
+
+  // POST /api/chat → { answer, sources, generated_at }
+  // Grounded Q&A over incidents, resources, reports, dispatches, persons and KB.
+  async chatContext({ question, station = 'command' }) {
+    if (USE_MOCKS) return mock.chatContext({ question, station })
+    return request('/api/chat', {
+      method: 'POST',
+      body: { question, station },
+    })
+  },
 }
 
 export default api
@@ -424,6 +434,7 @@ export const getTilesStatus = () => api.getTilesStatus()
 export const getTilesConnectivity = () => api.getTilesConnectivity()
 export const startTilesDownload = (bbox, name) => api.startTilesDownload(bbox, name)
 export const clearTiles = () => api.clearTiles()
+export const chatContext = (args) => api.chatContext(args)
 
 // ===========================================================================
 // MOCK LAYER — fixture-shaped, in-memory, stateful.
@@ -985,6 +996,34 @@ const mock = {
     t.regions = []
     t.download = null
     return delay({ cleared: true })
+  },
+
+  chatContext({ question, station }) {
+    const q = (question || '').toLowerCase()
+    let answer
+    let sources
+
+    if (/water|agua|resource|inventory|available|disponible/.test(q)) {
+      const water = mockDB.resources.find((r) => r.type === 'water')
+      answer = water
+        ? `${water.label} is available from ${water.location}. Capacity: ${water.capacity}.`
+        : 'No available water resource is currently listed in the inventory.'
+      sources = [{ label: 'Resource Inventory', type: 'resource' }]
+    } else if (/rescue|collapse|silence|trapped|usar|rescate/.test(q)) {
+      answer = [
+        'For rescue/collapse work, enforce silence periods before machinery starts so crews can listen for trapped survivors.',
+        'Confirm shoring and structural stability before entry or lifting.',
+      ].join('\n')
+      sources = [{ label: 'Knowledge Base: rescue', type: 'kb' }]
+    } else {
+      const firstIncident = prioritize(mockDB.incidents)[0]
+      answer = firstIncident
+        ? `${station === 'field' ? 'Current priority' : 'Top board context'}: ${firstIncident.summary}`
+        : 'No incident context is currently available.'
+      sources = [{ label: 'Current Incident Board', type: 'incident' }]
+    }
+
+    return delay({ answer, sources, generated_at: nowISO() })
   },
 }
 

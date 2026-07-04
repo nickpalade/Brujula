@@ -30,6 +30,8 @@ function AlertStrip({ alerts, onDeactivate }) {
               size="sm"
               onClick={() => onDeactivate(alert.id)}
               className="cmd-alert-item__close"
+              aria-label={`Deactivate alert: ${alert.message}`}
+              title="Deactivate alert"
             >
               <Icon name="close" />
             </Button>

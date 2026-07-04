@@ -1,4 +1,4 @@
-export const DEFAULT_MODEL = process.env.BRUJULA_MODEL || "gemma4:e4b";
+export const DEFAULT_MODEL = process.env.BRUJULA_MODEL || "gemma3n:e4b";
 
 export const HOST = process.env.BRUJULA_HOST || "0.0.0.0";
 export const PORT = Number.parseInt(process.env.BRUJULA_PORT || "8000", 10);
@@ -11,7 +11,7 @@ export const CLOUD_API_URL =
   process.env.CLOUD_API_URL || "https://api.anthropic.com/v1/messages";
 
 export const RECOMMENDED_MODELS = [
-  { name: "gemma4:e4b", size: "9.5 GB", note: "default — the demo model, text + vision" },
+  { name: "gemma3n:e4b", size: "7.5 GB", note: "default — the demo model, text + vision" },
   { name: "gemma3:1b", size: "815 MB", note: "fastest, lowest RAM" },
   { name: "gemma3:4b", size: "3.3 GB", note: "small — text + vision" },
   { name: "gemma3:12b", size: "8.1 GB", note: "16 GB+ RAM" },

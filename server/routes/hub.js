@@ -5,10 +5,14 @@ import { fileURLToPath } from "node:url";
 import express from "express";
 
 import { logger } from "../logger.js";
+import { OllamaError } from "../ollama-manager.js";
+import { getChatProvider } from "../providers/index.js";
 import * as store from "../store.js";
 import { geocodeLabel } from "../geocode.js";
 import {
   AlertRequest,
+  ChatAnswer,
+  ChatRequest,
   CrewStatusRequest,
   DispatchActionRequest,
   DispatchStatusRequest,
@@ -23,9 +27,287 @@ import {
 // full `/api/...` paths so a sub-router (advise) can be mounted alongside.
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
+const KB_FILE = path.join(HERE, "..", "kb", "protocols.json");
+
+let kbProtocols = null;
+try {
+  const kb = JSON.parse(fs.readFileSync(KB_FILE, "utf8"));
+  kbProtocols = kb.protocols ?? null;
+} catch (err) {
+  logger.warn(`[hub] could not load chat KB context from ${KB_FILE}: ${err.message}`);
+}
 
 function envelope(res, { data = null, error = null, status = 200 } = {}) {
   res.status(status).json({ success: error === null, data, error });
+}
+
+function compactRecord(value) {
+  return Object.fromEntries(
+    Object.entries(value).filter(([, v]) => v !== null && v !== undefined && v !== ""),
+  );
+}
+
+function buildChatSources() {
+  const incidents = store.listIncidents();
+  const resources = store.listResources();
+  const reports = store.listReports();
+  const dispatches = store.listDispatches();
+  const persons = store.listPersons();
+  const alerts = store.listAlerts();
+  const personnel = store.listPersonnel();
+  const openIncidents = incidents.filter((incident) => incident.status === "open");
+  const activeAlerts = alerts.filter((alert) => alert.active !== false);
+  const categories = {};
+  const locations = {};
+  for (const incident of incidents) {
+    const category = incident.category ?? "unknown";
+    const location = incident.location ?? "unknown";
+    categories[category] = (categories[category] ?? 0) + 1;
+    locations[location] = (locations[location] ?? 0) + 1;
+  }
+  const sources = [
+    {
+      label: "Current Board Summary",
+      type: "board",
+      text: JSON.stringify(compactRecord({
+        open_incidents: openIncidents.length,
+        total_incidents: incidents.length,
+        available_resources: resources.filter((resource) => resource.status === "available").length,
+        total_resources: resources.length,
+        confirmed_dispatches: dispatches.filter((dispatch) => dispatch.state === "confirmed").length,
+        active_alerts: activeAlerts.length,
+        registered_personnel: personnel.length,
+        persons_tracked: persons.length,
+      })),
+    },
+    {
+      label: "Current Trends",
+      type: "trend",
+      text: JSON.stringify({
+        categories,
+        busiest_locations: Object.entries(locations)
+          .sort((a, b) => b[1] - a[1])
+          .slice(0, 6)
+          .map(([location, count]) => ({ location, count })),
+      }),
+    },
+    ...incidents.map((incident) => ({
+      label: `Incident: ${incident.category} @ ${incident.location ?? "unknown"}`,
+      type: "incident",
+      text: JSON.stringify(compactRecord({
+        id: incident.id,
+        category: incident.category,
+        location: incident.location,
+        urgency: incident.urgency,
+        status: incident.status,
+        people_count: incident.people_count,
+        summary: incident.summary,
+      })),
+    })),
+    ...resources.map((resource) => ({
+      label: `Resource Inventory: ${resource.label || resource.type}`,
+      type: "resource",
+      text: JSON.stringify(compactRecord({
+        id: resource.id,
+        type: resource.type,
+        label: resource.label,
+        location: resource.location,
+        capacity: resource.capacity,
+        quantity: resource.quantity,
+        unit: resource.unit,
+        status: resource.status,
+        field_status: resource.field_status,
+      })),
+    })),
+    ...dispatches.map((dispatch) => ({
+      label: `Dispatch: ${dispatch.state} ${dispatch.resource_id ?? ""}`.trim(),
+      type: "dispatch",
+      text: JSON.stringify(compactRecord(dispatch)),
+    })),
+    ...reports.slice(-12).map((report) => ({
+      label: `Field Report: ${report.reported_by ?? report.source_device ?? report.id}`,
+      type: "report",
+      text: JSON.stringify(compactRecord({
+        id: report.id,
+        raw_text: report.raw_text,
+        reported_by: report.reported_by,
+        source_device: report.source_device,
+        parsed_into: report.parsed_into,
+        created_at: report.created_at,
+      })),
+    })),
+    ...persons.map((person) => ({
+      label: `Person Registry: ${person.name}`,
+      type: "person",
+      text: JSON.stringify(compactRecord(person)),
+    })),
+    ...activeAlerts.map((alert) => ({
+      label: `Active Alert: ${alert.severity}`,
+      type: "alert",
+      text: JSON.stringify(compactRecord(alert)),
+    })),
+    ...personnel.map((person) => ({
+      label: `Field Personnel: ${person.name}`,
+      type: "personnel",
+      text: JSON.stringify(compactRecord({
+        id: person.id,
+        role: person.role,
+        name: person.name,
+        skill: person.skill,
+        location: person.location,
+        team_size: person.team_size,
+        resource_id: person.resource_id,
+      })),
+    })),
+  ];
+
+  for (const [category, protocol] of Object.entries(kbProtocols ?? {})) {
+    sources.push({
+      label: `Knowledge Base: ${category}`,
+      type: "kb",
+      text: JSON.stringify(compactRecord({
+        category,
+        steps: protocol.steps,
+        source_label: protocol.source_label,
+        cautions: protocol.cautions,
+      })),
+    });
+  }
+
+  return sources;
+}
+
+function tokenize(text) {
+  return String(text)
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/\p{Diacritic}/gu, "")
+    .split(/[^a-z0-9]+/)
+    .filter((word) => word.length > 2 || word === "kb");
+}
+
+function hasAny(words, terms) {
+  return terms.some((term) => words.includes(term));
+}
+
+function scoreSource(questionWords, source) {
+  const haystack = `${source.label} ${source.text}`.toLowerCase().normalize("NFD").replace(/\p{Diacritic}/gu, "");
+  let score = questionWords.reduce((total, word) => total + (haystack.includes(word) ? 1 : 0), 0);
+
+  if (
+    source.type === "kb" &&
+    hasAny(questionWords, ["kb", "knowledge", "protocol", "protocols", "guidance", "safety", "safe", "usar", "sphere", "start"])
+  ) {
+    score += 6;
+  }
+  if (
+    source.type === "resource" &&
+    hasAny(questionWords, ["resource", "resources", "inventory", "available", "supply", "supplies", "equipment", "crew", "crews"])
+  ) {
+    score += 5;
+  }
+  if (
+    source.type === "incident" &&
+    hasAny(questionWords, ["incident", "incidents", "priority", "urgent", "open", "happening", "situation"])
+  ) {
+    score += 4;
+  }
+
+  return score;
+}
+
+function relevantChatSources(question, limit = 10) {
+  const words = tokenize(question);
+  const ranked = buildChatSources()
+    .map((source, index) => ({ source, index, score: scoreSource(words, source) }))
+    .sort((a, b) => b.score - a.score || a.index - b.index);
+  const hits = ranked.filter((x) => x.score > 0).slice(0, limit).map((x) => x.source);
+  return hits.length ? hits : ranked.slice(0, limit).map((x) => x.source);
+}
+
+function buildChatPrompt(station) {
+  const audience =
+    station === "field"
+      ? "a field responder on a phone; be brief, actionable, and plain-language"
+      : "a command post operator; be concise, operational, and source-aware";
+  return `You answer questions about an offline disaster coordination hub.
+Audience: ${audience}.
+
+Rules:
+- Use only the supplied context. If context is missing, say what is unknown.
+- Mention urgent incident/resource constraints first.
+- Do not give patient-specific medical diagnosis.
+- Keep the answer under 8 short bullets or 2 short paragraphs.
+- Return JSON only with { "answer": string, "sources": [{ "label": string, "type": string }] }.`;
+}
+
+function chatAnswerOllamaSchema() {
+  return {
+    type: "object",
+    properties: {
+      answer: { type: "string" },
+      sources: {
+        type: "array",
+        items: {
+          type: "object",
+          properties: {
+            label: { type: "string" },
+            type: { type: "string" },
+          },
+          required: ["label", "type"],
+        },
+      },
+    },
+    required: ["answer", "sources"],
+  };
+}
+
+const CHAT_SOURCE_TYPES = new Set([
+  "incident",
+  "resource",
+  "report",
+  "dispatch",
+  "person",
+  "alert",
+  "personnel",
+  "trend",
+  "kb",
+  "board",
+]);
+
+function normalizeChatSourceType(source, contextSources) {
+  if (CHAT_SOURCE_TYPES.has(source?.type)) return source.type;
+
+  const label = String(source?.label ?? "").toLowerCase();
+  const matched = contextSources.find((contextSource) => {
+    const contextLabel = contextSource.label.toLowerCase();
+    return label === contextLabel || label.includes(contextLabel) || contextLabel.includes(label);
+  });
+  if (matched) return matched.type;
+
+  if (label.includes("knowledge") || label.includes("protocol") || label.includes("kb")) return "kb";
+  if (label.includes("resource") || label.includes("inventory")) return "resource";
+  if (label.includes("incident")) return "incident";
+  if (label.includes("trend")) return "trend";
+  if (label.includes("dispatch")) return "dispatch";
+  if (label.includes("personnel")) return "personnel";
+  if (label.includes("person")) return "person";
+  if (label.includes("alert")) return "alert";
+  return "board";
+}
+
+function parseChatAnswer(raw, contextSources) {
+  const parsed = JSON.parse(raw);
+  const normalized = {
+    answer: parsed.answer,
+    sources: Array.isArray(parsed.sources)
+      ? parsed.sources.map((source) => ({
+          label: String(source?.label || "Current Board Summary").slice(0, 120),
+          type: normalizeChatSourceType(source, contextSources),
+        }))
+      : [],
+  };
+  return ChatAnswer.parse(normalized);
 }
 
 // Normalize a person's name for matching: lowercase, remove accents, collapse whitespace.
@@ -316,17 +598,19 @@ hubRouter.post("/api/reports", async (req, res) => {
 });
 
 // Merge a new report's parsed fields into an existing incident. Raises what we
-// know (max urgency, max people_count, fill missing location) and records the
-// merged report id — the dedup evidence the Command UI renders.
+// know (max urgency, max people_count for need reports, fill missing location)
+// and records the merged report id — the dedup evidence the Command UI renders.
 // (Exported for tests.)
 export function mergeReportIntoIncident(incident, reportId, fields, coords = {}) {
   const patch = {
     merged_report_ids: [...(incident.merged_report_ids ?? []), reportId],
   };
+  const canRaisePeopleCount = fields.kind !== "resource" || incident.kind !== "need";
   if ((URGENCY_RANK[fields.urgency] ?? 0) > (URGENCY_RANK[incident.urgency] ?? 0)) {
     patch.urgency = fields.urgency;
   }
   if (
+    canRaisePeopleCount &&
     fields.people_count != null &&
     (incident.people_count == null || fields.people_count > incident.people_count)
   ) {
@@ -609,6 +893,54 @@ hubRouter.get("/api/sitrep", async (req, res) => {
   envelope(res, { data: { text, generated_at: new Date().toISOString() } });
 });
 
+// POST /api/chat — Q&A over the current board and offline KB context.
+// Chat must be actual local Gemma output. If Gemma is unavailable or returns
+// malformed JSON, surface that instead of disguising deterministic context as AI.
+hubRouter.post("/api/chat", async (req, res) => {
+  const parsed = ChatRequest.safeParse(req.body);
+  if (!parsed.success) {
+    return envelope(res, {
+      error: 'body must be {"question": "<1-1000 chars>", "station"?: "command"|"field"}',
+      status: 400,
+    });
+  }
+
+  const { question, station } = parsed.data;
+  const sources = relevantChatSources(question);
+  const context = sources
+    .map((source, index) => `${index + 1}. [${source.type}] ${source.label}\n${source.text}`)
+    .join("\n\n");
+
+  try {
+    const provider = getChatProvider();
+    const raw = await provider.generateStructured({
+      systemPrompt: buildChatPrompt(station),
+      userText: `QUESTION:\n${question}\n\nCONTEXT:\n${context}`,
+      jsonSchema: chatAnswerOllamaSchema(),
+    });
+    const answer = parseChatAnswer(raw, sources);
+    return envelope(res, {
+      data: {
+        ...answer,
+        generated_at: new Date().toISOString(),
+      },
+    });
+  } catch (err) {
+    if (
+      err instanceof OllamaError ||
+      err instanceof SyntaxError ||
+      err.name === "ZodError"
+    ) {
+      logger.warn(`[hub] chat Gemma failure: ${err.message}`);
+      return envelope(res, {
+        error: `Gemma chat unavailable: ${err.message}`,
+        status: 503,
+      });
+    }
+    throw err;
+  }
+});
+
 // ---- Broadcast alerts ---------------------------------------------------
 
 // POST /api/alerts — create a broadcast alert.
@@ -847,7 +1179,6 @@ hubRouter.get("/api/trends", (req, res) => {
   // Count reports by category/location in each window
   const allReports = store.listReports();
   const allIncidents = store.listIncidents();
-  const allDispatches = store.listDispatches();
 
   // Build incident lookup
   const incidentById = {};

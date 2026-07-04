@@ -118,6 +118,33 @@ const dispatches = [
   },
 ];
 
+const alerts = [];
+
+const persons = [
+  {
+    id: 'per-seed-maria-lopez',
+    name: 'Maria Lopez',
+    status: 'missing',
+    detail: 'Last reported near the collapsed Playa Grande apartment block.',
+    incident_id: 'inc-seed-collapse-playa-grande',
+    report_id: 'rep-seed-pg-1',
+    matched: false,
+    created_at: iso(6 * MIN),
+    updated_at: iso(6 * MIN),
+  },
+  {
+    id: 'per-seed-carlos-rivas',
+    name: 'Carlos Rivas',
+    status: 'found',
+    detail: 'Found at Refugio San Jose after the shelter medical report.',
+    incident_id: 'inc-seed-medical-refugio-san-jose',
+    report_id: 'rep-seed-med-1',
+    matched: true,
+    created_at: iso(4 * HR),
+    updated_at: iso(2 * HR),
+  },
+];
+
 /*
  * Reports keyed by id — powers the drawer's "merged report texts" dedup
  * evidence. NOTE: CONTRACTS v1 has no GET /reports endpoint, so the drawer
@@ -237,7 +264,14 @@ const delay = (ms = 220) => new Promise((r) => setTimeout(r, ms));
 
 export async function getSync(/* since */) {
   await delay(180);
-  return { seq, incidents: clone(incidents), dispatches: clone(dispatches), resources: clone(resources) };
+  return {
+    seq,
+    incidents: clone(incidents),
+    dispatches: clone(dispatches),
+    resources: clone(resources),
+    alerts: clone(alerts),
+    persons: clone(persons),
+  };
 }
 
 export async function getIncidents() {
@@ -325,7 +359,42 @@ export async function confirmDispatch(incidentId, { dispatch_id, action, resourc
 /* Convenience (not in CONTRACTS v1) — drawer dedup evidence. */
 export async function getReports(ids = []) {
   await delay(120);
+  if (!ids || ids.length === 0) return Object.values(reports).map(clone);
   return ids.map((id) => reports[id]).filter(Boolean).map(clone);
+}
+
+export async function getPersons() {
+  await delay(120);
+  return clone(persons);
+}
+
+export async function createAlert({ message, severity = 'info', zone = null } = {}) {
+  await delay(120);
+  const alert = {
+    id: rid('alr'),
+    message,
+    severity,
+    zone: zone || null,
+    active: true,
+    created_at: new Date().toISOString(),
+  };
+  alerts.push(alert);
+  bump();
+  return clone(alert);
+}
+
+export async function deactivateAlert(id) {
+  await delay(120);
+  const alert = alerts.find((item) => item.id === id);
+  if (!alert) return { id, active: false };
+  alert.active = false;
+  bump();
+  return clone(alert);
+}
+
+export async function getAlerts() {
+  await delay(120);
+  return clone(alerts.filter((alert) => alert.active !== false));
 }
 
 /* UI languages the app is translated into (see shared/languages.js). */
