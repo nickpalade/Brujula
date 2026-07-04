@@ -109,7 +109,10 @@
   display: flex;
   border-top: 1px solid var(--f-border);
   background: var(--f-surface);
-  padding-bottom: env(safe-area-inset-bottom, 0);
+  /* Clear the iOS home indicator without a fat empty band: swallow most of
+     the inset so the labels sit just above the indicator, native-tab-bar
+     style. Browsers (inset 0) get a slim 6px. */
+  padding-bottom: max(calc(env(safe-area-inset-bottom, 0px) - 16px), 6px);
 }
 .field-tab {
   flex: 1;
@@ -119,7 +122,7 @@
   color: var(--f-text-dim);
   font-size: 13px;
   font-weight: 600;
-  padding: 14px 8px;
+  padding: 12px 8px;
   cursor: pointer;
   position: relative;
 }
