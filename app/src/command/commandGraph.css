@@ -9,6 +9,10 @@
 
 .cmd-graph-topbar {
   z-index: 20;
+  /* Blend into the plotting-table background — only the controls read as
+     elements, not a solid rail. */
+  background: transparent;
+  border-bottom: none;
 }
 
 .cmd-graph-main {
@@ -256,19 +260,19 @@
   align-items: center;
   flex-wrap: wrap;
   gap: 6px;
-  padding: 8px 10px;
-  background: var(--bru-bg-1);
-  border: 1px solid var(--bru-border);
-  border-radius: 8px;
-  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.32);
+  /* No panel plate — the chips carry their own fill against the canvas. */
+  padding: 0;
+  background: transparent;
+  border: none;
+  box-shadow: none;
 }
 
 .cmd-graph-filters__chip {
   appearance: none;
   padding: 4px 11px;
   color: var(--bru-text-dim);
-  background: transparent;
-  border: 1px solid var(--bru-border);
+  background: var(--bru-bg-1);
+  border: 1px solid var(--bru-border-strong);
   border-radius: var(--bru-r-sm);
   font-size: 12px;
   font-weight: 600;
