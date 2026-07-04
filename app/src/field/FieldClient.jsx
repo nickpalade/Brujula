@@ -19,6 +19,7 @@ import Onboarding from './Onboarding.jsx'
 import ReportForm from './ReportForm.jsx'
 import QueueList from './QueueList.jsx'
 import AssignmentInbox from './AssignmentInbox.jsx'
+import AskPanel from './AskPanel.jsx'
 import AlertBanner from './AlertBanner.jsx'
 import DemoTest from './DemoTest.jsx'
 
@@ -348,15 +349,17 @@ function FieldClient() {
             busy={statusBusy}
           />
         )}
-        {tab === 'report' || isReporter ? (
+        {tab === 'ask' ? (
+          <AskPanel deviceId={profile.device_id} />
+        ) : tab === 'inbox' && !isReporter ? (
+          <AssignmentInbox assignments={assignments} onAcknowledge={acknowledge} />
+        ) : (
           <>
             <ReportForm onSubmit={handleSubmit} />
             <div style={{ marginTop: 28 }}>
               <QueueList items={items} onClearSynced={clearSynced} />
             </div>
           </>
-        ) : (
-          <AssignmentInbox assignments={assignments} onAcknowledge={acknowledge} />
         )}
       </main>
 
@@ -370,15 +373,15 @@ function FieldClient() {
         />
       )}
 
-      {!isReporter && (
-        <nav className="field-tabs">
-          <button
-            type="button"
-            className={`field-tab${tab === 'report' ? ' active' : ''}`}
-            onClick={() => setTab('report')}
-          >
-            {t('tab.report')}
-          </button>
+      <nav className="field-tabs">
+        <button
+          type="button"
+          className={`field-tab${tab === 'report' ? ' active' : ''}`}
+          onClick={() => setTab('report')}
+        >
+          {t('tab.report')}
+        </button>
+        {!isReporter && (
           <button
             type="button"
             className={`field-tab${tab === 'inbox' ? ' active' : ''}`}
@@ -387,8 +390,15 @@ function FieldClient() {
             {t('tab.inbox')}
             {unackedCount > 0 && <span className="badge-count">{unackedCount}</span>}
           </button>
-        </nav>
-      )}
+        )}
+        <button
+          type="button"
+          className={`field-tab${tab === 'ask' ? ' active' : ''}`}
+          onClick={() => setTab('ask')}
+        >
+          {t('tab.ask')}
+        </button>
+      </nav>
     </div>
   )
 }
