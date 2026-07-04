@@ -5,6 +5,7 @@
 // receive assignments. Uses the shared api.js client.
 
 import { useEffect, useMemo, useRef, useState } from 'react'
+import '../shared/styles.css'
 import './field.css'
 import { api, USE_MOCKS } from '../shared/api.js'
 import Icon from '../shared/Icon.jsx'
@@ -262,7 +263,7 @@ function FieldClient() {
 
   if (!profile) {
     return (
-      <div className="field-app">
+      <div className="bru-app field-app">
         <header className="field-header">
           <div className="field-brand">
             <BrujulaMark size={32} spinning={agentBusy} />
@@ -303,7 +304,7 @@ function FieldClient() {
   }
 
   return (
-    <div className="field-app">
+    <div className="bru-app field-app">
       <div className="field-dots" aria-hidden="true">
         <DotGrid
           dotSize={2.5}
@@ -356,7 +357,7 @@ function FieldClient() {
         ) : (
           <>
             <ReportForm onSubmit={handleSubmit} />
-            <div style={{ marginTop: 28 }}>
+            <div className="field-queue">
               <QueueList items={items} onClearSynced={clearSynced} />
             </div>
           </>

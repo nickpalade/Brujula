@@ -188,3 +188,43 @@
   background: transparent;
   color: var(--f-text, #eff4f1);
 }
+
+.field-app .voice-live,
+.field-app .voice-hint,
+.field-app .voice-review {
+  border-radius: var(--bru-r-sm, 6px);
+  background: var(--bru-bg-2, #1f2d25);
+  border-color: var(--bru-border-strong, #3c5445);
+  color: var(--bru-text, #eff4f1);
+  box-shadow: var(--bru-shadow-2, 0 8px 24px rgba(0, 0, 0, 0.45));
+}
+
+.field-app .voice-live {
+  border-color: var(--bru-critical-border, rgba(255, 69, 58, 0.55));
+}
+
+.field-app .voice-live::after,
+.field-app .voice-review::after {
+  background: var(--bru-bg-2, #1f2d25);
+}
+
+.field-app .voice-live-label,
+.field-app .voice-review-title {
+  font-family: var(--bru-mono, ui-monospace, Consolas, monospace);
+  letter-spacing: 1px;
+}
+
+.field-app .voice-review-primary,
+.field-app .voice-review-secondary {
+  min-height: 44px;
+  border-radius: var(--bru-r-sm, 6px);
+  font-family: var(--bru-mono, ui-monospace, Consolas, monospace);
+  letter-spacing: 0.7px;
+  text-transform: uppercase;
+}
+
+.field-app .voice-review-primary {
+  background: var(--bru-accent, #b03a46);
+  border-color: var(--bru-accent, #b03a46);
+  color: #fff;
+}
