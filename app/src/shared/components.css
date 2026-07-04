@@ -91,7 +91,9 @@
   width: 100%;
 }
 
-/* ---------------- Badge ---------------- */
+/* ---------------- Badge ----------------
+   Flat stencil tags, not pills: square corners, LED-square dot. Bubbles read
+   consumer-app; hard edges read equipment label. */
 .bru-badge {
   display: inline-flex;
   align-items: center;
@@ -100,8 +102,8 @@
   font-size: 11px;
   font-weight: 700;
   letter-spacing: 0.6px;
-  padding: 3px 8px;
-  border-radius: 999px;
+  padding: 3px 7px;
+  border-radius: 2px;
   border: 1px solid var(--bru-border-strong);
   background: var(--bru-bg-3);
   color: var(--bru-text-dim);
@@ -110,9 +112,9 @@
   line-height: 1.4;
 }
 .bru-badge__dot {
-  width: 7px;
-  height: 7px;
-  border-radius: 50%;
+  width: 6px;
+  height: 6px;
+  border-radius: 1px;
   background: currentColor;
   flex: none;
 }
@@ -230,16 +232,18 @@
   text-transform: uppercase;
   color: var(--bru-text-dim);
 }
-/* Garnet tick — skewed stencil mark in front of every panel title. Small,
-   repeated everywhere, it's the visual signature that stitches the two
-   stations together. */
+/* Garnet compass — the mark itself (broken ring + needle) in front of every
+   panel title. Small, repeated everywhere, it's the visual signature that
+   stitches the two stations together. Single-color via mask so it always
+   takes the accent token. */
 .bru-panel__title::before {
   content: '';
-  width: 5px;
-  height: 13px;
+  width: 15px;
+  height: 15px;
   flex: none;
   background: var(--bru-accent);
-  transform: skewX(-14deg);
+  -webkit-mask: url("data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M16.8 5.8A8 8 0 1 0 16.8 18.2' fill='none' stroke='black' stroke-width='2.4' stroke-linecap='round'/%3E%3Cpolygon points='12,4.2 14.4,12 9.6,12'/%3E%3Cpolygon points='9.6,12 14.4,12 12,19.8'/%3E%3C/svg%3E") center / contain no-repeat;
+  mask: url("data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M16.8 5.8A8 8 0 1 0 16.8 18.2' fill='none' stroke='black' stroke-width='2.4' stroke-linecap='round'/%3E%3Cpolygon points='12,4.2 14.4,12 9.6,12'/%3E%3Cpolygon points='9.6,12 14.4,12 12,19.8'/%3E%3C/svg%3E") center / contain no-repeat;
 }
 .bru-panel__actions {
   min-width: 0;
