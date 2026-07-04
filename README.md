@@ -223,6 +223,128 @@ Phones install from the hub URL (Add to Home Screen). One LAN address for everyt
 
 ---
 
+## Features (full inventory)
+
+Everything below was built during the hackathon. Views (feed, graph, map) are **windows onto Gemma's agent output** — the product is the reasoning + confirm loop, not a static dashboard.
+
+### Gemma agent & pipeline
+
+| Feature | What it does |
+|---|---|
+| **Multi-step agent** | Parse → dedup → prioritize → match on every report; advise + sitrep on demand |
+| **Structured JSON** | Every Gemma step uses Ollama `format` + server-side Zod validation; enum-locked ids for dedup/match |
+| **Multimodal parse** | Text, voice transcript, and/or photo — Gemma reads damage, hazards, people from images |
+| **Photo privacy** | Image goes to parse only; hub stores `has_image: true`, never the bytes |
+| **Persons registry** | Named individuals extracted as `{name, status, detail}` — missing / found / safe |
+| **Dedup merge** | Two reports of the same event → one incident; merged report ids kept as evidence |
+| **Explicit correction** | Reports like *"not 180 people, actually 60"* merge to the right incident and update headcount |
+| **Cross-kind guard** | Resource offers cannot dedup-merge into need incidents (server backstop) |
+| **Category backstop** | Rescue ↔ machinery merges allowed; unrelated categories blocked even if Gemma guesses wrong |
+| **Deterministic prioritize** | Urgency × people × age — 0 model calls, always explainable |
+| **Capability-aware match** | Gemma picks resources by fit + distance, not just proximity (e.g. rejects water truck for collapse) |
+| **Late-resource matching** | Crew registers after a need exists → hub auto-proposes dispatches for unmatched open incidents |
+| **Rematch** | Coordinator can re-run match on an incident (`POST /api/incidents/:id/rematch`) |
+| **Graceful degradation** | Model failure mid-pipeline → report stored, board keeps working; no 5xx to phones |
+| **Fast ack** | Hub accepts report in ≤20 s; slow parse finishes in background |
+| **20+ summary languages** | Reports in any language; one-line board summary in configurable output language |
+
+### Location & maps (GPS + offline geocoding)
+
+| Feature | What it does |
+|---|---|
+| **Phone GPS** | Field app requests `lat` / `lon` / `accuracy` on compose; chip shows *"Ubicación GPS adjunta"* when granted |
+| **Best-effort, silent fallback** | Browsers often deny geolocation on plain-HTTP LAN — failure is silent; report still sends |
+| **Offline gazetteer** | `fixtures/gazetteer.json` — ~17 Vargas-coast place names matched from parsed `location` text (accent-insensitive, longest match wins) |
+| **Pin resolution order** | Phone GPS → gazetteer label → no pin (incident still on board, counted as *"sin ubicación"*) |
+| **Dedup pin stability** | Merging reports never moves an existing incident's coordinates |
+| **Offline incident map** | Leaflet map on Command Post — urgency-colored pins, click → incident drawer |
+| **Offline map tiles** | Pre-download areas (Settings → Offline maps or `npm run fetch:tiles`); hub serves `/tiles/*` to phones over hotspot |
+| **Map panel** | Compact map overlay from graph/command topbar |
+| **GPS in graph inspector** | Report nodes show coordinates when present; inspector displays `GPS lat, lon` |
+
+### Field client (mobile PWA)
+
+| Feature | What it does |
+|---|---|
+| **Installable PWA** | Add to Home Screen from hub URL — fullscreen, compass icon |
+| **Role onboarding** | Reporter / volunteer / specialized crew (rescue, medical, water, shelter, food, machinery) |
+| **Crew → resource** | Volunteers and crews register on hub and become dispatchable inventory |
+| **Store-and-forward outbox** | Reports saved locally first (QUEUED) → sync (SYNCED) → pipeline (PARSED); survives radio drops |
+| **Idempotent sync** | `client_ref` prevents duplicate reports on flaky reconnect |
+| **Voice reporting** | Record on phone → hub **local STT** (`POST /api/transcribe`) → editable text before send |
+| **Photo reporting** | Camera/gallery → compressed on-device (~100–250 KB) → rides outbox; photo-only reports allowed |
+| **Category chips** | Quick-tap incident category on compose screen |
+| **People count + location** | Optional fields on report form |
+| **Assignment inbox** | Confirmed dispatches appear on phone; acknowledge when seen |
+| **Crew mission status** | One-tap Disponible / En camino / En el sitio / Regresando — engaged crews excluded from matching |
+| **Field assistant** | Ask tab — grounded Q&A from live board + KB (`POST /api/ask`); cannot dispatch |
+| **Alert banner** | Hub broadcast alerts surface on field client |
+| **20-language UI** | Full field interface translated (language picker) |
+| **Interactive DotGrid** | Same pixel-dot backdrop as command graph |
+| **Demo test modal** | Built-in sample reports for rehearsal without typing |
+| **Connection indicator** | Hub conectado / offline pills |
+
+### Command Post (laptop)
+
+| Feature | What it does |
+|---|---|
+| **Prioritized action feed** | Incidents ranked by agent prioritize step |
+| **Incident drawer** | Full detail, dedup evidence, protocol advisory, edit/resolve, dispatch confirm/override |
+| **Human corrections** | PATCH incidents/resources — `corrected_by_human` badge on coordinator edits |
+| **Dispatch lifecycle** | proposed → confirmed → accepted → en_route → on_site → done (with outcome notes) |
+| **SITREP** | One-click plain-language situation report + structured briefing modal |
+| **Protocol advisory** | INSARAG, START triage, Sphere WASH, PAHO shelter — local KB or Rares' service |
+| **Broadcast alerts** | Compose critical/warning/info alerts with optional zone |
+| **Escalation watchdog** | Unattended critical (10 min) / high (30 min) incidents flagged automatically |
+| **Trends** | Board trend summary endpoint for situational awareness |
+| **Persons list** | Missing-persons registry across incidents |
+| **Connect phone** | QR code + copyable link to field URL (uses hub LAN address) |
+| **Command settings** | Display density (compact), sync now, offline maps, fullscreen |
+| **LAN access control** | Command Post / graph blocked from remote phones — coordinator station only |
+| **Intro splash** | Animated compass + BRÚJULA wordmark on first load |
+| **BorderGlow** | Pointer-reactive edge lighting on panels, graph nodes, inspector |
+
+### Command graph (`/command/graph`)
+
+| Feature | What it does |
+|---|---|
+| **Gemma brain node** | Central node — reports flow in, incidents and dispatches flow out |
+| **All entity types** | Reports, persons, incidents, dispatches (all states), resources, alerts, section labels |
+| **SmartEdge routing** | Bezier edges route around cards they would otherwise cross |
+| **Organise layout** | One-click column restack using real card heights + crossing minimisation |
+| **Approval queue** | Pending dispatches surfaced in top bar — approve or review without hunting the graph |
+| **Graph inspector** | Click any node → full relationship context, actions, GPS, merged reports |
+| **Filters** | All / Critical / Open / Dispatch / People / Reports + edge legend |
+| **Drag + zoom** | Hand-arrange nodes; positions survive 4 s poll; Reset layout chip |
+| **Ask Gemma chat** | Contextual Q&A; proposes board edits (`proposed_actions`) you Apply with one click |
+| **Report titles** | Nodes show `category · location` instead of raw device id |
+| **Proposed dispatch accent** | Gold border on dispatch nodes awaiting human confirm |
+| **Keyboard a11y** | Tab to nodes, Enter/Space inspect, Escape closes topmost overlay |
+| **Map / SITREP / alerts** | Same topbar actions as feed view, inside graph context |
+
+### Hub infrastructure
+
+| Feature | What it does |
+|---|---|
+| **Single Express server** | API + built React app + tile server + model mgmt on `:8000` |
+| **SQLite store** | `data/hub.db` — survives restart; `npm run seed` resets demo board |
+| **Delta sync** | `GET /api/sync?since=<seq>` — monotonic seq, phones poll for updates |
+| **Embedded Ollama** | Hub spawns headless `ollama serve`; no desktop app needed |
+| **Model manager** | Web console: install, switch, pull progress; `POST /warmup` pre-loads model |
+| **GPU / CPU toggle** | Persisted compute mode; `/health` reports actual `gpu_in_use` |
+| **Mock provider** | `BRUJULA_PROVIDER=mock` for UI/tests without Gemma |
+| **Verify harness** | `npm run verify:hub` — 15-check end-to-end demo replay |
+
+### Protocol knowledge base (Rares)
+
+| Feature | What it does |
+|---|---|
+| **Offline matcher** | `knowledge-service/` — keyword + incident-type routing to protocol steps |
+| **Proxy + fallback** | `RARES_KB_URL` set → proxy; unreachable → built-in `server/kb/protocols.json` |
+| **Sourced guidance** | Steps cite INSARAG / Sphere / PAHO / START — operational, not patient diagnosis |
+
+---
+
 ## Quick start
 
 ### Bootstrap (once, needs internet)
@@ -257,7 +379,7 @@ Point phones at the printed LAN URL (e.g. `http://192.168.137.1:8000/field`). Wa
 ```bash
 npm run verify:hub    # 15-check end-to-end demo flow
 npm run verify        # quick parse smoke test
-npm test              # 51 unit checks (no model)
+npm test              # 18 hub contract tests (no model)
 cd app && npx playwright test graph.spec.js   # graph UI tests
 ```
 
