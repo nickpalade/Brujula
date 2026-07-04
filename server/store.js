@@ -1,31 +1,72 @@
 import crypto from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
+import { DatabaseSync } from "node:sqlite";
 import { fileURLToPath } from "node:url";
 
 import { logger } from "./logger.js";
 
-// Hub data layer — a JSON-file-backed store (CONTRACTS §2).
-// No native deps (no better-sqlite3): npm install stays offline-safe.
-// The whole store is one JSON file under data/ (gitignored). Reads/writes are
-// synchronous and load-modify-write the whole file — fine at hackathon scale
-// (a command post, a handful of phones), and it survives a server restart.
+// Hub data layer — SQLite-backed (CONTRACTS §2), via Node's built-in
+// node:sqlite. No native module to compile: npm install stays offline-safe
+// (the same "no better-sqlite3" guarantee, without staying on a JSON file).
 //
-// A single monotonic `seq` counter is bumped on EVERY write. Each incident /
-// resource / dispatch carries an internal `_seq` = the seq at its last write,
-// so GET /api/sync?since=<seq> can return only the records that changed.
+// Each record is stored as a JSON blob in its row (`data`), which is exactly
+// what callers get back — addX/updateX accept arbitrary fields, so a fixed
+// column-per-field schema would silently drop anything not anticipated here.
+// `status` and `seq` are pulled out into real columns purely so SQL can
+// filter/sort on them; row insertion order (rowid) gives list ordering,
+// independent from `seq`, which bumps on every write including updates.
+//
+// A single monotonic `seq` counter is bumped on EVERY write. Each record
+// carries an internal `_seq` = the seq at its last write, so
+// GET /api/sync?since=<seq> can return only the records that changed.
 // `_seq` (and any other `_`-prefixed field) is stripped from public output.
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const DATA_DIR = path.join(HERE, "..", "data");
-const STORE_FILE = path.join(DATA_DIR, "hub.json");
+const DB_FILE = path.join(DATA_DIR, "hub.db");
 const FIXTURES_DIR = path.join(HERE, "..", "fixtures");
 const SEED_INCIDENTS = path.join(FIXTURES_DIR, "seed_incidents.json");
 const SEED_RESOURCES = path.join(FIXTURES_DIR, "seed_resources.json");
 
-function emptyStore() {
-  return { seq: 0, reports: [], incidents: [], resources: [], dispatches: [] };
-}
+fs.mkdirSync(DATA_DIR, { recursive: true });
+// A file that doesn't exist yet means a true first boot — seed it below.
+// (An existing-but-empty board, e.g. after manual cleanup, is left alone;
+// only reset() re-seeds that case.)
+const isFirstBoot = !fs.existsSync(DB_FILE);
+
+const db = new DatabaseSync(DB_FILE);
+db.exec("PRAGMA journal_mode = WAL;");
+db.exec(`
+  CREATE TABLE IF NOT EXISTS meta (id INTEGER PRIMARY KEY CHECK (id = 1), seq INTEGER NOT NULL DEFAULT 0);
+  INSERT OR IGNORE INTO meta (id, seq) VALUES (1, 0);
+
+  CREATE TABLE IF NOT EXISTS reports (
+    id TEXT PRIMARY KEY,
+    seq INTEGER NOT NULL,
+    data TEXT NOT NULL
+  );
+
+  CREATE TABLE IF NOT EXISTS incidents (
+    id TEXT PRIMARY KEY,
+    seq INTEGER NOT NULL,
+    status TEXT NOT NULL,
+    data TEXT NOT NULL
+  );
+
+  CREATE TABLE IF NOT EXISTS resources (
+    id TEXT PRIMARY KEY,
+    seq INTEGER NOT NULL,
+    status TEXT NOT NULL,
+    data TEXT NOT NULL
+  );
+
+  CREATE TABLE IF NOT EXISTS dispatches (
+    id TEXT PRIMARY KEY,
+    seq INTEGER NOT NULL,
+    data TEXT NOT NULL
+  );
+`);
 
 function now() {
   return new Date().toISOString();
@@ -47,34 +88,10 @@ function publicView(record) {
   return out;
 }
 
-let cache = null;
-
-function load() {
-  if (cache) return cache;
-  try {
-    cache = JSON.parse(fs.readFileSync(STORE_FILE, "utf-8"));
-    // Backfill shape in case an older/partial file is on disk.
-    cache = { ...emptyStore(), ...cache };
-  } catch (err) {
-    if (err.code !== "ENOENT") {
-      logger.warn(`[store] could not read ${STORE_FILE}: ${err.message}`);
-    }
-    cache = emptyStore();
-    seedIfEmpty();
-  }
-  return cache;
-}
-
-function persist() {
-  fs.mkdirSync(DATA_DIR, { recursive: true });
-  fs.writeFileSync(STORE_FILE, JSON.stringify(cache, null, 2), "utf-8");
-}
-
-// Bump the global seq and return it — call once per mutation, stamp the
-// touched record's `_seq` with the result.
 function bump() {
-  cache.seq += 1;
-  return cache.seq;
+  const seq = db.prepare("SELECT seq FROM meta WHERE id = 1").get().seq + 1;
+  db.prepare("UPDATE meta SET seq = ? WHERE id = 1").run(seq);
+  return seq;
 }
 
 function readJsonArray(file) {
@@ -89,22 +106,39 @@ function readJsonArray(file) {
   }
 }
 
+function rowsEmpty() {
+  const tables = ["reports", "incidents", "resources", "dispatches"];
+  return tables.every((t) => db.prepare(`SELECT COUNT(*) AS c FROM ${t}`).get().c === 0);
+}
+
+function insertIncidentRow(incident) {
+  db.prepare("INSERT INTO incidents (id, seq, status, data) VALUES (?, ?, ?, ?)").run(
+    incident.id,
+    incident._seq,
+    incident.status,
+    JSON.stringify(incident),
+  );
+}
+
+function insertResourceRow(resource) {
+  db.prepare("INSERT INTO resources (id, seq, status, data) VALUES (?, ?, ?, ?)").run(
+    resource.id,
+    resource._seq,
+    resource.status,
+    JSON.stringify(resource),
+  );
+}
+
 // On first boot (store empty), load the fixtures so the board is never blank.
 function seedIfEmpty() {
-  const store = cache;
-  const isEmpty =
-    store.reports.length === 0 &&
-    store.incidents.length === 0 &&
-    store.resources.length === 0 &&
-    store.dispatches.length === 0;
-  if (!isEmpty) return;
+  if (!rowsEmpty()) return;
 
   const incidents = readJsonArray(SEED_INCIDENTS);
   const resources = readJsonArray(SEED_RESOURCES);
   if (incidents.length === 0 && resources.length === 0) return;
 
   for (const inc of incidents) {
-    store.incidents.push({
+    insertIncidentRow({
       merged_report_ids: [],
       proposed_dispatch_id: null,
       ...inc,
@@ -112,62 +146,77 @@ function seedIfEmpty() {
     });
   }
   for (const res of resources) {
-    store.resources.push({ ...res, _seq: bump() });
+    insertResourceRow({ ...res, _seq: bump() });
   }
-  persist();
   logger.info(
     `[store] seeded from fixtures: ${incidents.length} incidents, ${resources.length} resources`,
   );
 }
 
+if (isFirstBoot) seedIfEmpty();
+
 // ---- reads -----------------------------------------------------------------
 
 export function currentSeq() {
-  return load().seq;
+  return db.prepare("SELECT seq FROM meta WHERE id = 1").get().seq;
+}
+
+function listAll(table) {
+  return db
+    .prepare(`SELECT data FROM ${table} ORDER BY rowid ASC`)
+    .all()
+    .map((r) => publicView(JSON.parse(r.data)));
 }
 
 export function listReports() {
-  return load().reports.map(publicView);
+  return listAll("reports");
 }
 
 export function listIncidents() {
-  return load().incidents.map(publicView);
+  return listAll("incidents");
 }
 
 export function listResources() {
-  return load().resources.map(publicView);
+  return listAll("resources");
 }
 
 export function listDispatches() {
-  return load().dispatches.map(publicView);
+  return listAll("dispatches");
+}
+
+function getOne(table, id) {
+  const row = db.prepare(`SELECT data FROM ${table} WHERE id = ?`).get(id);
+  return row ? publicView(JSON.parse(row.data)) : null;
 }
 
 export function getIncident(id) {
-  return publicView(load().incidents.find((i) => i.id === id) ?? null);
+  return getOne("incidents", id);
 }
 
 export function getResource(id) {
-  return publicView(load().resources.find((r) => r.id === id) ?? null);
+  return getOne("resources", id);
 }
 
 export function getDispatch(id) {
-  return publicView(load().dispatches.find((d) => d.id === id) ?? null);
+  return getOne("dispatches", id);
 }
 
 export function getReport(id) {
-  return publicView(load().reports.find((r) => r.id === id) ?? null);
+  return getOne("reports", id);
 }
 
 export function openIncidents() {
-  return load()
-    .incidents.filter((i) => i.status === "open")
-    .map(publicView);
+  return db
+    .prepare("SELECT data FROM incidents WHERE status = 'open' ORDER BY rowid ASC")
+    .all()
+    .map((r) => publicView(JSON.parse(r.data)));
 }
 
 export function availableResources() {
-  return load()
-    .resources.filter((r) => r.status === "available")
-    .map(publicView);
+  return db
+    .prepare("SELECT data FROM resources WHERE status = 'available' ORDER BY rowid ASC")
+    .all()
+    .map((r) => publicView(JSON.parse(r.data)));
 }
 
 // Full board snapshot for pipeline sitrep / fallbacks.
@@ -182,7 +231,6 @@ export function board() {
 // ---- writes ----------------------------------------------------------------
 
 export function addReport({ raw_text, source_device = null, lang = null, parsed_into = null }) {
-  const store = load();
   const report = {
     id: newId("rep"),
     raw_text,
@@ -192,22 +240,27 @@ export function addReport({ raw_text, source_device = null, lang = null, parsed_
     parsed_into,
     _seq: bump(),
   };
-  store.reports.push(report);
-  persist();
+  db.prepare("INSERT INTO reports (id, seq, data) VALUES (?, ?, ?)").run(
+    report.id,
+    report._seq,
+    JSON.stringify(report),
+  );
   return publicView(report);
 }
 
 export function updateReport(id, patch) {
-  const store = load();
-  const report = store.reports.find((r) => r.id === id);
-  if (!report) return null;
-  Object.assign(report, patch, { _seq: bump() });
-  persist();
+  const row = db.prepare("SELECT data FROM reports WHERE id = ?").get(id);
+  if (!row) return null;
+  const report = { ...JSON.parse(row.data), ...patch, _seq: bump() };
+  db.prepare("UPDATE reports SET seq = ?, data = ? WHERE id = ?").run(
+    report._seq,
+    JSON.stringify(report),
+    id,
+  );
   return publicView(report);
 }
 
 export function addIncident(fields) {
-  const store = load();
   const ts = now();
   const incident = {
     id: newId("inc"),
@@ -225,22 +278,24 @@ export function addIncident(fields) {
     ...fields,
     _seq: bump(),
   };
-  store.incidents.push(incident);
-  persist();
+  insertIncidentRow(incident);
   return publicView(incident);
 }
 
 export function updateIncident(id, patch) {
-  const store = load();
-  const incident = store.incidents.find((i) => i.id === id);
-  if (!incident) return null;
-  Object.assign(incident, patch, { updated_at: now(), _seq: bump() });
-  persist();
+  const row = db.prepare("SELECT data FROM incidents WHERE id = ?").get(id);
+  if (!row) return null;
+  const incident = { ...JSON.parse(row.data), ...patch, updated_at: now(), _seq: bump() };
+  db.prepare("UPDATE incidents SET seq = ?, status = ?, data = ? WHERE id = ?").run(
+    incident._seq,
+    incident.status,
+    JSON.stringify(incident),
+    id,
+  );
   return publicView(incident);
 }
 
 export function addResource(fields) {
-  const store = load();
   const resource = {
     id: newId("res"),
     type: "status",
@@ -251,22 +306,24 @@ export function addResource(fields) {
     ...fields,
     _seq: bump(),
   };
-  store.resources.push(resource);
-  persist();
+  insertResourceRow(resource);
   return publicView(resource);
 }
 
 export function updateResource(id, patch) {
-  const store = load();
-  const resource = store.resources.find((r) => r.id === id);
-  if (!resource) return null;
-  Object.assign(resource, patch, { _seq: bump() });
-  persist();
+  const row = db.prepare("SELECT data FROM resources WHERE id = ?").get(id);
+  if (!row) return null;
+  const resource = { ...JSON.parse(row.data), ...patch, _seq: bump() };
+  db.prepare("UPDATE resources SET seq = ?, status = ?, data = ? WHERE id = ?").run(
+    resource._seq,
+    resource.status,
+    JSON.stringify(resource),
+    id,
+  );
   return publicView(resource);
 }
 
 export function addDispatch(fields) {
-  const store = load();
   const dispatch = {
     id: newId("dsp"),
     incident_id: null,
@@ -278,17 +335,23 @@ export function addDispatch(fields) {
     ...fields,
     _seq: bump(),
   };
-  store.dispatches.push(dispatch);
-  persist();
+  db.prepare("INSERT INTO dispatches (id, seq, data) VALUES (?, ?, ?)").run(
+    dispatch.id,
+    dispatch._seq,
+    JSON.stringify(dispatch),
+  );
   return publicView(dispatch);
 }
 
 export function updateDispatch(id, patch) {
-  const store = load();
-  const dispatch = store.dispatches.find((d) => d.id === id);
-  if (!dispatch) return null;
-  Object.assign(dispatch, patch, { _seq: bump() });
-  persist();
+  const row = db.prepare("SELECT data FROM dispatches WHERE id = ?").get(id);
+  if (!row) return null;
+  const dispatch = { ...JSON.parse(row.data), ...patch, _seq: bump() };
+  db.prepare("UPDATE dispatches SET seq = ?, data = ? WHERE id = ?").run(
+    dispatch._seq,
+    JSON.stringify(dispatch),
+    id,
+  );
   return publicView(dispatch);
 }
 
@@ -296,29 +359,38 @@ export function updateDispatch(id, patch) {
 
 // Records whose _seq > since. `since` omitted/invalid → 0 → full board.
 export function syncSince(since) {
-  const store = load();
   const from = Number.isFinite(since) && since >= 0 ? since : 0;
-  const changed = (arr) => arr.filter((r) => (r._seq ?? 0) > from).map(publicView);
+  const changed = (table) =>
+    db
+      .prepare(`SELECT data FROM ${table} WHERE seq > ? ORDER BY seq ASC`)
+      .all(from)
+      .map((r) => publicView(JSON.parse(r.data)));
   return {
-    seq: store.seq,
-    incidents: changed(store.incidents),
-    dispatches: changed(store.dispatches),
-    resources: changed(store.resources),
+    seq: currentSeq(),
+    incidents: changed("incidents"),
+    dispatches: changed("dispatches"),
+    resources: changed("resources"),
   };
 }
 
 // ---- lifecycle helpers (used by tests / reseed) ----------------------------
 
 export function reset() {
-  cache = emptyStore();
-  persist();
+  db.exec(`
+    DELETE FROM dispatches;
+    DELETE FROM incidents;
+    DELETE FROM resources;
+    DELETE FROM reports;
+    UPDATE meta SET seq = 0 WHERE id = 1;
+  `);
   seedIfEmpty();
-  return cache;
+  return board();
 }
 
 // Test/diagnostic escape hatch: force a reload from disk (used to prove the
-// store survives a process restart).
+// store survives a process restart). Every read already goes straight to
+// hub.db, so there is no in-memory cache to drop — this just proves the file
+// handle itself still serves correct data.
 export function _reloadFromDisk() {
-  cache = null;
-  return load();
+  return board();
 }
