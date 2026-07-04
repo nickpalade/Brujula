@@ -1,5 +1,6 @@
 import Panel from '../shared/Panel.jsx';
 import Badge from '../shared/Badge.jsx';
+import Icon from '../shared/Icon.jsx';
 
 /*
  * AdvisoryPanel — renders the protocol Advisory (CONTRACTS §2/§3):
@@ -10,7 +11,7 @@ function AdvisoryPanel({ advisory, loading, error }) {
   return (
     <Panel
       title="Protocol Advisory"
-      icon={<span aria-hidden="true">▤</span>}
+      icon={<Icon name="protocol" />}
       className="cmd-advisory"
       actions={
         advisory?.source_label ? (
@@ -49,7 +50,10 @@ function AdvisoryPanel({ advisory, loading, error }) {
 
           {advisory.cautions?.length > 0 && (
             <div className="cmd-advisory__cautions">
-              <span className="cmd-advisory__cautions-label">⚠ CAUTIONS</span>
+              <span className="cmd-advisory__cautions-label">
+                <Icon name="caution" />
+                CAUTIONS
+              </span>
               <ul>
                 {advisory.cautions.map((c, i) => (
                   <li key={i}>{c}</li>

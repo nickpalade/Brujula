@@ -42,6 +42,7 @@ export function useAssignments(myIncidentIds) {
   const [incidents, setIncidents] = useState([])
   const [resources, setResources] = useState([])
   const [dispatches, setDispatches] = useState([])
+  const [alerts, setAlerts] = useState([])
   const [acked, setAcked] = useState(loadAcked)
   const seqRef = useRef(0)
 
@@ -52,6 +53,7 @@ export function useAssignments(myIncidentIds) {
       setIncidents((p) => mergeById(p, delta.incidents))
       setResources((p) => mergeById(p, delta.resources))
       setDispatches((p) => mergeById(p, delta.dispatches))
+      setAlerts((p) => mergeById(p, delta.alerts))
     } catch {
       /* offline — keep last known board, retry next tick */
     }
@@ -97,5 +99,5 @@ export function useAssignments(myIncidentIds) {
 
   const unackedCount = assignments.filter((a) => !a.acknowledged).length
 
-  return { assignments, acknowledge, unackedCount, board: { incidents, resources, dispatches } }
+  return { assignments, acknowledge, unackedCount, alerts, board: { incidents, resources, dispatches } }
 }

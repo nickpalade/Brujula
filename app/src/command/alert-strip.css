@@ -1,0 +1,60 @@
+/* Alert strip — compact banner showing active broadcast alerts */
+
+.cmd-alert-strip {
+  background: var(--bru-bg-0);
+  border-bottom: 1px solid var(--bru-border);
+  overflow-x: auto;
+  scrollbar-gutter: stable;
+}
+
+.cmd-alert-strip__content {
+  display: flex;
+  gap: var(--bru-s-2);
+  padding: var(--bru-s-2) var(--bru-s-5);
+  min-width: min-content;
+}
+
+.cmd-alert-item {
+  display: flex;
+  align-items: center;
+  gap: var(--bru-s-2);
+  padding: var(--bru-s-2) var(--bru-s-3);
+  background: var(--bru-bg-1);
+  border: 1px solid var(--bru-border);
+  border-left: 3px solid;
+  border-radius: var(--bru-r-sm);
+  flex-wrap: wrap;
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.cmd-alert-item[data-severity='info'] {
+  border-left-color: var(--bru-text-dim);
+}
+
+.cmd-alert-item[data-severity='warning'] {
+  border-left-color: var(--bru-high);
+}
+
+.cmd-alert-item[data-severity='critical'] {
+  border-left-color: var(--bru-critical);
+}
+
+.cmd-alert-item__badge {
+  flex: none;
+}
+
+.cmd-alert-item__message {
+  color: var(--bru-text);
+  font-weight: 500;
+}
+
+.cmd-alert-item__zone {
+  color: var(--bru-text-dim);
+  font-size: 12px;
+}
+
+.cmd-alert-item__close {
+  flex: none;
+  margin-left: var(--bru-s-1);
+}

@@ -1,62 +1,48 @@
-// VoiceInput — Spanish voice-to-text for field reports (agent VOICE).
-//
-// Fills the mic stub FIELD-UI left. Web Speech API primary (es-VE → es-ES fallback,
-// zero deps, works in Chrome on Android). Gradium STT is an optional upgrade behind
-// the same interface (see gradium.js) — non-blocking, off unless a key is provided.
-//
-// Contract kept for the drop-in replacement:
-//   props.onTranscript(text)  — called with FINALIZED recognized text; ReportForm
-//     appends it into the textarea. Interim words are shown in a local live preview,
-//     never pushed to onTranscript, so the textarea never accumulates half-words.
-//   props.disabled?           — hard-disable from the parent.
-//
-// Honest offline UX: Web Speech needs internet on most mobile browsers. When offline
-// (or on unsupported browsers) the mic is disabled with a Spanish tooltip + hint
-// bubble rather than failing silently. Typing always works, fully offline.
+// VoiceInput — phone capture, laptop-local transcription, phone confirmation.
+// The phone records a short audio clip, posts it to the hub laptop, then asks
+// the responder to confirm or edit before the text is appended to the report.
 
 import { useState } from 'react'
 import './voice.css'
-import { useSpeechRecognition } from './useSpeechRecognition.js'
+import { useHubTranscription } from './useHubTranscription.js'
+import { useI18n } from '../../shared/i18n.jsx'
+import Icon from '../../shared/Icon.jsx'
 
 function VoiceInput({ onTranscript, disabled = false }) {
+  const { lang, t } = useI18n()
   const [showHint, setShowHint] = useState(false)
-  const { supported, listening, interim, error, online, toggle } =
-    useSpeechRecognition({ onFinal: onTranscript })
+  const [draft, setDraft] = useState('')
+  const { supported, recording, transcribing, error, toggle } = useHubTranscription({
+    lang,
+    onCandidate: setDraft,
+  })
 
-  // Unsupported browser (e.g. Firefox, some in-app webviews): hide gracefully.
-  // Render a disabled affordance so the report layout stays put, with an honest tooltip.
   if (!supported) {
     return (
       <button
         type="button"
         className="mic-btn"
         disabled
-        title="La entrada de voz no está disponible en este navegador. Usa Chrome, o escribe el reporte."
-        aria-label="Entrada de voz no disponible en este navegador"
+        title={t('voice.unsupported')}
+        aria-label={t('voice.unsupported')}
       >
-        🎤
+        <Icon name="mic" />
       </button>
     )
   }
 
-  const offline = !online
-  const micDisabled = disabled || offline
+  const busy = recording || transcribing
+  const micDisabled = disabled || transcribing || !!draft
 
   const hintText = (() => {
-    if (offline) return 'La voz necesita conexión. Sin internet — escribe el reporte.'
-    if (error === 'not-allowed')
-      return 'Permiso de micrófono denegado. Actívalo en el navegador.'
-    if (error === 'network')
-      return 'Sin conexión para el reconocimiento de voz. Escribe el reporte.'
-    if (error === 'no-speech') return 'No se escuchó nada. Intenta de nuevo.'
+    if (error === 'not-allowed') return t('voice.notAllowed')
+    if (error === 'network') return t('voice.network')
+    if (error === 'empty') return t('voice.noSpeech')
+    if (error === 'failed') return t('voice.failed')
     return null
   })()
 
-  const title = offline
-    ? 'La voz necesita internet (no disponible sin conexión)'
-    : listening
-      ? 'Detener grabación'
-      : 'Hablar reporte (español)'
+  const title = recording ? t('voice.titleStop') : t('voice.titleStart')
 
   const handleClick = () => {
     if (micDisabled) {
@@ -68,8 +54,14 @@ function VoiceInput({ onTranscript, disabled = false }) {
     toggle()
   }
 
-  const showLive = listening
-  const showHintBubble = !listening && (showHint || (!!hintText && error != null))
+  const confirmDraft = () => {
+    const text = draft.trim()
+    if (text) onTranscript(text)
+    setDraft('')
+  }
+
+  const showLive = recording || transcribing
+  const showHintBubble = !busy && !draft && (showHint || (!!hintText && error != null))
 
   return (
     <>
@@ -77,10 +69,30 @@ function VoiceInput({ onTranscript, disabled = false }) {
         <div className="voice-live" role="status" aria-live="polite">
           <div className="voice-live-label">
             <span className="rec-dot" />
-            Grabando…
+            {recording ? t('voice.recording') : t('voice.transcribing')}
           </div>
-          <div className={`voice-live-text${interim ? '' : ' placeholder'}`}>
-            {interim || 'Habla ahora — el texto aparecerá aquí.'}
+          <div className="voice-live-text placeholder">
+            {recording ? t('voice.speakNow') : t('voice.localModel')}
+          </div>
+        </div>
+      )}
+
+      {draft && (
+        <div className="voice-review" role="dialog" aria-label={t('voice.reviewTitle')}>
+          <div className="voice-review-title">{t('voice.reviewTitle')}</div>
+          <textarea
+            className="voice-review-text"
+            value={draft}
+            onChange={(e) => setDraft(e.target.value)}
+            aria-label={t('voice.reviewLabel')}
+          />
+          <div className="voice-review-actions">
+            <button type="button" className="voice-review-secondary" onClick={() => setDraft('')}>
+              {t('voice.retry')}
+            </button>
+            <button type="button" className="voice-review-primary" onClick={confirmDraft}>
+              {t('voice.confirm')}
+            </button>
           </div>
         </div>
       )}
@@ -93,15 +105,14 @@ function VoiceInput({ onTranscript, disabled = false }) {
 
       <button
         type="button"
-        className={`mic-btn${listening ? ' recording' : ''}${offline ? ' offline' : ''}`}
-        // aria-disabled (not disabled) when offline so the tap can still explain why.
+        className={`mic-btn${recording ? ' recording' : ''}${transcribing ? ' recording' : ''}`}
         aria-disabled={micDisabled}
-        aria-pressed={listening}
+        aria-pressed={recording}
         title={title}
         aria-label={title}
         onClick={handleClick}
       >
-        {listening ? '⏺' : '🎤'}
+        <Icon name="mic" />
       </button>
     </>
   )

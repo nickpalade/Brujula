@@ -5,6 +5,8 @@
  * light/centered #root so the command layout can go edge-to-edge.
  */
 
+@import './fonts.css';
+
 :root {
   /* --- Surfaces: locked "Field · Bosque" palette (design/tokens.css,
      option-3d-field-bosque.html) — deep, gray-leaning forest green, never
@@ -63,8 +65,11 @@
   --bru-warn-bg: rgba(204, 154, 31, 0.13);
   --bru-committed: #9cb3a5; /* resource committed / muted state */
 
-  /* --- Typography --- */
-  --bru-sans: "Inter", system-ui, "Segoe UI", Roboto, sans-serif;
+  /* --- Typography (self-hosted, see fonts.css — offline-safe) ---
+     display: squared HUD face for wordmark/headings; sans: industrial
+     signage face for dense UI text; mono: labels/badges/sitrep. */
+  --bru-display: "Chakra Petch", "Barlow", system-ui, sans-serif;
+  --bru-sans: "Barlow", system-ui, "Segoe UI", sans-serif;
   --bru-mono: "JetBrains Mono", ui-monospace, "SF Mono", Consolas, monospace;
 
   /* --- Radius --- */
@@ -116,10 +121,15 @@
 .bru-app {
   color: var(--bru-text);
   background-color: var(--bru-bg-0);
+  /* Flat field material: offline-safe grain plus an SVG line grid. No glows
+     or tonal fades; the product should read as rugged equipment, not a poster. */
   background-image:
-    linear-gradient(var(--bru-grid) 1px, transparent 1px),
-    linear-gradient(90deg, var(--bru-grid) 1px, transparent 1px);
-  background-size: 40px 40px;
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23n)' opacity='0.05'/%3E%3C/svg%3E"),
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='40' height='40'%3E%3Cpath d='M0 0H40M0 0V40' stroke='%238caa96' stroke-opacity='0.06' stroke-width='1'/%3E%3C/svg%3E");
+  background-size:
+    140px 140px,
+    40px 40px;
+  background-attachment: fixed;
   font-family: var(--bru-sans);
   font-size: 15px;
   line-height: 1.5;
@@ -149,10 +159,11 @@
 .bru-app h1,
 .bru-app h2,
 .bru-app h3 {
-  font-family: var(--bru-sans);
+  font-family: var(--bru-display);
+  font-weight: 600;
   color: var(--bru-text);
   margin: 0;
-  letter-spacing: -0.2px;
+  letter-spacing: 0.2px;
 }
 
 .bru-app ::selection {
@@ -176,10 +187,10 @@
 @keyframes bru-pulse {
   0%,
   100% {
-    box-shadow: 0 0 0 0 var(--bru-critical-glow);
+    opacity: 1;
   }
   50% {
-    box-shadow: 0 0 0 6px rgba(255, 59, 71, 0);
+    opacity: 0.78;
   }
 }
 
@@ -202,6 +213,7 @@
 @media (prefers-reduced-motion: reduce) {
   .bru-app * {
     animation-duration: 0.001ms !important;
+    animation-delay: 0s !important; /* staggered reveals must not hide content */
     animation-iteration-count: 1 !important;
   }
 }

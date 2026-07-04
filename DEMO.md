@@ -28,8 +28,9 @@ loaded as Q&A ammunition (see "Cut beats" below).
    ```powershell
    $env:PROTOCOL_KB_URL = "http://localhost:8100"; npm start
    ```
-   The React app must be built once before (`cd app && npm install && npm run
-   build`) — the banner logs `serving built React app` when it found it.
+   The React app must be built once before (`npm install && npm run build`
+   from the repo root) — the banner logs `serving built React app` when it
+   found it.
 
 4. **Warm the model** — do NOT skip; a cold model stalls the first report for
    minutes:

@@ -35,7 +35,7 @@ function makeLocalId() {
   return `local_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`
 }
 
-export function useOutbox(sourceDevice, reportedBy = null) {
+export function useOutbox(sourceDevice, reportedBy = null, lang = 'es') {
   const [items, setItems] = useState(load)
   const [online, setOnline] = useState(true)
   const flushing = useRef(false)
@@ -71,7 +71,7 @@ export function useOutbox(sourceDevice, reportedBy = null) {
         accuracy: accuracy ?? null,
         source_device: sourceDevice,
         reported_by: reportedBy,
-        lang: 'es',
+        lang,
         status: 'QUEUED',
         report_id: null,
         incident_id: null,
@@ -84,7 +84,7 @@ export function useOutbox(sourceDevice, reportedBy = null) {
       return item.localId
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [sourceDevice, reportedBy],
+    [sourceDevice, reportedBy, lang],
   )
 
   const flush = useCallback(async () => {
@@ -115,7 +115,6 @@ export function useOutbox(sourceDevice, reportedBy = null) {
             lang: it.lang,
             client_ref: it.localId,
             reported_by: it.reported_by ?? null,
-            date: it.created_at,
             image_base64: it.image_base64 ?? null,
             image_mime: it.image_mime ?? null,
             lat: it.lat ?? null,

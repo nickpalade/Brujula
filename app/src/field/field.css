@@ -19,7 +19,7 @@
      progression using only colors already in the system. */
   --f-queued: #ff9500;
   --f-synced: #ffcc00;
-  --f-parsed: #2a7d56;
+  --f-parsed: #3ddc84;
 
   --f-bg: #0e1411;
   --f-surface: #17211b;
@@ -40,9 +40,14 @@
   width: 100%;
   max-width: 560px;
   margin: 0 auto;
-  background: var(--f-bg);
+  background-color: var(--f-bg);
+  /* Same flat SVG grid as the Command Post backdrop — no CSS tonal fades. */
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='40' height='40'%3E%3Cpath d='M0 0H40M0 0V40' stroke='%238caa96' stroke-opacity='0.06' stroke-width='1'/%3E%3C/svg%3E");
+  background-size: 40px 40px;
   color: var(--f-text);
-  font: 16px/1.4 system-ui, 'Segoe UI', Roboto, sans-serif;
+  /* Same self-hosted stack as Command Post (shared/fonts.css) — Barlow for
+     UI text; falls back to system-ui before the woff2 resolves. */
+  font: 16px/1.4 var(--bru-sans, system-ui);
   text-align: left;
   display: flex;
   flex-direction: column;
@@ -54,6 +59,48 @@
 .field-app *::before,
 .field-app *::after {
   box-sizing: border-box;
+}
+
+.field-dots {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+}
+
+.field-header,
+.field-body,
+.field-tabs {
+  position: relative;
+  z-index: 1;
+}
+
+.field-header {
+  z-index: 2;
+}
+
+.onboard-dots {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+}
+
+.onboard > *:not(.onboard-dots) {
+  position: relative;
+  z-index: 1;
+}
+
+.assign-pixel {
+  border-radius: 18px;
+  padding: 10px;
+  margin-bottom: 12px;
+}
+
+.assign-pixel .card--in-pixel,
+.assign-pixel > .card {
+  position: relative;
+  z-index: 1;
+  margin-bottom: 0;
+  background: rgba(23, 33, 27, 0.9);
 }
 
 /* Header ------------------------------------------------------------------ */
@@ -72,27 +119,20 @@
   display: flex;
   align-items: center;
   gap: 10px;
-  min-width: 0;
 }
-
-/* App-wide ambient dot layer: sits under everything; header/body/tabs stack
-   above it. The header and tab bar have opaque backgrounds, so the dots only
-   breathe through the page-dark body area. */
-.field-dots {
-  position: absolute;
-  inset: 0;
-  z-index: 0;
-}
-.field-header,
-.field-body,
-.field-tabs {
-  position: relative;
-  z-index: 1;
+.field-logo {
+  width: 34px;
+  height: 34px;
+  flex: none;
+  border-radius: 50%;
 }
 .field-header h1 {
+  /* Chakra Petch wordmark — mirrors the Command Post topbar title so both
+     stations carry the same brand voice. Chakra tops out at 700. */
+  font-family: var(--bru-display, inherit);
   font-size: 19px;
-  font-weight: 800;
-  letter-spacing: 1.2px;
+  font-weight: 700;
+  letter-spacing: 2.5px;
   color: var(--f-brand);
   margin: 0;
 }
@@ -106,8 +146,10 @@
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  font-size: 12px;
+  font-family: var(--bru-mono, monospace);
+  font-size: 11px;
   font-weight: 600;
+  letter-spacing: 0.5px;
   padding: 5px 10px;
   border-radius: 999px;
   border: 1px solid var(--f-border);
@@ -129,6 +171,125 @@
 }
 .conn-offline .dot {
   background: var(--f-queued);
+}
+
+/* Alert banner ------------------------------------------------------------ */
+.alert-banner {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 8px 16px;
+  background: var(--f-surface);
+  border-bottom: 1px solid var(--f-border);
+}
+
+.alert-item {
+  padding: 12px;
+  border-radius: 10px;
+  border-left: 4px solid;
+  position: relative;
+  animation: alert-slide-in 0.3s ease forwards;
+}
+
+@keyframes alert-slide-in {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.alert-item.alert-critical {
+  background: rgba(255, 69, 58, 0.1);
+  border-left-color: var(--f-critical);
+  color: var(--f-text);
+}
+
+.alert-item.alert-warning {
+  background: rgba(255, 149, 0, 0.1);
+  border-left-color: var(--f-high);
+  color: var(--f-text);
+}
+
+.alert-item.alert-info {
+  background: rgba(135, 152, 142, 0.12);
+  border-left-color: var(--f-low);
+  color: var(--f-text);
+}
+
+.alert-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+
+.alert-severity {
+  font-family: var(--bru-mono, monospace);
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+}
+
+.alert-item.alert-critical .alert-severity {
+  color: var(--f-critical);
+}
+
+.alert-item.alert-warning .alert-severity {
+  color: var(--f-high);
+}
+
+.alert-item.alert-info .alert-severity {
+  color: var(--f-low);
+}
+
+.alert-dismiss-btn {
+  appearance: none;
+  background: transparent;
+  border: none;
+  color: var(--f-text-dim);
+  font-size: 16px;
+  cursor: pointer;
+  padding: 0;
+  width: 24px;
+  height: 24px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.alert-dismiss-btn:hover {
+  color: var(--f-text);
+}
+
+.alert-message {
+  font-size: 14px;
+  line-height: 1.4;
+  margin-bottom: 4px;
+  word-break: break-word;
+}
+
+.alert-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 12px;
+  font-size: 11px;
+  color: var(--f-text-dim);
+}
+
+.alert-zone {
+  font-family: var(--bru-mono, monospace);
+  font-weight: 600;
+}
+
+.alert-time {
+  font-family: var(--bru-mono, monospace);
 }
 
 /* Scroll body ------------------------------------------------------------- */
@@ -192,22 +353,11 @@
 }
 
 /* Onboarding (first-open role signup) -------------------------------------- */
-/* Ambient dot field behind the signup — content stacks above it. */
-.onboard {
-  position: relative;
-}
-.onboard-dots {
-  position: fixed;
-  inset: 0;
-  z-index: 0;
-}
-.onboard > *:not(.onboard-dots) {
-  position: relative;
-  z-index: 1;
-}
 .onboard-title {
+  font-family: var(--bru-display, inherit);
   font-size: 22px;
   font-weight: 700;
+  letter-spacing: 0.5px;
   color: var(--f-text);
   margin: 4px 0 6px;
 }
@@ -263,11 +413,12 @@
 }
 .status-bar-label {
   display: block;
-  font-size: 12px;
-  font-weight: 600;
+  font-family: var(--bru-mono, monospace);
+  font-size: 11px;
+  font-weight: 700;
   color: var(--f-text-dim);
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 1.2px;
   margin-bottom: 8px;
 }
 .chip-small {
@@ -290,12 +441,13 @@
 /* Report form ------------------------------------------------------------- */
 .field-label {
   display: block;
-  font-size: 13px;
-  font-weight: 600;
+  font-family: var(--bru-mono, monospace);
+  font-size: 11px;
+  font-weight: 700;
   color: var(--f-text-dim);
   margin: 18px 0 8px;
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 1.2px;
 }
 .field-label:first-child {
   margin-top: 0;
@@ -342,6 +494,10 @@
   font-weight: 600;
   cursor: pointer;
   min-height: 48px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
 }
 .photo-btn:disabled {
   opacity: 0.5;
@@ -440,9 +596,12 @@
   width: 100%;
   margin-top: 24px;
   padding: 20px;
+  /* Display face on the one button that matters — same voice as the
+     Command Post CONFIRM action. */
+  font-family: var(--bru-display, inherit);
   font-size: 20px;
-  font-weight: 800;
-  letter-spacing: 0.5px;
+  font-weight: 700;
+  letter-spacing: 2px;
   color: #fff;
   background: var(--f-accent);
   border: none;
@@ -450,6 +609,10 @@
   cursor: pointer;
   min-height: 64px;
   text-transform: uppercase;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
 }
 .send-btn:disabled {
   opacity: 0.4;
@@ -485,13 +648,28 @@
   border-radius: 14px;
   padding: 14px;
   margin-bottom: 12px;
-  animation: card-in 0.28s ease-out;
+  /* Staggered landing, mirroring the Command Post feed reveal. */
+  opacity: 0;
+  transform: translateY(8px);
+  animation: field-reveal 0.35s ease forwards;
 }
-
-@keyframes card-in {
-  from {
-    opacity: 0;
-    transform: translateY(6px);
+.card:nth-child(1) { animation-delay: 0.03s; }
+.card:nth-child(2) { animation-delay: 0.09s; }
+.card:nth-child(3) { animation-delay: 0.15s; }
+.card:nth-child(4) { animation-delay: 0.21s; }
+.card:nth-child(5) { animation-delay: 0.27s; }
+.card:nth-child(6) { animation-delay: 0.33s; }
+@keyframes field-reveal {
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .card {
+    opacity: 1;
+    transform: none;
+    animation: none;
   }
 }
 .card-top {
@@ -507,7 +685,8 @@
   word-break: break-word;
 }
 .card-meta {
-  font-size: 12px;
+  font-family: var(--bru-mono, monospace);
+  font-size: 11.5px;
   color: var(--f-text-dim);
   margin-top: 8px;
   display: flex;
@@ -516,66 +695,44 @@
 }
 
 .status-badge {
+  font-family: var(--bru-mono, monospace);
   font-size: 11px;
   font-weight: 700;
-  letter-spacing: 0.5px;
+  letter-spacing: 0.6px;
   padding: 4px 10px;
   border-radius: 999px;
   white-space: nowrap;
-  /* QUEUED → SYNCED → PARSED reads as one chip changing state, not a repaint */
-  transition: background-color 0.35s ease, color 0.35s ease;
 }
-
-/* Pixel shimmer around in-flight cards: garnet for incoming taskings, amber
-   for outgoing reports. The card sits INSET in the wrapper (padding) so the
-   canvas shows as a live shimmering frame around it — content on top of the
-   canvas would otherwise cover it completely. */
-.assign-pixel {
-  border-radius: 18px;
-  padding: 10px;
-  margin-bottom: 12px;
-}
-.assign-pixel .card--in-pixel {
-  position: relative;
-  z-index: 1;
-  margin-bottom: 0;
-  background: rgba(23, 33, 27, 0.9);
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .card {
-    animation: none;
-  }
-  .status-badge {
-    transition: none;
-  }
-}
+/* Tint backgrounds derive from the same --f-* hue as the text/border —
+   the old Tailwind-palette rgba() values predate the Bosque retheme and
+   no longer matched (green tint under yellow text, sky-blue under green). */
 .st-QUEUED {
-  background: rgba(245, 158, 11, 0.15);
+  background: rgba(255, 149, 0, 0.15);
   color: var(--f-queued);
   border: 1px solid var(--f-queued);
 }
 .st-SYNCED {
-  background: rgba(34, 197, 94, 0.15);
+  background: rgba(255, 204, 0, 0.15);
   color: var(--f-synced);
   border: 1px solid var(--f-synced);
 }
 .st-PARSED {
-  background: rgba(56, 189, 248, 0.15);
+  background: rgba(61, 220, 132, 0.15);
   color: var(--f-parsed);
   border: 1px solid var(--f-parsed);
 }
 .st-ERROR {
-  background: rgba(239, 68, 68, 0.15);
+  background: rgba(255, 69, 58, 0.15);
   color: var(--f-critical);
   border: 1px solid var(--f-critical);
 }
 
 .cat-badge {
+  font-family: var(--bru-mono, monospace);
   font-size: 11px;
   font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 0.6px;
   padding: 3px 8px;
   border-radius: 6px;
   background: var(--f-surface-2);
@@ -603,8 +760,10 @@
   width: 100%;
   margin-top: 8px;
   padding: 14px;
+  font-family: var(--bru-display, inherit);
   font-size: 16px;
   font-weight: 700;
+  letter-spacing: 1px;
   border-radius: 12px;
   border: none;
   cursor: pointer;
@@ -618,6 +777,110 @@
   cursor: default;
 }
 
+/* Mission lifecycle --------------------------------------------------------- */
+.mission-steps {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin: 12px 0;
+  font-size: 11px;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  padding: 8px 0;
+}
+
+.mission-step {
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+.mission-step-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--f-surface-2);
+  border: 1px solid var(--f-border);
+  transition: all 0.2s ease;
+}
+
+.mission-step.completed .mission-step-dot {
+  background: var(--f-synced);
+  border-color: var(--f-synced);
+}
+
+.mission-step.active .mission-step-dot {
+  background: var(--f-accent);
+  border-color: var(--f-accent);
+  width: 14px;
+  height: 14px;
+}
+
+.mission-step-label {
+  color: var(--f-text-dim);
+  white-space: nowrap;
+  text-transform: uppercase;
+  font-family: var(--bru-mono, monospace);
+  font-weight: 600;
+  letter-spacing: 0.4px;
+}
+
+.mission-step.completed .mission-step-label {
+  color: var(--f-text);
+}
+
+.mission-step.active .mission-step-label {
+  color: var(--f-accent);
+  font-weight: 700;
+}
+
+/* Outcome form -------------------------------------------------------------- */
+.outcome-form {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--f-border);
+}
+
+.outcome-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.mission-completed {
+  padding: 12px;
+  background: rgba(61, 220, 132, 0.1);
+  border: 1px solid var(--f-parsed);
+  border-radius: 10px;
+  margin-top: 8px;
+}
+
+.mission-status {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--f-parsed);
+  margin-bottom: 6px;
+}
+
+.mission-outcome {
+  font-size: 13px;
+  color: var(--f-text);
+  line-height: 1.4;
+  word-break: break-word;
+}
+
+.mission-error {
+  margin-top: 8px;
+  padding: 8px 10px;
+  background: rgba(255, 69, 58, 0.1);
+  border: 1px solid var(--f-critical);
+  border-radius: 8px;
+  font-size: 13px;
+  color: var(--f-critical);
+}
+
 /* Toast / empty ----------------------------------------------------------- */
 .empty {
   text-align: center;
@@ -626,10 +889,11 @@
   font-size: 15px;
 }
 .section-title {
-  font-size: 13px;
+  font-family: var(--bru-mono, monospace);
+  font-size: 11px;
   font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 1.2px;
   color: var(--f-text-dim);
   margin: 4px 0 12px;
 }
@@ -646,4 +910,138 @@
   font-size: 14px;
   z-index: 20;
   max-width: 90%;
+}
+
+.demo-close,
+.demo-cautions,
+.demo-samplebar .chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.demo-cautions {
+  color: var(--f-high);
+}
+
+/* Product ergonomics ------------------------------------------------------
+   Secondary controls live behind one thumb-sized settings trigger. The menu
+   remains attached to the header so changing language/profile never steals
+   context from an in-progress report. */
+.field-header__right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.field-settings {
+  position: relative;
+  flex: none;
+}
+.field-settings__btn,
+.demo-launch {
+  appearance: none;
+  min-height: 44px;
+  padding: 0 12px;
+  border: 1px solid var(--f-border);
+  border-radius: 999px;
+  background: var(--f-surface-2);
+  color: var(--f-text);
+  font: 700 13px/1 inherit;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  white-space: nowrap;
+  touch-action: manipulation;
+}
+.field-settings__menu {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  z-index: 30;
+  width: min(240px, calc(100vw - 24px));
+  padding: 6px;
+  border: 1px solid var(--f-border);
+  border-radius: 12px;
+  background: var(--f-surface);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.45);
+}
+.field-settings__label {
+  padding: 8px 10px;
+  color: var(--f-text-dim);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.field-settings__item {
+  appearance: none;
+  width: 100%;
+  min-height: 48px;
+  padding: 10px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--f-text);
+  font: 600 15px/1.25 inherit;
+  text-align: left;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+.field-settings__item-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+.field-settings__item:hover {
+  background: var(--f-surface-2);
+}
+.field-settings__item.selected {
+  color: var(--f-accent);
+}
+.field-settings__sep {
+  height: 1px;
+  margin: 6px 4px;
+  background: var(--f-border);
+}
+
+.field-app button {
+  touch-action: manipulation;
+}
+
+@media (max-width: 390px) {
+  .field-header {
+    padding-inline: 12px;
+  }
+  .field-settings__btn-label {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+  }
+  .field-settings__btn {
+    width: 44px;
+    padding: 0;
+  }
+  .conn-pill {
+    padding-inline: 8px;
+  }
+  .field-header .field-sub {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+  }
+  .field-header h1 {
+    white-space: nowrap;
+  }
 }

@@ -5,22 +5,18 @@
 // saved locally first and flushed to the hub when reachable.
 
 import { useEffect, useRef, useState } from 'react'
+import Icon from '../shared/Icon.jsx'
+import { useI18n } from '../shared/i18n.jsx'
 import VoiceInput from './voice/VoiceInput.jsx'
 import { fileToCompressedPhoto } from './photo.js'
 
 // Incident.category vocabulary (CONTRACTS §2). "status" omitted from quick
 // chips — a field responder reports needs/resources, status is rarely chip-tapped.
-const CATEGORIES = [
-  { id: 'rescue', label: 'Rescate' },
-  { id: 'medical', label: 'Médico' },
-  { id: 'water', label: 'Agua' },
-  { id: 'shelter', label: 'Refugio' },
-  { id: 'food', label: 'Comida' },
-  { id: 'machinery', label: 'Maquinaria' },
-  { id: 'hazard', label: 'Peligro' },
-]
+// Labels are looked up via t(`cat.${id}`) so they follow the display language.
+const CATEGORY_IDS = ['rescue', 'medical', 'water', 'shelter', 'food', 'machinery', 'hazard']
 
 function ReportForm({ onSubmit }) {
+  const { t } = useI18n()
   const [text, setText] = useState('')
   const [category, setCategory] = useState(null)
   const [people, setPeople] = useState('')
@@ -70,7 +66,7 @@ function ReportForm({ onSubmit }) {
     try {
       setPhoto(await fileToCompressedPhoto(file))
     } catch (err) {
-      setPhotoError(err.message || 'no se pudo procesar la foto')
+      setPhotoError(err.message || t('rf.photoError'))
     } finally {
       setPhotoBusy(false)
     }
@@ -107,13 +103,13 @@ function ReportForm({ onSubmit }) {
   return (
     <div>
       <label className="field-label" htmlFor="report-text">
-        ¿Qué está pasando?
+        {t('rf.what')}
       </label>
       <div className="textarea-wrap">
         <textarea
           id="report-text"
           className="report-textarea"
-          placeholder="Ej: Edificio colapsado en Playa Grande, escuchamos voces, ~20 personas atrapadas, necesitamos maquinaria pesada."
+          placeholder={t('rf.placeholder')}
           value={text}
           onChange={(e) => setText(e.target.value)}
           autoComplete="off"
@@ -133,11 +129,11 @@ function ReportForm({ onSubmit }) {
       />
       {photo ? (
         <div className="photo-preview">
-          <img src={photo.previewUrl} alt="Foto adjunta al reporte" />
+          <img src={photo.previewUrl} alt={t('rf.photoAlt')} />
           <div className="photo-preview-meta">
-            <span>Foto adjunta — el agente la analizará</span>
+            <span>{t('rf.photoAttached')}</span>
             <button type="button" className="link-btn" onClick={() => setPhoto(null)}>
-              quitar
+              {t('rf.photoRemove')}
             </button>
           </div>
         </div>
@@ -148,21 +144,22 @@ function ReportForm({ onSubmit }) {
           disabled={photoBusy}
           onClick={() => fileRef.current?.click()}
         >
-          {photoBusy ? 'Procesando foto…' : '📷 Añadir foto (opcional)'}
+          {!photoBusy && <Icon name="photo" />}
+          {photoBusy ? t('rf.photoBusy') : t('rf.photoAdd')}
         </button>
       )}
       {photoError && <div className="photo-error">{photoError}</div>}
 
-      <span className="field-label">Categoría</span>
+      <span className="field-label">{t('rf.category')}</span>
       <div className="chip-row">
-        {CATEGORIES.map((c) => (
+        {CATEGORY_IDS.map((id) => (
           <button
-            key={c.id}
+            key={id}
             type="button"
-            className={`chip${category === c.id ? ' selected' : ''}`}
-            onClick={() => setCategory(category === c.id ? null : c.id)}
+            className={`chip${category === id ? ' selected' : ''}`}
+            onClick={() => setCategory(category === id ? null : id)}
           >
-            {c.label}
+            {t(`cat.${id}`)}
           </button>
         ))}
       </div>
@@ -170,7 +167,7 @@ function ReportForm({ onSubmit }) {
       <div className="field-row" style={{ marginTop: 4 }}>
         <div>
           <label className="field-label" htmlFor="report-people">
-            Personas
+            {t('rf.people')}
           </label>
           <input
             id="report-people"
@@ -185,13 +182,13 @@ function ReportForm({ onSubmit }) {
         </div>
         <div>
           <label className="field-label" htmlFor="report-loc">
-            Ubicación
+            {t('rf.location')}
           </label>
           <input
             id="report-loc"
             className="field-input"
             type="text"
-            placeholder="Ej: Playa Grande"
+            placeholder={t('rf.locationPh')}
             value={location}
             onChange={(e) => setLocation(e.target.value)}
           />
@@ -211,7 +208,7 @@ function ReportForm({ onSubmit }) {
         onClick={handleSend}
         disabled={!canSend || photoBusy}
       >
-        Enviar reporte
+        {t('rf.send')}
       </button>
     </div>
   )

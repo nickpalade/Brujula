@@ -72,6 +72,18 @@ db.exec(`
     seq INTEGER NOT NULL,
     data TEXT NOT NULL
   );
+
+  CREATE TABLE IF NOT EXISTS alerts (
+    id TEXT PRIMARY KEY,
+    seq INTEGER NOT NULL,
+    data TEXT NOT NULL
+  );
+
+  CREATE TABLE IF NOT EXISTS persons (
+    id TEXT PRIMARY KEY,
+    seq INTEGER NOT NULL,
+    data TEXT NOT NULL
+  );
 `);
 
 function now() {
@@ -327,6 +339,8 @@ export function addResource(fields) {
     label: "",
     location: null,
     capacity: null,
+    quantity: null,
+    unit: null,
     status: "available",
     ...fields,
     _seq: bump(),
@@ -425,6 +439,93 @@ export function getPersonnelByDevice(deviceId) {
   return listAll("personnel").find((p) => p.device_id === deviceId) ?? null;
 }
 
+// ---- alerts (broadcast notifications) ----------------------------------
+
+export function addAlert(fields) {
+  const alert = {
+    id: newId("alr"),
+    message: "",
+    severity: "info",
+    zone: null,
+    active: true,
+    created_at: now(),
+    ...fields,
+    _seq: bump(),
+  };
+  db.prepare("INSERT INTO alerts (id, seq, data) VALUES (?, ?, ?)").run(
+    alert.id,
+    alert._seq,
+    JSON.stringify(alert),
+  );
+  return publicView(alert);
+}
+
+export function updateAlert(id, patch) {
+  const row = db.prepare("SELECT data FROM alerts WHERE id = ?").get(id);
+  if (!row) return null;
+  const alert = { ...JSON.parse(row.data), ...patch, _seq: bump() };
+  db.prepare("UPDATE alerts SET seq = ?, data = ? WHERE id = ?").run(
+    alert._seq,
+    JSON.stringify(alert),
+    id,
+  );
+  return publicView(alert);
+}
+
+export function listAlerts() {
+  return listAll("alerts");
+}
+
+export function getAlert(id) {
+  return getOne("alerts", id);
+}
+
+// ---- persons (missing-persons registry) --------------------------------
+
+export function addPerson(fields) {
+  const person = {
+    id: newId("psn"),
+    name: "",
+    name_key: "",
+    status: "missing",
+    detail: null,
+    report_id: null,
+    incident_id: null,
+    matched: false,
+    created_at: now(),
+    updated_at: now(),
+    ...fields,
+    _seq: bump(),
+  };
+  db.prepare("INSERT INTO persons (id, seq, data) VALUES (?, ?, ?)").run(
+    person.id,
+    person._seq,
+    JSON.stringify(person),
+  );
+  return publicView(person);
+}
+
+export function updatePerson(id, patch) {
+  const row = db.prepare("SELECT data FROM persons WHERE id = ?").get(id);
+  if (!row) return null;
+  const person = { ...JSON.parse(row.data), ...patch, updated_at: now(), _seq: bump() };
+  db.prepare("UPDATE persons SET seq = ?, data = ? WHERE id = ?").run(
+    person._seq,
+    JSON.stringify(person),
+    id,
+  );
+  return publicView(person);
+}
+
+export function listPersons() {
+  return listAll("persons");
+}
+
+export function findPersonByNameKey(nameKey) {
+  const all = listAll("persons");
+  return all.find((p) => p.name_key === nameKey) ?? null;
+}
+
 // ---- sync ------------------------------------------------------------------
 
 // Records whose _seq > since. `since` omitted/invalid → 0 → full board.
@@ -440,6 +541,8 @@ export function syncSince(since) {
     incidents: changed("incidents"),
     dispatches: changed("dispatches"),
     resources: changed("resources"),
+    alerts: changed("alerts"),
+    persons: changed("persons"),
   };
 }
 
@@ -452,6 +555,8 @@ export function reset() {
     DELETE FROM resources;
     DELETE FROM reports;
     DELETE FROM personnel;
+    DELETE FROM alerts;
+    DELETE FROM persons;
     UPDATE meta SET seq = 0 WHERE id = 1;
   `);
   seedIfEmpty();

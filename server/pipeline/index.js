@@ -55,6 +55,8 @@ function resourceDigest(resource) {
     label: resource.label,
     location: resource.location ?? null,
     capacity: resource.capacity ?? null,
+    quantity: resource.quantity ?? null,
+    unit: resource.unit ?? null,
     status: resource.status,
     // Mission state for crews: idle (at base) or returning (re-taskable,
     // location = the site they're leaving). Engaged crews are filtered out
