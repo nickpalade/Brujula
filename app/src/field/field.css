@@ -1139,6 +1139,15 @@
    tokens, same hard-edged equipment labels, same bordered panels. */
 
 .bru-app.field-app {
+  --bru-bg-0: #0b0f0d;
+  --bru-bg-1: #111713;
+  --bru-bg-2: #171f1a;
+  --bru-bg-3: #1d2821;
+  --bru-border: #25342d;
+  --bru-border-strong: #34453c;
+  --bru-text-dim: #95a89e;
+  --bru-text-mute: #5a6a61;
+
   --f-critical: var(--bru-critical);
   --f-high: var(--bru-high);
   --f-medium: var(--bru-medium);
@@ -1165,7 +1174,7 @@
   background-color: var(--bru-bg-0);
   background-image:
     url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23n)' opacity='0.05'/%3E%3C/svg%3E"),
-    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='40' height='40'%3E%3Cpath d='M0 0H40M0 0V40' stroke='%238caa96' stroke-opacity='0.06' stroke-width='1'/%3E%3C/svg%3E");
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='40' height='40'%3E%3Cpath d='M0 0H40M0 0V40' stroke='%237f9387' stroke-opacity='0.04' stroke-width='1'/%3E%3C/svg%3E");
   background-size: 140px 140px, 40px 40px;
   border-inline: 1px solid rgba(140, 170, 150, 0.08);
   font: 15px/1.5 var(--bru-sans);
@@ -1182,7 +1191,7 @@
   align-items: center;
   gap: var(--bru-s-3);
   padding: calc(var(--bru-s-3) + env(safe-area-inset-top, 0px)) var(--bru-s-4) var(--bru-s-3);
-  background: rgba(23, 33, 27, 0.96);
+  background: rgba(17, 23, 19, 0.96);
   border-bottom: 1px solid var(--bru-border-strong);
 }
 
@@ -1312,7 +1321,7 @@
 .status-bar,
 .ask,
 .field-queue {
-  background: rgba(23, 33, 27, 0.9);
+  background: rgba(17, 23, 19, 0.9);
   border: 1px solid var(--bru-border);
   border-radius: var(--bru-r-md);
   box-shadow: inset 0 1px 0 rgba(239, 244, 241, 0.02);
@@ -1331,7 +1340,7 @@
 .field-tabs {
   flex: none;
   gap: 0;
-  background: rgba(23, 33, 27, 0.98);
+  background: rgba(17, 23, 19, 0.98);
   border-top: 1px solid var(--bru-border-strong);
   padding-bottom: max(calc(env(safe-area-inset-bottom, 0px) - 14px), 6px);
 }
@@ -1367,7 +1376,7 @@
 }
 
 .alert-banner {
-  background: rgba(14, 20, 17, 0.92);
+  background: rgba(11, 15, 13, 0.92);
   border-bottom-color: var(--bru-border-strong);
   padding: var(--bru-s-3) var(--bru-s-4);
 }
@@ -1393,7 +1402,7 @@
 
 .onboard {
   padding: var(--bru-s-4);
-  background: rgba(23, 33, 27, 0.9);
+  background: rgba(17, 23, 19, 0.9);
   border: 1px solid var(--bru-border);
   border-radius: var(--bru-r-md);
 }
@@ -1525,7 +1534,7 @@
 .photo-btn {
   min-height: 50px;
   border-radius: var(--bru-r-sm);
-  background: rgba(23, 33, 27, 0.74);
+  background: rgba(17, 23, 19, 0.74);
   border-color: var(--bru-border-strong);
   color: var(--bru-text-dim);
   font: 700 12px/1 var(--bru-mono);
