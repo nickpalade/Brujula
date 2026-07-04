@@ -124,7 +124,7 @@ Every report POSTed to `/reports` runs the full agent pipeline —
 **parse → dedup → prioritize → match → advise → emit** — against a persistent
 incident board (`brujula_board.json`):
 
-1. **Parse**: Gemma extracts `{kind: need|resource|status, category, location, people_estimate, urgency, summary}`.
+1. **Parse**: Gemma extracts `{kind: need|resource|status, category, location, people_estimate, urgency, summary}`. A report may attach a photo (`image_base64`) — Gemma reads damage/hazards/people from it to enrich the record (needs a multimodal model, e.g. any `gemma3`/`gemma4` vision variant).
 2. **Dedup**: Gemma compares the new report against open incidents and merges duplicates (`duplicate_of` is schema-constrained to real board ids — the model cannot hallucinate one).
 3. **Prioritize**: deterministic ranking — urgency, then people affected, then longest waiting. Explainable on purpose.
 4. **Match**: Gemma proposes the best available resource for a need (or, when a resource report arrives, the best waiting need for it).
@@ -133,7 +133,7 @@ incident board (`brujula_board.json`):
 
 | Endpoint | What it does |
 |---|---|
-| `POST /reports` | `{"text": "...", "source_device"?} ` → full pipeline → action card |
+| `POST /reports` | `{"text"?, "image_base64"?, "image_mime"?, "source_device"?}` (text or photo, or both) → full pipeline → action card |
 | `GET /board` | prioritized incidents + resources + dispatches + stats |
 | `GET /incidents/{id}` | incident detail + merged reports + protocol advisory |
 | `POST /incidents/{id}/resolve` | close an incident |

@@ -14,16 +14,27 @@ export class CloudProvider {
     return CLOUD_MODEL;
   }
 
-  async generateStructured({ systemPrompt, userText, jsonSchema }) {
+  async generateStructured({ systemPrompt, userText, jsonSchema, images }) {
     const system =
       `${systemPrompt}\n\n` +
       "Respond with a single JSON object matching this JSON schema, " +
       `and nothing else:\n${JSON.stringify(jsonSchema)}`;
+    const content = [
+      ...(images ?? []).map((i) => ({
+        type: "image",
+        source: {
+          type: "base64",
+          media_type: i.mime ?? "image/jpeg",
+          data: i.base64,
+        },
+      })),
+      { type: "text", text: userText },
+    ];
     const payload = {
       model: CLOUD_MODEL,
       max_tokens: 1024,
       system,
-      messages: [{ role: "user", content: userText }],
+      messages: [{ role: "user", content }],
     };
     let resp;
     try {

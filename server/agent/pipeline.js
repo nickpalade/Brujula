@@ -24,11 +24,11 @@ function summaryLanguageName() {
   return SUPPORTED_LANGUAGES.find((l) => l.code === code)?.name ?? "English";
 }
 
-async function generateValidated({ systemPrompt, userText, jsonSchema, validator, step }) {
+async function generateValidated({ systemPrompt, userText, jsonSchema, validator, step, images }) {
   const provider = getProvider();
   let lastError = "unknown";
   for (let attempt = 0; attempt < 1 + STEP_RETRIES; attempt += 1) {
-    const raw = await provider.generateStructured({ systemPrompt, userText, jsonSchema });
+    const raw = await provider.generateStructured({ systemPrompt, userText, jsonSchema, images });
     try {
       return validator.parse(JSON.parse(raw));
     } catch (err) {
@@ -67,6 +67,10 @@ Field rules:
 - "resource_label": short label of what is offered ("excavadora + operador").
   null unless kind = resource.
 - "summary": one short sentence in ${languageName} for the coordination board.
+
+If a photo is attached, read it: visible damage, hazards, trapped or injured
+people, crowding, water conditions. Combine what you see with the text; the
+photo can raise urgency or fill in missing fields.
 
 Output JSON only.`;
 }
@@ -126,18 +130,22 @@ function resourceDigest(resource) {
 
 // ------------------------------------------------------------ orchestrator
 
-export async function ingestReport({ text, sourceDevice }) {
+export async function ingestReport({ text, sourceDevice, imageBase64, imageMime }) {
   const languageName = summaryLanguageName();
 
-  // 1. PARSE
+  // 1. PARSE — the only step that sees the photo; downstream steps work on
+  // the structured record. The base64 is not persisted to the board file.
+  const images = imageBase64 ? [{ base64: imageBase64, mime: imageMime }] : undefined;
   const parsed = await generateValidated({
     systemPrompt: buildParsePrompt(languageName),
-    userText: text,
+    userText: text?.trim() ? text : "(no text — photo-only report)",
     jsonSchema: agentParseJsonSchema(),
     validator: AgentParse,
     step: "parse",
+    images,
   });
-  const report = store.addReport({ rawText: text, sourceDevice, parsed });
+  parsed.has_image = Boolean(imageBase64);
+  const report = store.addReport({ rawText: text ?? "", sourceDevice, parsed });
 
   if (parsed.kind === "status") {
     return {

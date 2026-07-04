@@ -39,10 +39,20 @@ export function agentParseJsonSchema() {
   return z.toJSONSchema(AgentParse);
 }
 
-export const IngestRequest = z.object({
-  text: z.string().min(1).max(8000),
-  source_device: z.string().max(200).optional(),
-});
+export const IngestRequest = z
+  .object({
+    text: z.string().max(8000).optional(),
+    image_base64: z
+      .string()
+      .max(15_000_000)
+      .optional()
+      .describe("Optional photo (damage, rubble, site) as raw base64, no data: prefix."),
+    image_mime: z.string().optional(),
+    source_device: z.string().max(200).optional(),
+  })
+  .refine((r) => (r.text && r.text.trim().length > 0) || r.image_base64, {
+    message: "text or image_base64 required",
+  });
 
 export const DedupDecision = z.object({
   duplicate_of: z.string().nullable(),
