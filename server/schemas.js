@@ -64,6 +64,14 @@ export const RegisterRequest = z.object({
   device_id: z.string().min(1).max(120),
 });
 
+// POST /api/crew-status — a registered volunteer/crew updates where they are
+// in the mission loop. idle = at base, ready; traveling/on_site = engaged
+// (excluded from matching); returning = heading back, re-taskable.
+export const CrewStatusRequest = z.object({
+  device_id: z.string().min(1).max(120),
+  field_status: z.enum(["idle", "traveling", "on_site", "returning"]),
+});
+
 // POST /api/incidents/:id/dispatch — confirm or override a proposed dispatch.
 // `resource_id` is required iff action === "override".
 export const DispatchActionRequest = z

@@ -56,7 +56,18 @@ function resourceDigest(resource) {
     location: resource.location ?? null,
     capacity: resource.capacity ?? null,
     status: resource.status,
+    // Mission state for crews: idle (at base) or returning (re-taskable,
+    // location = the site they're leaving). Engaged crews are filtered out
+    // before the digest is built.
+    field_status: resource.field_status ?? "idle",
   };
+}
+
+// A resource the matcher may propose: available, or a returning crew
+// (re-taskable). Engaged crews (traveling / on_site) never reach the model.
+function isMatchable(r) {
+  if (r.field_status === "traveling" || r.field_status === "on_site") return false;
+  return r.status === "available" || r.field_status === "returning";
 }
 
 // ============================================================= 1. PARSE
@@ -213,7 +224,7 @@ export function prioritize(incidents) {
 // Fallback (any failure or no fit): null.
 export async function proposeMatch(incident, availableResources) {
   const available = Array.isArray(availableResources)
-    ? availableResources.filter((r) => r.status === "available")
+    ? availableResources.filter(isMatchable)
     : [];
   if (available.length === 0) return null;
 

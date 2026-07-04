@@ -90,6 +90,17 @@ export const api = {
     })
   },
 
+  // POST /api/crew-status — volunteer/crew updates its mission state.
+  // idle | traveling | on_site | returning. Engaged crews (traveling/on_site)
+  // are excluded from matching; returning crews are re-taskable.
+  async setCrewStatus({ device_id, field_status }) {
+    if (USE_MOCKS) return { personnel: null, resource: { field_status } }
+    return request('/api/crew-status', {
+      method: 'POST',
+      body: { device_id, field_status },
+    })
+  },
+
   // POST /api/reports  → { report, incident|null }
   // client_ref: idempotency key (the outbox localId) — retries with the same
   // ref replay the stored report instead of duplicating it on the hub.

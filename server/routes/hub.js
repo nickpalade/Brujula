@@ -6,7 +6,7 @@ import express from "express";
 
 import { logger } from "../logger.js";
 import * as store from "../store.js";
-import { DispatchActionRequest, HubReportRequest, RegisterRequest } from "../schemas.js";
+import { CrewStatusRequest, DispatchActionRequest, HubReportRequest, RegisterRequest } from "../schemas.js";
 
 // Agent HUB — the hub data layer's REST API (CONTRACTS §3, PRD §5B/§6).
 // Mounted once by server/main.js (`app.use(hubRouter)`); routes carry their
@@ -123,7 +123,9 @@ async function runReportPipeline(reportId, { text, lang, images }) {
     if (incident.kind === "need" && !incident.proposed_dispatch_id) {
       try {
         if (typeof pipeline.proposeMatch === "function") {
-          const match = await pipeline.proposeMatch(incident, store.availableResources());
+          // matchable = available + returning crews (re-taskable); engaged
+          // crews (traveling / on_site) are excluded before Gemma ever looks.
+          const match = await pipeline.proposeMatch(incident, store.matchableResources());
           if (match && match.resource_id && store.getResource(match.resource_id)) {
             const dispatch = store.addDispatch({
               incident_id: incident.id,
@@ -295,7 +297,7 @@ hubRouter.post("/api/register", (req, res) => {
       // Refresh profile fields; keep dispatch status (committed stays committed).
       resource = store.updateResource(existing.id, rf);
     } else {
-      resource = store.addResource({ ...rf, status: "available" });
+      resource = store.addResource({ ...rf, status: "available", field_status: "idle" });
       person = store.updatePersonnel(person.id, { resource_id: resource.id });
     }
     logger.info(`[hub] registered ${role} '${name}' (${device_id}) → resource ${resource.id}`);
@@ -403,10 +405,64 @@ hubRouter.post("/api/incidents/:id/dispatch", (req, res) => {
   }
 
   const updated = store.updateDispatch(dispatch.id, patch);
-  store.updateResource(updated.resource_id, { status: "committed" });
+  // Confirmed = the crew is now en route; engaged crews leave the match pool.
+  store.updateResource(updated.resource_id, { status: "committed", field_status: "traveling" });
   store.updateIncident(incident.id, { status: "dispatched" });
 
   envelope(res, { data: updated });
+});
+
+// POST /api/crew-status — a volunteer/crew phone updates its mission state.
+// Deterministic lifecycle glue around the matcher:
+//   idle       → back at base: resource available again, location = home base
+//   traveling  → engaged (excluded from matching)
+//   on_site    → engaged; location = the dispatched incident's site
+//   returning  → re-taskable; location stays at the site they're leaving, so
+//                "closest to the new incident" is meaningful for Gemma
+// (Phone GPS will replace this honor-system location once the map lands.)
+hubRouter.post("/api/crew-status", (req, res) => {
+  const parsed = CrewStatusRequest.safeParse(req.body);
+  if (!parsed.success) {
+    return envelope(res, {
+      error:
+        "body must be {\"device_id\", \"field_status\": \"idle\"|\"traveling\"|\"on_site\"|\"returning\"}",
+      status: 400,
+    });
+  }
+  const { device_id, field_status } = parsed.data;
+
+  const person = store.getPersonnelByDevice(device_id);
+  if (!person) {
+    return envelope(res, { error: `no registration for device ${device_id}`, status: 404 });
+  }
+  if (!person.resource_id) {
+    return envelope(res, { error: "device is registered as a reporter (no crew resource)", status: 409 });
+  }
+  const resource = store.getResource(person.resource_id);
+  if (!resource) {
+    return envelope(res, { error: `resource ${person.resource_id} not found (board reseeded? re-register)`, status: 404 });
+  }
+
+  const patch = { field_status };
+
+  // Where is the crew? on_site/returning → at/near their dispatched incident;
+  // idle → back at their registered base.
+  if (field_status === "on_site" || field_status === "returning") {
+    const lastConfirmed = store
+      .listDispatches()
+      .filter((d) => d.resource_id === resource.id && (d.state === "confirmed" || d.state === "done"))
+      .sort((a, b) => (a.confirmed_by_human_at ?? "") < (b.confirmed_by_human_at ?? "") ? -1 : 1)
+      .pop();
+    const site = lastConfirmed ? store.getIncident(lastConfirmed.incident_id)?.location : null;
+    if (site) patch.location = site;
+  } else if (field_status === "idle") {
+    patch.location = person.location ?? resource.location;
+    patch.status = "available"; // mission over — fully back in the pool
+  }
+
+  const updated = store.updateResource(resource.id, patch);
+  logger.info(`[hub] crew-status ${person.name} (${device_id}) → ${field_status}${patch.location ? ` @ ${patch.location}` : ""}`);
+  envelope(res, { data: { personnel: person, resource: updated } });
 });
 
 // GET /api/sync?since=<seq> — deltas since a monotonic seq (default full board).

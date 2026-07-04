@@ -99,6 +99,14 @@ dispatch:
 - specialized field crews appear with their capability as the type (rescue,
   medical, water, shelter, food, machinery) — treat them like any other
   resource of that type.
+- each resource has a "field_status": "idle" = at base and ready;
+  "returning" = a crew heading back from a finished assignment, still
+  re-taskable, whose location is the site they are leaving. Crews that are
+  traveling to or working a site are engaged and never appear in your list.
+- when both an idle resource and a returning crew fit the need, send whichever
+  is CLOSEST to the incident by the locations given: a returning crew already
+  near the new incident beats dispatching a fresh crew from farther away — and
+  a fresh crew that is closer beats re-tasking a distant returning crew.
 - among those that fit, prefer the nearest by the locations given.
 - if NO available resource genuinely fits, return null — never force a bad match.
 

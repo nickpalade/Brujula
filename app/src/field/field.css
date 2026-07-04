@@ -205,6 +205,29 @@
   line-height: 1.4;
 }
 
+/* Crew status bar ---------------------------------------------------------- */
+.status-bar {
+  margin-bottom: 20px;
+  padding: 12px 14px;
+  background: var(--f-surface);
+  border: 1px solid var(--f-border);
+  border-radius: 14px;
+}
+.status-bar-label {
+  display: block;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--f-text-dim);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 8px;
+}
+.chip-small {
+  padding: 8px 12px;
+  font-size: 13px;
+  min-height: 38px;
+}
+
 .link-btn {
   appearance: none;
   background: none;

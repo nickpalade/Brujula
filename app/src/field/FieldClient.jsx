@@ -77,15 +77,63 @@ function ConnPill({ online }) {
   )
 }
 
+// Mission-state control for volunteers/crews. What the coordinator's agent
+// sees: traveling/on_site = engaged (never proposed); returning = re-taskable;
+// idle = fully back in the pool.
+const FIELD_STATUSES = [
+  { id: 'idle', label: 'Disponible' },
+  { id: 'traveling', label: 'En camino' },
+  { id: 'on_site', label: 'En el sitio' },
+  { id: 'returning', label: 'Regresando' },
+]
+
+function StatusBar({ current, onChange, busy }) {
+  return (
+    <div className="status-bar">
+      <span className="status-bar-label">Mi estado</span>
+      <div className="chip-row">
+        {FIELD_STATUSES.map((s) => (
+          <button
+            key={s.id}
+            type="button"
+            disabled={busy}
+            className={`chip chip-small${current === s.id ? ' selected' : ''}`}
+            onClick={() => onChange(s.id)}
+          >
+            {s.label}
+          </button>
+        ))}
+      </div>
+    </div>
+  )
+}
+
 function FieldClient() {
   const [profile, setProfile] = useState(loadProfile)
   const [tab, setTab] = useState('report')
   const [toast, setToast] = useState(null)
+  const [statusBusy, setStatusBusy] = useState(false)
 
   useRegistration(profile)
 
   const isReporter = profile?.role === 'reporter'
   const reportedBy = profile ? `${profile.name} · ${ROLE_LABEL[profile.role]}` : null
+
+  const setFieldStatus = async (field_status) => {
+    if (!profile || statusBusy) return
+    setStatusBusy(true)
+    try {
+      await api.setCrewStatus({ device_id: profile.device_id, field_status })
+      const next = { ...profile, field_status }
+      saveProfile(next)
+      setProfile(next)
+    } catch {
+      setToast('Sin conexión — estado no enviado, reintenta')
+      setTimeout(() => setToast(null), 2500)
+    } finally {
+      setStatusBusy(false)
+    }
+  }
 
   const { items, enqueue, online, clearSynced } = useOutbox(
     profile?.device_id ?? 'unregistered',
@@ -148,6 +196,13 @@ function FieldClient() {
       </header>
 
       <main className="field-body">
+        {!isReporter && (
+          <StatusBar
+            current={profile.field_status ?? 'idle'}
+            onChange={setFieldStatus}
+            busy={statusBusy}
+          />
+        )}
         {tab === 'report' || isReporter ? (
           <>
             <ReportForm onSubmit={handleSubmit} />

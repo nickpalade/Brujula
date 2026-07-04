@@ -225,6 +225,17 @@ export function availableResources() {
     .map((r) => publicView(JSON.parse(r.data)));
 }
 
+// Resources the match step may propose: anything available, plus committed
+// crews whose field_status is 'returning' (heading back from a finished
+// assignment — re-taskable). Crews traveling to or working a site are engaged
+// and never reach the matcher.
+export function matchableResources() {
+  return listResources().filter((r) => {
+    if (r.field_status === "traveling" || r.field_status === "on_site") return false;
+    return r.status === "available" || r.field_status === "returning";
+  });
+}
+
 // Full board snapshot for pipeline sitrep / fallbacks.
 export function board() {
   return {
