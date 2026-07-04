@@ -12,6 +12,8 @@
     "serve": "node server/main.js",
     "dev": "node --watch server/main.js",
     "seed": "node scripts/seed.js",
+    "fetch:tiles": "node scripts/fetch-tiles.mjs",
+    "test": "node --test --test-concurrency=1 \"tests/*.test.mjs\"",
     "verify": "node verify.js",
     "verify:hub": "node verify-hub.js"
   },

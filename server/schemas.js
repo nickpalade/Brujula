@@ -44,6 +44,14 @@ export const HubReportRequest = z
     client_ref: z.string().max(120).nullish(),
     // Who reported (from the device profile): "Name · rol". Stored on the report.
     reported_by: z.string().max(200).nullish(),
+    // Best-effort phone GPS at report time (additive, CONTRACTS-safe). The
+    // browser geolocation API needs a secure origin, so most field phones
+    // won't send these — the gazetteer fallback covers them. FORGIVING:
+    // an out-of-range or type-mangled coordinate becomes null (`.catch`)
+    // instead of 400-ing away a possibly life-critical report.
+    lat: z.number().min(-90).max(90).nullish().catch(null),
+    lon: z.number().min(-180).max(180).nullish().catch(null),
+    accuracy: z.number().min(0).nullish().catch(null),
   })
   .refine((v) => (v.text ?? "").trim().length > 0 || !!v.image_base64, {
     message: "text or image_base64 is required",

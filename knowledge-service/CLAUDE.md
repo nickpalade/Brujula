@@ -134,7 +134,7 @@ Four domains, each stored as its own JSON file under `data/`, loaded at startup.
 
 ## Current state
 
-_End of day 2. **The real service is built and verified** — all five items from day 1's checklist are done. `pytest` green (31/31), served live on `:8100`, zero runtime network calls._
+_**The real service is built, verified, AND merged to `main`.** All five day-1 checklist items done. `pytest` green (31/31), served live on `:8100`, zero runtime network calls. Merged into `main` via a `rares → main` merge (add/add conflicts resolved in favour of the real version; merge touched `knowledge-service/` only). This module is effectively **done** — see "Wider repo & integration (session handoff)" at the bottom for how it plugs into the rest of Brújula._
 
 ### Done (day 2)
 - **`data/` protocol content authored** — all four domains, paraphrased with per-step named sources, operational-only:
@@ -149,6 +149,64 @@ _End of day 2. **The real service is built and verified** — all five items fro
 - **Verified live** — `uvicorn app:app --port 8100`: `/health`, `/protocols`, exact + keyword (UTF-8 Spanish) + fallback matches all confirmed over the wire. No network libraries imported anywhere in runtime code.
 - **Env note:** this machine runs it via a local venv (`py -3.12 -m venv .venv`, gitignored) because the system Python lacks the deps. `mock/advise_examples.json` is unchanged — still Pepe's fixture, just no longer served.
 
-### Remaining
-- **The literal airplane-mode run** — flip wifi off and hit `/advise` once (loopback needs no wifi; expected to just work).
-- Optional polish, only if time allows: more Spanish keywords from real field-report samples; a couple of `flood`/`fire`-specific keyword entries if Pepe wants those types routed somewhere other than `other`.
+### Remaining (all optional — nothing blocks the demo)
+- **The literal airplane-mode run** — flip wifi off and hit `/advise` once (loopback needs no wifi; expected to just work). Ceremonial only; already proven offline statically + over loopback.
+- Optional polish, only if time allows: more Spanish keywords from real field-report samples; a couple of `flood`/`fire`-specific keyword entries if the team wants those types routed somewhere other than `other`.
+
+---
+
+## Wider repo & integration (session handoff)
+
+_Written at the end of the merge session so a fresh session (incl. in Cursor) knows exactly where things stand. Everything below is about how this module fits the whole **Brújula** project; the module itself is done._
+
+### Where this service sits in the system
+- **Repo:** `github.com/nickpalade/Brujula`. Canonical branch is **`main`** (this service is already merged there). The team pushes straight to `main`; work is fast-moving.
+- **This service is the OPTIONAL protocol brain.** The backend already ships its own local copy of the protocols, so the demo never depends on this box being up.
+- **Integration point:** the Node backend's **`POST /api/advise`** ([`server/routes/advise.js`](../server/routes/advise.js)) is a **proxy-with-local-fallback**:
+  - Env **`RARES_KB_URL`** (alias **`PROTOCOL_KB_URL`**) **set to `http://localhost:8100`** → backend proxies to THIS service and normalizes our `{guidance, safety_flags, disclaimer, source_standards}` into its Advisory shape.
+  - **Unset (default)** → backend serves its own local KB (`server/kb/protocols.json`). It also **auto-falls-back to local if this service is unreachable**, so this service can never break the demo.
+  - The demo runbook ([`DEMO.md`](../DEMO.md)) sets that env var, i.e. the demo is *intended* to run this real service.
+- **Contract still stable:** `POST /advise`, `GET /health`, `GET /protocols` exactly as documented above. `advise.js` depends on the response shape — don't change it without flagging the team.
+
+### How to run / test this module (Windows, PowerShell)
+- A local **venv already exists** at `knowledge-service/.venv` (gitignored, created with `py -3.12`). **The system Python is 3.14 and lacks the deps — always use the venv.**
+- Serve: `` .venv/Scripts/python -m uvicorn app:app --port 8100 ``
+- Test: `` .venv/Scripts/python -m pytest -q `` (expect **31 passed**).
+- If the venv is ever gone: `py -3.12 -m venv .venv && .venv/Scripts/python -m pip install -r requirements.txt`.
+
+### Rest-of-repo context (so a new session isn't surprised)
+- **One canonical backend stack now.** The old duplicate `server/agent/*` stack was **deleted** (see [`CONSOLIDATION.md`](../CONSOLIDATION.md)); the live stack is `/api/*` = `server/routes/hub.js` + `server/store.js` (**SQLite** at `data/hub.db`, via Node's built-in `node:sqlite`) + `server/pipeline/*` (Gemma: parse → dedup → prioritize → match → sitrep).
+- **Requires Node ≥ 22.5** (for `node:sqlite`). Model is **`gemma4:e4b`**, served by an embedded Ollama the server spawns itself.
+- **Full-system acceptance test is `npm run verify:hub`** (needs the Gemma model loaded → realistically run on the **GPU demo laptop**, not the remote dev machine). Fast model-free backend tests are **`npm test`** (node:test, repo root — covers geocoding/GPS/map data; 37 green). This module's own `pytest` is fully runnable anywhere.
+- Read [`README.md`](../README.md) + [`CONSOLIDATION.md`](../CONSOLIDATION.md) for the whole picture — both current and accurate (the previously-stale README line about the legacy `agent/` stack has been corrected).
+- **Owner context:** Rares (this module) works remote; Ceco owns the SQLite store/backend consolidation, Pepe (José María) leads integration, Nick has the GPU demo laptop.
+
+---
+
+## GPS + offline incident map (built by Rares under a lane exemption, Jul 4 PM)
+
+_The team asked for this via voice note and explicitly cleared working outside `/knowledge-service` for it. It touches `app/`, `server/`, `scripts/`, `fixtures/`, `tests/` — the knowledge-service itself is untouched and still done. Full user-facing docs are in [`README.md`](../README.md) ("Offline incident map"); this section is what the next agent needs._
+
+### What it is
+1. **Field app GPS**: composing a report requests phone location (best-effort) and sends additive `lat`/`lon`/`accuracy` on `POST /api/reports`. Browsers block geolocation on plain-HTTP LAN origins, so on demo phones this usually silently no-ops — by design.
+2. **Offline gazetteer fallback** ([`server/geocode.js`](../server/geocode.js) + [`fixtures/gazetteer.json`](../fixtures/gazetteer.json)): ~17 Vargas-coast place names → coords. When an incident is created/merged, its pin resolves **report GPS → gazetteer(parsed `location` label) → none**. Matching is accent/case-insensitive, whole-word, longest-name-wins (same forgiving philosophy as this module's matcher). Dedup merges never move an existing pin.
+3. **Command Post map** ([`app/src/command/MapPanel.jsx`](../app/src/command/MapPanel.jsx)): plain Leaflet (no react-leaflet), urgency-colored circle markers, popup + click-through to the incident drawer, "N sin ubicación" badge, collapsible, panning clamped to the downloaded region.
+4. **Pre-downloaded tiles** ([`scripts/fetch-tiles.mjs`](../scripts/fetch-tiles.mjs), `npm run fetch:tiles`): one-time online step (like the bootstrap model pull) → `data/tiles/{z}/{x}/{y}.png` (gitignored, ~4k tiles / ~6 MB, zooms 11–16), served offline by Express at `/tiles/*`. **Tile source is CARTO's dark basemap — NOT tile.openstreetmap.org** (OSM blocks bulk downloads mid-fetch; learned the hard way). Region/zoom/source overridable via `TILES_BBOX` / `TILES_ZOOM` / `TILES_URL`.
+
+### Contract changes (flagged, additive only)
+- `POST /api/reports` accepts optional `lat`/`lon`/`accuracy`. **Forgiving:** mangled/out-of-range values are `.catch`-ed to null by the zod schema — never a 422/400 for bad GPS; a lone `lat` without `lon` is stored as no fix. Reports and incidents now carry `lat`/`lon` (null when unlocated) through `/api/incidents`, `/api/sync`, `/api/reports`.
+- Nothing about THIS module's `/advise` contract changed.
+
+### Data invariants
+- `fixtures/seed_incidents.json` + `seed_resources.json` entries all carry `lat`/`lon` (a test enforces it).
+- Every gazetteer coordinate must stay inside the tile bbox `10.50,-67.12 → 10.70,-66.68` (a test enforces it). If the scenario region moves: update gazetteer + seeds + `TILES_BBOX` + `REGION_BOUNDS` in `MapPanel.jsx`, then re-run `npm run fetch:tiles`.
+
+### Tests (`npm test`, repo root, no model/Ollama needed — 37 passing)
+- `tests/geocode.test.mjs` — gazetteer matching incl. accents, whole-word, specificity, junk inputs.
+- `tests/hub-coords.test.mjs` — `resolveCoords` precedence + `mergeReportIntoIncident` (first-pin-wins, urgency/people/location raising intact). These are exported from `hub.js` for tests.
+- `tests/store-coords.test.mjs` — SQLite persistence + seeds carry coords.
+- `tests/reports-endpoint.test.mjs` — over-the-wire `/api/reports` GPS handling (valid/mangled/half/replay). Endpoint tests assert on the stored **report** (incident stays null without Gemma — that's the hub's graceful degradation, not a failure).
+- Tests write through the real `data/hub.db` and reset it (≡ `npm run seed`) — hence `--test-concurrency=1` in the npm script. Don't run them mid-demo.
+
+### Deploy checklist for the demo laptop (delta only)
+- `npm run fetch:tiles` once with internet; `cd app && npm run build` to pick up the map UI. Everything else is unchanged.

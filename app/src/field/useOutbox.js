@@ -53,13 +53,17 @@ export function useOutbox(sourceDevice, reportedBy = null) {
 
   // Enqueue a new report — saved locally immediately, sent on the next flush.
   const enqueue = useCallback(
-    ({ text, category, people_count, location }) => {
+    ({ text, category, people_count, location, lat, lon, accuracy }) => {
       const item = {
         localId: makeLocalId(),
         text,
         category: category || null,
         people_count: people_count ?? null,
         location: location || null,
+        // Best-effort phone GPS captured at compose time (null when denied).
+        lat: lat ?? null,
+        lon: lon ?? null,
+        accuracy: accuracy ?? null,
         source_device: sourceDevice,
         reported_by: reportedBy,
         lang: 'es',
@@ -104,6 +108,9 @@ export function useOutbox(sourceDevice, reportedBy = null) {
             lang: it.lang,
             client_ref: it.localId,
             reported_by: it.reported_by ?? null,
+            lat: it.lat ?? null,
+            lon: it.lon ?? null,
+            accuracy: it.accuracy ?? null,
           })
           sawSuccess = true
           const incidentId =

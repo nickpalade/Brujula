@@ -97,6 +97,53 @@
   }
 }
 
+.cmd-left {
+  display: flex;
+  flex-direction: column;
+  gap: var(--bru-s-4);
+  min-height: 0;
+}
+.cmd-left .cmd-feed {
+  flex: 1;
+}
+
+/* ---------------- Offline incident map ---------------- */
+.cmd-map__canvas {
+  height: 300px;
+  width: 100%;
+  /* Tiles are CARTO dark_all — already dark, no filter needed. */
+  background: var(--bru-surface, #14161c);
+}
+.cmd-map__actions {
+  display: flex;
+  align-items: center;
+  gap: var(--bru-s-2);
+}
+.cmd-map__toggle {
+  appearance: none;
+  border: 1px solid var(--bru-border, rgba(255, 255, 255, 0.14));
+  background: transparent;
+  color: inherit;
+  border-radius: 6px;
+  padding: 3px 10px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.cmd-map__popup {
+  font-size: 13px;
+  max-width: 220px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.cmd-map__popup-loc {
+  opacity: 0.75;
+}
+.cmd-map__canvas.leaflet-container {
+  font: inherit;
+}
+
 .cmd-feed {
   min-height: 0;
 }

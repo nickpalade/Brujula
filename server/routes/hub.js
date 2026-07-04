@@ -6,6 +6,7 @@ import express from "express";
 
 import { logger } from "../logger.js";
 import * as store from "../store.js";
+import { geocodeLabel } from "../geocode.js";
 import { CrewStatusRequest, DispatchActionRequest, HubReportRequest, RegisterRequest } from "../schemas.js";
 
 // Agent HUB — the hub data layer's REST API (CONTRACTS §3, PRD §5B/§6).
@@ -82,10 +83,22 @@ export const hubRouter = express.Router();
 const REPORT_ACK_TIMEOUT_MS = Number(process.env.REPORT_ACK_TIMEOUT_MS ?? 20_000);
 const ACK_TIMEOUT = Symbol("ack-timeout");
 
+// Where does an incident's map pin come from? Phone GPS on the report when
+// the browser granted it, else the offline gazetteer resolves the parsed
+// location label. Either way {lat, lon} or {} — the map simply skips
+// incidents without coordinates. (Exported for tests.)
+export function resolveCoords(reportCoords, locationLabel) {
+  if (Number.isFinite(reportCoords?.lat) && Number.isFinite(reportCoords?.lon)) {
+    return { lat: reportCoords.lat, lon: reportCoords.lon };
+  }
+  const hit = geocodeLabel(locationLabel);
+  return hit ? { lat: hit.lat, lon: hit.lon } : {};
+}
+
 // Full pipeline for one stored report: parse → dedup → merge/add incident →
 // match. Returns the incident, or null when the report stays pending. Never
 // throws — this also runs detached (post-ack), where a throw would be fatal.
-async function runReportPipeline(reportId, { text, lang, images }) {
+async function runReportPipeline(reportId, { text, lang, images, coords }) {
   let incident = null;
   try {
     const pipeline = await loadPipeline();
@@ -106,14 +119,16 @@ async function runReportPipeline(reportId, { text, lang, images }) {
       logger.warn(`[hub] dedupCheck failed, treating as new incident: ${err.message}`);
     }
 
+    const resolved = resolveCoords(coords, fields.location);
+
     if (dedup?.is_duplicate && dedup.matching_incident_id) {
       const existing = store.getIncident(dedup.matching_incident_id);
       if (existing) {
-        incident = mergeReportIntoIncident(existing, reportId, fields);
+        incident = mergeReportIntoIncident(existing, reportId, fields, resolved);
       }
     }
     if (!incident) {
-      incident = store.addIncident({ ...fields, merged_report_ids: [reportId] });
+      incident = store.addIncident({ ...fields, ...resolved, merged_report_ids: [reportId] });
     }
 
     store.updateReport(reportId, { parsed_into: incident.id });
@@ -168,6 +183,9 @@ hubRouter.post("/api/reports", async (req, res) => {
     lang = null,
     client_ref = null,
     reported_by = null,
+    lat = null,
+    lon = null,
+    accuracy = null,
   } = parsed.data;
 
   // Idempotent replay: the field outbox resends with the same client_ref until
@@ -186,6 +204,10 @@ hubRouter.post("/api/reports", async (req, res) => {
   // persisted — the stored report just records that a photo informed it.
   const images = image_base64 ? [{ base64: image_base64, mime: image_mime }] : undefined;
 
+  // GPS is all-or-nothing: a lone lat (its pair mangled away by validation)
+  // is meaningless, so store null coords rather than half a fix.
+  const hasGps = Number.isFinite(lat) && Number.isFinite(lon);
+
   const report = store.addReport({
     raw_text: text ?? "",
     source_device,
@@ -193,9 +215,17 @@ hubRouter.post("/api/reports", async (req, res) => {
     has_image: Boolean(image_base64),
     client_ref,
     reported_by,
+    lat: hasGps ? lat : null,
+    lon: hasGps ? lon : null,
+    accuracy: hasGps && Number.isFinite(accuracy) ? accuracy : null,
   });
 
-  const work = runReportPipeline(report.id, { text, lang, images });
+  const work = runReportPipeline(report.id, {
+    text,
+    lang,
+    images,
+    coords: hasGps ? { lat, lon } : null,
+  });
   const outcome = await Promise.race([
     work,
     new Promise((resolve) => {
@@ -218,7 +248,8 @@ hubRouter.post("/api/reports", async (req, res) => {
 // Merge a new report's parsed fields into an existing incident. Raises what we
 // know (max urgency, max people_count, fill missing location) and records the
 // merged report id — the dedup evidence the Command UI renders.
-function mergeReportIntoIncident(incident, reportId, fields) {
+// (Exported for tests.)
+export function mergeReportIntoIncident(incident, reportId, fields, coords = {}) {
   const patch = {
     merged_report_ids: [...(incident.merged_report_ids ?? []), reportId],
   };
@@ -233,6 +264,11 @@ function mergeReportIntoIncident(incident, reportId, fields) {
   }
   if (incident.location == null && fields.location != null) {
     patch.location = fields.location;
+  }
+  // First non-null coordinates win — later reports never move an existing pin.
+  if (incident.lat == null && Number.isFinite(coords.lat) && Number.isFinite(coords.lon)) {
+    patch.lat = coords.lat;
+    patch.lon = coords.lon;
   }
   return store.updateIncident(incident.id, patch);
 }

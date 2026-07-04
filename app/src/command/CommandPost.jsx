@@ -9,6 +9,7 @@ import IncidentCard from './IncidentCard.jsx';
 import DispatchProposal from './DispatchProposal.jsx';
 import IncidentDrawer from './IncidentDrawer.jsx';
 import SitrepModal from './SitrepModal.jsx';
+import MapPanel from './MapPanel.jsx';
 import {
   USE_MOCKS,
   getSync,
@@ -193,6 +194,10 @@ function CommandPost() {
       </header>
 
       <main className="cmd-main">
+        {/* --- Left column: offline map + prioritized action feed --- */}
+        <div className="cmd-left">
+        <MapPanel incidents={ordered} onSelect={setSelectedId} />
+
         {/* --- Prioritized action feed --- */}
         <Panel
           title="Prioritized Action Feed"
@@ -234,6 +239,7 @@ function CommandPost() {
             </div>
           )}
         </Panel>
+        </div>
 
         {/* --- Right rail: AI proposals + resources --- */}
         <div className="cmd-rail">

@@ -3,7 +3,7 @@
 // SEND. Submitting hands the report to the outbox (store-and-forward), so it is
 // saved locally first and flushed to the hub when reachable.
 
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import VoiceInput from './voice/VoiceInput.jsx'
 
 // Incident.category vocabulary (CONTRACTS §2). "status" omitted from quick
@@ -23,21 +23,54 @@ function ReportForm({ onSubmit }) {
   const [category, setCategory] = useState(null)
   const [people, setPeople] = useState('')
   const [location, setLocation] = useState('')
+  // Best-effort phone GPS, attached to the report when the browser grants it.
+  // On the hub's plain-HTTP LAN origin most browsers deny geolocation — that
+  // failure is silent by design (the hub's gazetteer still maps the report
+  // from its location text). Refreshed after every send so the NEXT report
+  // carries a current fix.
+  const [coords, setCoords] = useState(null)
+  const coordsRef = useRef(null)
+
+  const captureGps = () => {
+    if (!navigator.geolocation) return
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        const c = {
+          lat: pos.coords.latitude,
+          lon: pos.coords.longitude,
+          accuracy: pos.coords.accuracy ?? null,
+        }
+        coordsRef.current = c
+        setCoords(c)
+      },
+      () => {}, // denied / unavailable / insecure origin — silently no GPS
+      { enableHighAccuracy: true, timeout: 8000, maximumAge: 60000 },
+    )
+  }
+
+  useEffect(() => {
+    captureGps()
+  }, [])
 
   const canSend = text.trim().length > 0
 
   const handleSend = () => {
     if (!canSend) return
+    const gps = coordsRef.current
     onSubmit({
       text: text.trim(),
       category,
       people_count: people === '' ? null : Number(people),
       location: location.trim() || null,
+      lat: gps?.lat ?? null,
+      lon: gps?.lon ?? null,
+      accuracy: gps?.accuracy ?? null,
     })
     setText('')
     setCategory(null)
     setPeople('')
     setLocation('')
+    captureGps()
   }
 
   const handleTranscript = (t) => {
@@ -108,6 +141,13 @@ function ReportForm({ onSubmit }) {
           />
         </div>
       </div>
+
+      {coords && (
+        <div className="gps-chip">
+          Ubicación GPS adjunta
+          {Number.isFinite(coords.accuracy) ? ` (±${Math.round(coords.accuracy)} m)` : ''}
+        </div>
+      )}
 
       <button
         type="button"

@@ -350,6 +350,16 @@ app.post("/parse-report", async (req, res) => {
 // resources, dispatch confirm/override, sync deltas, sitrep, advise.
 app.use(hubRouter);
 
+// Offline map tiles for the Command Post map (prefetched once with
+// `npm run fetch:tiles` into data/tiles/{z}/{x}/{y}.png). Missing tiles just
+// 404 — Leaflet shows a blank square, never an error. Immutable cache: tile
+// content never changes between prefetches.
+const TILES_DIR = path.join(path.dirname(fileURLToPath(import.meta.url)), "..", "data", "tiles");
+app.use("/tiles", express.static(TILES_DIR, { immutable: true, maxAge: "30d" }));
+if (!fs.existsSync(TILES_DIR)) {
+  logger.warn("[web] data/tiles not found — run `npm run fetch:tiles` (once, with internet) to enable the offline map");
+}
+
 // Built React app (Vite): serve app/dist assets + the two SPA routes so phones
 // and the command laptop need only the single LAN URL (INTEGRATION, Prompt 7.3).
 // The existing model-server admin UI stays at "/" (registered above); the React

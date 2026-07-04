@@ -327,6 +327,19 @@
   flex: 1;
 }
 
+/* GPS-attached indicator --------------------------------------------------- */
+.gps-chip {
+  display: inline-block;
+  margin-top: 14px;
+  padding: 6px 12px;
+  border: 1px solid var(--f-border);
+  border-radius: 999px;
+  background: var(--f-surface);
+  color: var(--f-text-dim);
+  font-size: 13px;
+  font-weight: 600;
+}
+
 /* Giant SEND button ------------------------------------------------------- */
 .send-btn {
   width: 100%;

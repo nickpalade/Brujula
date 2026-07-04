@@ -247,7 +247,7 @@ export function board() {
 
 // ---- writes ----------------------------------------------------------------
 
-export function addReport({ raw_text, source_device = null, lang = null, parsed_into = null, has_image = false, client_ref = null, reported_by = null }) {
+export function addReport({ raw_text, source_device = null, lang = null, parsed_into = null, has_image = false, client_ref = null, reported_by = null, lat = null, lon = null, accuracy = null }) {
   const report = {
     id: newId("rep"),
     raw_text,
@@ -258,6 +258,9 @@ export function addReport({ raw_text, source_device = null, lang = null, parsed_
     has_image,
     client_ref,
     reported_by,
+    lat,
+    lon,
+    accuracy,
     _seq: bump(),
   };
   db.prepare("INSERT INTO reports (id, seq, data) VALUES (?, ?, ?)").run(
@@ -287,6 +290,8 @@ export function addIncident(fields) {
     kind: "need",
     category: "status",
     location: null,
+    lat: null,
+    lon: null,
     people_count: null,
     urgency: "medium",
     status: "open",

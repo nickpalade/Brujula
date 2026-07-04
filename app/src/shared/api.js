@@ -105,7 +105,8 @@ export const api = {
   // client_ref: idempotency key (the outbox localId) — retries with the same
   // ref replay the stored report instead of duplicating it on the hub.
   // reported_by: "Name · rol" from the device profile, stored on the report.
-  async submitReport({ text, source_device = null, lang = 'es', client_ref = null, reported_by = null }) {
+  // lat/lon/accuracy: best-effort phone GPS (additive; omitted when absent).
+  async submitReport({ text, source_device = null, lang = 'es', client_ref = null, reported_by = null, lat = null, lon = null, accuracy = null }) {
     if (USE_MOCKS) return mock.submitReport({ text, source_device, lang })
     return request('/api/reports', {
       method: 'POST',
@@ -115,6 +116,9 @@ export const api = {
         lang,
         ...(client_ref ? { client_ref } : {}),
         ...(reported_by ? { reported_by } : {}),
+        ...(Number.isFinite(lat) && Number.isFinite(lon)
+          ? { lat, lon, ...(Number.isFinite(accuracy) ? { accuracy } : {}) }
+          : {}),
       },
     })
   },
@@ -220,6 +224,8 @@ const seedIncidents = [
     kind: 'need',
     category: 'rescue',
     location: 'Playa Grande, Catia La Mar',
+    lat: 10.6081,
+    lon: -67.0472,
     people_count: 20,
     urgency: 'critical',
     status: 'open',
@@ -235,6 +241,8 @@ const seedIncidents = [
     kind: 'need',
     category: 'water',
     location: 'Refugio Escuela Básica Simón Bolívar, Catia La Mar',
+    lat: 10.6019,
+    lon: -67.0269,
     people_count: 180,
     urgency: 'high',
     status: 'open',
@@ -250,6 +258,8 @@ const seedIncidents = [
     kind: 'need',
     category: 'medical',
     location: 'Refugio San José, La Guaira',
+    lat: 10.6006,
+    lon: -66.9308,
     people_count: 2,
     urgency: 'medium',
     status: 'open',
