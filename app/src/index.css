@@ -54,6 +54,15 @@ body {
   margin: 0;
 }
 
+/* The product is dark (Field + Command, bosque #0E1411). Keep the document
+   itself dark too, so the iOS home-indicator strip and rubber-band overscroll
+   never flash the scaffold's white --bg around the fixed-position app. */
+html,
+body {
+  background: #0e1411;
+  overscroll-behavior: none;
+}
+
 #root {
   width: 1126px;
   max-width: 100%;
