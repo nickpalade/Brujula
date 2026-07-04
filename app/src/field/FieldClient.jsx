@@ -9,6 +9,7 @@ import './field.css'
 import { api, USE_MOCKS } from '../shared/api.js'
 import { useAgentBusy } from '../shared/useAgentBusy.js'
 import BrujulaMark from '../shared/BrujulaMark.jsx'
+import DotGrid from '../vendor/DotGrid.jsx'
 import { useOutbox } from './useOutbox.js'
 import { useAssignments } from './useAssignments.js'
 import Onboarding from './Onboarding.jsx'
@@ -189,6 +190,22 @@ function FieldClient() {
 
   return (
     <div className="field-app">
+      {/* Whisper-level ambient dot field behind the working app — barely above
+          the page dark; warms faintly toward garnet near the finger. */}
+      <div className="field-dots" aria-hidden="true">
+        <DotGrid
+          dotSize={2.5}
+          gap={26}
+          baseColor="#131c16"
+          activeColor="#5c2a31"
+          proximity={80}
+          speedTrigger={140}
+          shockRadius={130}
+          shockStrength={2.5}
+          resistance={700}
+          returnDuration={1.2}
+        />
+      </div>
       <header className="field-header">
         <div className="field-brand">
           <BrujulaMark size={32} spinning={agentBusy} />

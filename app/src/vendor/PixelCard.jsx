@@ -112,6 +112,15 @@ const VARIANTS = {
     speed: 30,
     colors: '#3a2026,#7d2530,#b03a46',
     noFocus: true
+  },
+  // Brújula: amber shimmer — OUTGOING reports still leaving the phone
+  // (queued/retrying). Amber = the queued status color, not the brand.
+  ambar: {
+    activeColor: '#ff9500',
+    gap: 6,
+    speed: 30,
+    colors: '#33240f,#7a5416,#ff9500',
+    noFocus: true
   }
 };
 
