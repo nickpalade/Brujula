@@ -13,6 +13,7 @@ hub.db-shm
 hub.db-wal
 hub.db-journal
 ollama_serve.log
+hub_server.pid
 *.log
 npm-debug.log*
 yarn-error.log*

@@ -177,7 +177,7 @@ _Written at the end of the merge session so a fresh session (incl. in Cursor) kn
 ### Rest-of-repo context (so a new session isn't surprised)
 - **One canonical backend stack now.** The old duplicate `server/agent/*` stack was **deleted** (see [`CONSOLIDATION.md`](../CONSOLIDATION.md)); the live stack is `/api/*` = `server/routes/hub.js` + `server/store.js` (**SQLite** at `data/hub.db`, via Node's built-in `node:sqlite`) + `server/pipeline/*` (Gemma: parse → dedup → prioritize → match → sitrep).
 - **Requires Node ≥ 22.5** (for `node:sqlite`). Model is **`gemma4:e4b`**, served by an embedded Ollama the server spawns itself.
-- **Full-system acceptance test is `npm run verify:hub`** (needs the Gemma model loaded → realistically run on the **GPU demo laptop**, not the remote dev machine). Fast model-free backend tests are **`npm test`** (node:test, repo root — covers geocoding/GPS/map data; 37 green). This module's own `pytest` is fully runnable anywhere.
+- **Full-system acceptance test is `npm run verify:hub`** (needs the Gemma model loaded → realistically run on the **GPU demo laptop**, not the remote dev machine). Fast model-free backend tests are **`npm test`** (node:test, repo root — covers geocoding/GPS/map data/tiles; **39** green). This module's own `pytest` is fully runnable anywhere.
 - Read [`README.md`](../README.md) + [`CONSOLIDATION.md`](../CONSOLIDATION.md) for the whole picture — both current and accurate (the previously-stale README line about the legacy `agent/` stack has been corrected).
 - **Owner context:** Rares (this module) works remote; Ceco owns the SQLite store/backend consolidation, Pepe (José María) leads integration, Nick has the GPU demo laptop.
 
@@ -201,11 +201,12 @@ _The team asked for this via voice note and explicitly cleared working outside `
 - `fixtures/seed_incidents.json` + `seed_resources.json` entries all carry `lat`/`lon` (a test enforces it).
 - Every gazetteer coordinate must stay inside the tile bbox `10.50,-67.12 → 10.70,-66.68` (a test enforces it). If the scenario region moves: update gazetteer + seeds + `TILES_BBOX` + `REGION_BOUNDS` in `MapPanel.jsx`, then re-run `npm run fetch:tiles`.
 
-### Tests (`npm test`, repo root, no model/Ollama needed — 37 passing)
+### Tests (`npm test`, repo root, no model/Ollama needed — 39 passing)
 - `tests/geocode.test.mjs` — gazetteer matching incl. accents, whole-word, specificity, junk inputs.
 - `tests/hub-coords.test.mjs` — `resolveCoords` precedence + `mergeReportIntoIncident` (first-pin-wins, urgency/people/location raising intact). These are exported from `hub.js` for tests.
 - `tests/store-coords.test.mjs` — SQLite persistence + seeds carry coords.
 - `tests/reports-endpoint.test.mjs` — over-the-wire `/api/reports` GPS handling (valid/mangled/half/replay). Endpoint tests assert on the stored **report** (incident stays null without Gemma — that's the hub's graceful degradation, not a failure).
+- `tests/tiles-static.test.mjs` — `/tiles/{z}/{x}/{y}.png` serves prefetched PNGs, 404s cleanly when missing.
 - Tests write through the real `data/hub.db` and reset it (≡ `npm run seed`) — hence `--test-concurrency=1` in the npm script. Don't run them mid-demo.
 
 ### Deploy checklist for the demo laptop (delta only)

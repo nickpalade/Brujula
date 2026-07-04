@@ -4,23 +4,36 @@
    fights the scaffold's index.css (#root fixed width / centered text). */
 
 .field-app {
-  /* Urgency tokens — kept in sync with the intended shared design system. */
-  --f-critical: #ef4444;
-  --f-high: #f97316;
-  --f-medium: #eab308;
-  --f-low: #38bdf8;
+  /* Locked "Field · Bosque" palette (design/tokens.css,
+     option-3d-field-bosque.html) — same tokens as Command Post, so both
+     stations are unmistakably the same product. */
+  --f-critical: #ff453a;
+  --f-high: #ff9500;
+  --f-medium: #ffcc00;
+  --f-low: #87988e;
 
-  --f-queued: #f59e0b; /* amber */
-  --f-synced: #22c55e; /* green */
-  --f-parsed: #38bdf8; /* teal/blue */
+  /* Outbox status — reused from the same palette rather than introducing a
+     blue that doesn't exist anywhere else in the system: queued (waiting,
+     needs attention) reuses high-orange, synced (accepted, mid-flight)
+     reuses medium-yellow, parsed (done) reuses ok-green — a traffic-light
+     progression using only colors already in the system. */
+  --f-queued: #ff9500;
+  --f-synced: #ffcc00;
+  --f-parsed: #2a7d56;
 
-  --f-bg: #0d0f14;
-  --f-surface: #161922;
-  --f-surface-2: #1e222d;
-  --f-border: #2a2f3c;
-  --f-text: #e7eaf0;
-  --f-text-dim: #98a0b0;
-  --f-accent: #f97316;
+  --f-bg: #0e1411;
+  --f-surface: #17211b;
+  --f-surface-2: #1f2d25;
+  --f-border: #2e4436;
+  --f-text: #eff4f1;
+  --f-text-dim: #9cb3a5;
+  --f-accent: #b03a46;
+  --f-accent-dim: #7d2530; /* deep garnet — pressed/active state */
+
+  /* Brand mark (bosque garnet) — matches Command Post's logo/wordmark
+     treatment so the field app reads as the same product, not a separate
+     one. Same hue as --f-accent now: one identity, not two. */
+  --f-brand: #b03a46;
 
   position: fixed;
   inset: 0;
@@ -55,16 +68,38 @@
   background: var(--f-surface);
   border-bottom: 1px solid var(--f-border);
 }
+.field-brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+/* App-wide ambient dot layer: sits under everything; header/body/tabs stack
+   above it. The header and tab bar have opaque backgrounds, so the dots only
+   breathe through the page-dark body area. */
+.field-dots {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+}
+.field-header,
+.field-body,
+.field-tabs {
+  position: relative;
+  z-index: 1;
+}
 .field-header h1 {
-  font-size: 18px;
-  font-weight: 600;
-  color: var(--f-text);
+  font-size: 19px;
+  font-weight: 800;
+  letter-spacing: 1.2px;
+  color: var(--f-brand);
   margin: 0;
-  letter-spacing: 0.2px;
 }
 .field-header .field-sub {
   font-size: 12px;
   color: var(--f-text-dim);
+  margin-top: 1px;
 }
 
 .conn-pill {
@@ -157,6 +192,19 @@
 }
 
 /* Onboarding (first-open role signup) -------------------------------------- */
+/* Ambient dot field behind the signup — content stacks above it. */
+.onboard {
+  position: relative;
+}
+.onboard-dots {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+}
+.onboard > *:not(.onboard-dots) {
+  position: relative;
+  z-index: 1;
+}
 .onboard-title {
   font-size: 22px;
   font-weight: 700;
@@ -280,6 +328,53 @@
   bottom: 10px;
 }
 
+/* Photo attach ------------------------------------------------------------ */
+.photo-btn {
+  appearance: none;
+  width: 100%;
+  margin-top: 10px;
+  padding: 12px 14px;
+  border: 1px dashed var(--f-border);
+  border-radius: 12px;
+  background: var(--f-surface);
+  color: var(--f-text-dim);
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  min-height: 48px;
+}
+.photo-btn:disabled {
+  opacity: 0.5;
+  cursor: wait;
+}
+.photo-preview {
+  margin-top: 10px;
+  border: 1px solid var(--f-border);
+  border-radius: 12px;
+  background: var(--f-surface);
+  overflow: hidden;
+}
+.photo-preview img {
+  display: block;
+  width: 100%;
+  max-height: 180px;
+  object-fit: cover;
+}
+.photo-preview-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 8px 12px;
+  font-size: 12px;
+  color: var(--f-text-dim);
+}
+.photo-error {
+  margin-top: 8px;
+  font-size: 13px;
+  color: var(--f-critical);
+}
+
 /* Category chips ---------------------------------------------------------- */
 .chip-row {
   display: flex;
@@ -301,7 +396,7 @@
 .chip.selected {
   background: var(--f-accent);
   border-color: var(--f-accent);
-  color: #0d0f14;
+  color: #fff;
 }
 
 /* Inline number/text fields ---------------------------------------------- */
@@ -348,7 +443,7 @@
   font-size: 20px;
   font-weight: 800;
   letter-spacing: 0.5px;
-  color: #0d0f14;
+  color: #fff;
   background: var(--f-accent);
   border: none;
   border-radius: 16px;
@@ -361,6 +456,7 @@
   cursor: not-allowed;
 }
 .send-btn:active:not(:disabled) {
+  background: var(--f-accent-dim);
   transform: translateY(1px);
 }
 
@@ -389,6 +485,14 @@
   border-radius: 14px;
   padding: 14px;
   margin-bottom: 12px;
+  animation: card-in 0.28s ease-out;
+}
+
+@keyframes card-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
 }
 .card-top {
   display: flex;
@@ -418,6 +522,33 @@
   padding: 4px 10px;
   border-radius: 999px;
   white-space: nowrap;
+  /* QUEUED → SYNCED → PARSED reads as one chip changing state, not a repaint */
+  transition: background-color 0.35s ease, color 0.35s ease;
+}
+
+/* Pixel shimmer around in-flight cards: garnet for incoming taskings, amber
+   for outgoing reports. The card sits INSET in the wrapper (padding) so the
+   canvas shows as a live shimmering frame around it — content on top of the
+   canvas would otherwise cover it completely. */
+.assign-pixel {
+  border-radius: 18px;
+  padding: 10px;
+  margin-bottom: 12px;
+}
+.assign-pixel .card--in-pixel {
+  position: relative;
+  z-index: 1;
+  margin-bottom: 0;
+  background: rgba(23, 33, 27, 0.9);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .card {
+    animation: none;
+  }
+  .status-badge {
+    transition: none;
+  }
 }
 .st-QUEUED {
   background: rgba(245, 158, 11, 0.15);

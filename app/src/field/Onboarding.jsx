@@ -4,6 +4,7 @@
 // resources, so the agent's match step can propose dispatching them.
 
 import { useState } from 'react'
+import DotGrid from '../vendor/DotGrid.jsx'
 
 const ROLES = [
   {
@@ -61,6 +62,21 @@ function Onboarding({ onComplete }) {
 
   return (
     <div className="onboard">
+      {/* Ambient dot field, Bosque-toned; dots warm to garnet near the finger
+          and shockwave on tap. First-open only — unmounts after signup. */}
+      <div className="onboard-dots" aria-hidden="true">
+        <DotGrid
+          dotSize={3}
+          gap={18}
+          baseColor="#22332a"
+          activeColor="#b03a46"
+          proximity={90}
+          shockRadius={180}
+          shockStrength={4}
+          resistance={600}
+          returnDuration={1.2}
+        />
+      </div>
       <h2 className="onboard-title">¿Quién eres en el terreno?</h2>
       <p className="onboard-sub">
         Esto le dice al puesto de mando qué puedes hacer. Se puede cambiar

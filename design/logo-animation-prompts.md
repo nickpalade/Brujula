@@ -1,5 +1,10 @@
 # Brújula — Logo Animation Prompts (needle spin 0° → 180° → 360°)
 
+> **OBSOLETE (2026-07-04):** the Seedance clip was dropped from the plan.
+> The final logo animation is the SMIL SVG at
+> [`logo-animated.svg`](logo-animated.svg) (in the README header). Kept for
+> the record only.
+
 Two-step pipeline: **(1)** generate the rotation keyframes with the image
 model, **(2)** feed them to **Seedance** (image-to-video) to produce the
 animated logo for the demo video / deck.

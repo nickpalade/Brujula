@@ -66,7 +66,7 @@ With the server running (and the model warm — `POST /warmup` first):
 npm run verify:hub         # the demo as 15 PASS/FAIL checks (/api stack)
 npm run verify             # 3 sample reports through /parse-report (quick smoke)
 npm run seed               # reset + reseed the demo board between runs
-npm test                   # unit/endpoint tests (geocoding, GPS fields, map data) — no model needed
+npm test                   # unit/endpoint tests (geocoding, GPS, map tiles) — 39 checks, no model needed
 ```
 
 `verify:hub` replays the full PRD §7 flow: report → parse → dedup merge →
@@ -117,8 +117,11 @@ Everything is served from the one Express server; phones need ONE LAN URL.
   when the hub is reachable (SYNCED), and show PARSED when the pipeline
   lands. Retries are idempotent (`client_ref`), so flaky radio can't
   duplicate reports.
-- **Voice input** (es-VE speech recognition) and **photo triage** — a report
-  may attach a photo; multimodal Gemma reads damage/hazards/people from it.
+- **Voice input** (es-VE speech recognition) and **photo triage** — 📷 Añadir
+  foto attaches a camera/gallery photo (compressed on-device to ~100-250 KB so
+  it fits the offline outbox; photo-only reports allowed). Multimodal Gemma
+  reads damage/hazards/people from it — a photo can raise urgency or fill
+  fields the text missed.
 - **Best-effort GPS** — composing a report requests the phone's location and
   attaches `lat`/`lon`/`accuracy` when granted (a chip shows "Ubicación GPS
   adjunta"). Denied/unavailable is silent — browsers block geolocation on
@@ -189,7 +192,7 @@ CPU; incidents surface through `/api/sync` when ready.
 
 | Endpoint | What it does |
 |---|---|
-| `POST /api/reports` | `{text?, image_base64?, image_mime?, source_device?, lang?, client_ref?, reported_by?}` → `{report, incident\|null}` (idempotent by `client_ref`) |
+| `POST /api/reports` | `{text?, image_base64?, image_mime?, lat?, lon?, accuracy?, source_device?, lang?, client_ref?, reported_by?}` → `{report, incident\|null}` (idempotent by `client_ref`; bad GPS nulled, never 400) |
 | `GET /api/reports?ids=a,b` | report bodies (dedup evidence for the drawer); omit `ids` for all |
 | `GET /api/incidents` | priority-ordered board |
 | `POST /api/incidents/:id/dispatch` | `{dispatch_id, action: confirm\|override, resource_id?}` — the human-in-command step |
@@ -205,9 +208,9 @@ All responses use the envelope `{"success": bool, "data": ..., "error": ...}`.
 JSON output is enforced with Ollama structured outputs (zod schema passed as
 `format`), then validated again server-side.
 
-> The legacy first-generation agent stack (`server/agent/*`, `POST /reports`,
-> `npm run verify:agent`) has been **deleted**; `/api` is the single canonical
-> pipeline — see [CONSOLIDATION.md](CONSOLIDATION.md) for the history.
+> The legacy first-generation agent stack (`server/agent/*`, `POST /reports`)
+> has been deleted; `/api` is the single pipeline. History and rationale:
+> [CONSOLIDATION.md](CONSOLIDATION.md).
 
 ### The one env-var switch — protocol advisories (Rares' knowledge-service)
 
@@ -311,7 +314,7 @@ local Ollama. **Leave unset in the field.**
 
 ```
 bootstrap.ps1 / bootstrap.sh   # install + pull + verify Ollama (+ Node check)
-DEMO.md                        # the 3-minute demo runbook
+DEMO.md                        # the 1-minute demo runbook (+ Q&A cut beats)
 CONSOLIDATION.md               # why there were two stacks; agent/ now deleted
 app/                           # React app: /command + /field (Vite → app/dist)
 server/main.js                 # Express entry: model mgmt + routers + static (+ /tiles)

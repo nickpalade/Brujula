@@ -44,7 +44,11 @@
 .bru-btn--primary {
   background: var(--bru-accent);
   border-color: var(--bru-accent);
-  color: #04120f;
+  color: #fff;
+}
+.bru-btn--primary:active:not(:disabled) {
+  background: var(--bru-accent-dim);
+  border-color: var(--bru-accent-dim);
 }
 .bru-btn--confirm {
   background: var(--bru-ok);

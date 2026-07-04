@@ -1,5 +1,6 @@
 import Card from '../shared/Card.jsx';
 import Badge from '../shared/Badge.jsx';
+import DecryptedText from '../vendor/DecryptedText.jsx';
 import { CATEGORY_LABEL, formatAge, isLiveVictim } from '../shared/urgency.js';
 
 const STATUS_LABEL = {
@@ -19,7 +20,6 @@ function IncidentCard({ incident, selected, hasProposal, onSelect }) {
   return (
     <Card
       urgency={incident.urgency}
-      accented
       alarm={live && !dispatched}
       interactive
       selected={selected}
@@ -28,7 +28,7 @@ function IncidentCard({ incident, selected, hasProposal, onSelect }) {
     >
       <div className="cmd-incident__top">
         <div className="cmd-incident__badges">
-          <Badge urgency={incident.urgency} pulse={live && !dispatched} dot />
+          <Badge urgency={incident.urgency} pulse={live && !dispatched} />
           <Badge variant="muted">{CATEGORY_LABEL[incident.category] ?? incident.category}</Badge>
           {live && (
             <Badge variant="critical" className="cmd-incident__live">
@@ -41,7 +41,17 @@ function IncidentCard({ incident, selected, hasProposal, onSelect }) {
         </span>
       </div>
 
-      <p className="cmd-incident__summary">{incident.summary}</p>
+      {/* Incoming intelligence "decodes" as it lands — the moment Gemma's
+          structured output reaches the board. Animates once per card. */}
+      <p className="cmd-incident__summary">
+        <DecryptedText
+          text={incident.summary ?? ''}
+          animateOn="view"
+          sequential
+          speed={14}
+          encryptedClassName="cmd-incident__encrypted"
+        />
+      </p>
 
       <div className="cmd-incident__foot">
         <span className="bru-meta" title="Location">

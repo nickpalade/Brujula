@@ -1,10 +1,20 @@
 # Brújula — Design
 
 > **DECIDED (2026-07-04): Field · Bosque.** Tokens live in [`tokens.css`](tokens.css)
-> — Nick, that `:root` block is the design system. Logo starting point:
-> [`logo-brujula.svg`](logo-brujula.svg). Prompts for generated brand art:
-> [`brand-image-prompts.md`](brand-image-prompts.md). Everything below is the
+> — that `:root` block is the design system. Everything below is the
 > exploration that led here (kept for the record / future revisits).
+>
+> **Shipped brand assets:**
+> - [`logo-brujula.svg`](logo-brujula.svg) — the mark, retraced exact
+> - [`logo-rings.svg`](logo-rings.svg) + [`logo-compass.svg`](logo-compass.svg)
+>   — split layers, same viewBox (for compositing)
+> - [`logo-animated.svg`](logo-animated.svg) — SMIL needle spin (slow start →
+>   accel → decel → settle); in the README header. **This is the final logo
+>   animation** — the Seedance video clip was dropped
+>   ([`logo-animation-prompts.md`](logo-animation-prompts.md) is kept for the
+>   record only).
+> - `assets/` — app-icon squircle (PWA icon), urgency glyphs, logo frames
+> - Prompts for generated brand art: [`brand-image-prompts.md`](brand-image-prompts.md)
 
 ## Design Philosophy Options (exploration)
 

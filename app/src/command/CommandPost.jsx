@@ -4,6 +4,8 @@ import './command.css';
 import Panel from '../shared/Panel.jsx';
 import Badge from '../shared/Badge.jsx';
 import Button from '../shared/Button.jsx';
+import BrujulaMark from '../shared/BrujulaMark.jsx';
+import { useAgentBusy } from '../shared/useAgentBusy.js';
 import { sortByPriority } from '../shared/urgency.js';
 import IncidentCard from './IncidentCard.jsx';
 import DispatchProposal from './DispatchProposal.jsx';
@@ -33,11 +35,8 @@ function CommandPost() {
   const [incidents, setIncidents] = useState([]);
   const [resources, setResources] = useState([]);
   const [dispatches, setDispatches] = useState([]);
-  const [seq, setSeq] = useState(0);
 
   const [loading, setLoading] = useState(true);
-  const [syncError, setSyncError] = useState(null);
-  const [lastSync, setLastSync] = useState(null);
 
   const [selectedId, setSelectedId] = useState(null);
   const [dispatchBusy, setDispatchBusy] = useState(false);
@@ -46,6 +45,8 @@ function CommandPost() {
   const [sitrep, setSitrep] = useState(null);
   const [sitrepLoading, setSitrepLoading] = useState(false);
   const [sitrepError, setSitrepError] = useState(null);
+
+  const agentBusy = useAgentBusy();
 
   const seqRef = useRef(0);
 
@@ -57,12 +58,9 @@ function CommandPost() {
       if (Array.isArray(data.dispatches)) setDispatches((p) => mergeById(p, data.dispatches));
       if (typeof data.seq === 'number') {
         seqRef.current = data.seq;
-        setSeq(data.seq);
       }
-      setSyncError(null);
-      setLastSync(new Date());
     } catch (e) {
-      setSyncError(e.message || 'sync failed');
+      console.error('sync failed:', e.message || e);
     } finally {
       setLoading(false);
     }
@@ -121,7 +119,7 @@ function CommandPost() {
         });
         await refresh();
       } catch (e) {
-        setSyncError(e.message || 'dispatch failed');
+        console.error('dispatch failed:', e.message || e);
       } finally {
         setDispatchBusy(false);
       }
@@ -153,14 +151,6 @@ function CommandPost() {
   return (
     <div className="bru-app cmd-root">
       <header className="cmd-topbar">
-        <div className="cmd-topbar__brand">
-          <span className="cmd-topbar__logo">◈</span>
-          <div>
-            <div className="cmd-topbar__title">BRÚJULA</div>
-            <div className="cmd-topbar__sub">Command Post · La Guaira</div>
-          </div>
-        </div>
-
         <div className="cmd-topbar__status">
           <Badge variant="warn" dot title="No internet — everything runs locally">
             OFFLINE
@@ -168,17 +158,14 @@ function CommandPost() {
           <Badge variant="ok" dot title="Gemma running on this laptop">
             GEMMA · LOCAL
           </Badge>
-          <span
-            className={`cmd-sync ${syncError ? 'cmd-sync--err' : ''}`}
-            title={`sync seq ${seq}`}
-          >
-            <span className="cmd-sync__dot" aria-hidden="true" />
-            {syncError
-              ? 'SYNC ERROR'
-              : lastSync
-                ? `SYNCED ${lastSync.toLocaleTimeString()}`
-                : 'CONNECTING…'}
-          </span>
+        </div>
+
+        <div className="cmd-topbar__brand">
+          <BrujulaMark size={60} spinning={agentBusy} title="Brújula — Command Post" />
+          <div className="cmd-topbar__wordmark">
+            <div className="cmd-topbar__title">BRÚJULA</div>
+            <div className="cmd-topbar__sub">Command Post · La Guaira</div>
+          </div>
         </div>
 
         <div className="cmd-topbar__actions">

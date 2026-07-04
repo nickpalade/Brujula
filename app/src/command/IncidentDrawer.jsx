@@ -83,7 +83,7 @@ function IncidentDrawer({
       <aside className="cmd-drawer" role="dialog" aria-label="Incident detail">
         <header className="cmd-drawer__head" data-urgency={incident.urgency}>
           <div className="cmd-drawer__head-badges">
-            <Badge urgency={incident.urgency} pulse={live} dot />
+            <Badge urgency={incident.urgency} pulse={live} />
             <Badge variant="muted">
               {CATEGORY_LABEL[incident.category] ?? incident.category}
             </Badge>

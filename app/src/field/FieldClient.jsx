@@ -7,6 +7,9 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import './field.css'
 import { api, USE_MOCKS } from '../shared/api.js'
+import { useAgentBusy } from '../shared/useAgentBusy.js'
+import BrujulaMark from '../shared/BrujulaMark.jsx'
+import DotGrid from '../vendor/DotGrid.jsx'
 import { useOutbox } from './useOutbox.js'
 import { useAssignments } from './useAssignments.js'
 import Onboarding from './Onboarding.jsx'
@@ -113,6 +116,7 @@ function FieldClient() {
   const [tab, setTab] = useState('report')
   const [toast, setToast] = useState(null)
   const [statusBusy, setStatusBusy] = useState(false)
+  const agentBusy = useAgentBusy()
 
   useRegistration(profile)
 
@@ -150,9 +154,14 @@ function FieldClient() {
     return (
       <div className="field-app">
         <header className="field-header">
-          <div>
-            <h1>Brújula · Campo</h1>
-            <div className="field-sub">{USE_MOCKS ? 'modo demo' : 'sin registrar'}</div>
+          <div className="field-brand">
+            <BrujulaMark size={32} spinning={agentBusy} />
+            <div>
+              <h1>Brújula</h1>
+              <div className="field-sub">
+                Campo{USE_MOCKS ? ' · modo demo' : ' · sin registrar'}
+              </div>
+            </div>
           </div>
         </header>
         <main className="field-body">
@@ -181,15 +190,34 @@ function FieldClient() {
 
   return (
     <div className="field-app">
+      {/* Whisper-level ambient dot field behind the working app — barely above
+          the page dark; warms faintly toward garnet near the finger. */}
+      <div className="field-dots" aria-hidden="true">
+        <DotGrid
+          dotSize={2.5}
+          gap={26}
+          baseColor="#131c16"
+          activeColor="#5c2a31"
+          proximity={80}
+          speedTrigger={140}
+          shockRadius={130}
+          shockStrength={2.5}
+          resistance={700}
+          returnDuration={1.2}
+        />
+      </div>
       <header className="field-header">
-        <div>
-          <h1>Brújula · Campo</h1>
-          <div className="field-sub">
-            {profile.name} · {ROLE_LABEL[profile.role]}
-            {USE_MOCKS ? ' · modo demo' : ''}{' '}
-            <button type="button" className="link-btn" onClick={resetProfile}>
-              cambiar
-            </button>
+        <div className="field-brand">
+          <BrujulaMark size={32} spinning={agentBusy} />
+          <div>
+            <h1>Brújula</h1>
+            <div className="field-sub">
+              {profile.name} · {ROLE_LABEL[profile.role]}
+              {USE_MOCKS ? ' · modo demo' : ''}{' '}
+              <button type="button" className="link-btn" onClick={resetProfile}>
+                cambiar
+              </button>
+            </div>
           </div>
         </div>
         <ConnPill online={online} />

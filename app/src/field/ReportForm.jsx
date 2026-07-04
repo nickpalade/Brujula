@@ -1,10 +1,12 @@
 // Report submission screen — mobile-first, thumb-reachable, one-handed.
-// Big textarea, category quick-chips, optional people-count + location, giant
-// SEND. Submitting hands the report to the outbox (store-and-forward), so it is
+// Big textarea, category quick-chips, optional photo (compressed on-device,
+// parsed by multimodal Gemma), optional people-count + location, giant SEND.
+// Submitting hands the report to the outbox (store-and-forward), so it is
 // saved locally first and flushed to the hub when reachable.
 
 import { useEffect, useRef, useState } from 'react'
 import VoiceInput from './voice/VoiceInput.jsx'
+import { fileToCompressedPhoto } from './photo.js'
 
 // Incident.category vocabulary (CONTRACTS §2). "status" omitted from quick
 // chips — a field responder reports needs/resources, status is rarely chip-tapped.
@@ -23,6 +25,10 @@ function ReportForm({ onSubmit }) {
   const [category, setCategory] = useState(null)
   const [people, setPeople] = useState('')
   const [location, setLocation] = useState('')
+  const [photo, setPhoto] = useState(null) // { base64, mime, previewUrl }
+  const [photoBusy, setPhotoBusy] = useState(false)
+  const [photoError, setPhotoError] = useState(null)
+  const fileRef = useRef(null)
   // Best-effort phone GPS, attached to the report when the browser grants it.
   // On the hub's plain-HTTP LAN origin most browsers deny geolocation — that
   // failure is silent by design (the hub's gazetteer still maps the report
@@ -52,16 +58,34 @@ function ReportForm({ onSubmit }) {
     captureGps()
   }, [])
 
-  const canSend = text.trim().length > 0
+  // A photo alone is a valid report — the hub parses photo-only submissions.
+  const canSend = text.trim().length > 0 || Boolean(photo)
+
+  const handlePhotoPick = async (e) => {
+    const file = e.target.files?.[0]
+    e.target.value = '' // allow re-picking the same file
+    if (!file) return
+    setPhotoBusy(true)
+    setPhotoError(null)
+    try {
+      setPhoto(await fileToCompressedPhoto(file))
+    } catch (err) {
+      setPhotoError(err.message || 'no se pudo procesar la foto')
+    } finally {
+      setPhotoBusy(false)
+    }
+  }
 
   const handleSend = () => {
-    if (!canSend) return
+    if (!canSend || photoBusy) return
     const gps = coordsRef.current
     onSubmit({
       text: text.trim(),
       category,
       people_count: people === '' ? null : Number(people),
       location: location.trim() || null,
+      image_base64: photo?.base64 ?? null,
+      image_mime: photo?.mime ?? null,
       lat: gps?.lat ?? null,
       lon: gps?.lon ?? null,
       accuracy: gps?.accuracy ?? null,
@@ -70,6 +94,8 @@ function ReportForm({ onSubmit }) {
     setCategory(null)
     setPeople('')
     setLocation('')
+    setPhoto(null)
+    setPhotoError(null)
     captureGps()
   }
 
@@ -96,6 +122,36 @@ function ReportForm({ onSubmit }) {
           <VoiceInput onTranscript={handleTranscript} />
         </div>
       </div>
+
+      <input
+        ref={fileRef}
+        type="file"
+        accept="image/*"
+        capture="environment"
+        style={{ display: 'none' }}
+        onChange={handlePhotoPick}
+      />
+      {photo ? (
+        <div className="photo-preview">
+          <img src={photo.previewUrl} alt="Foto adjunta al reporte" />
+          <div className="photo-preview-meta">
+            <span>Foto adjunta — el agente la analizará</span>
+            <button type="button" className="link-btn" onClick={() => setPhoto(null)}>
+              quitar
+            </button>
+          </div>
+        </div>
+      ) : (
+        <button
+          type="button"
+          className="photo-btn"
+          disabled={photoBusy}
+          onClick={() => fileRef.current?.click()}
+        >
+          {photoBusy ? 'Procesando foto…' : '📷 Añadir foto (opcional)'}
+        </button>
+      )}
+      {photoError && <div className="photo-error">{photoError}</div>}
 
       <span className="field-label">Categoría</span>
       <div className="chip-row">
@@ -153,7 +209,7 @@ function ReportForm({ onSubmit }) {
         type="button"
         className="send-btn"
         onClick={handleSend}
-        disabled={!canSend}
+        disabled={!canSend || photoBusy}
       >
         Enviar reporte
       </button>

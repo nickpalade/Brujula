@@ -27,10 +27,49 @@ export const API_BASE =
   (typeof window !== 'undefined' ? window.location.origin : 'http://localhost:8000')
 
 // ---------------------------------------------------------------------------
+// Agent-activity signal — true while a request that makes the hub THINK is in
+// flight (any mutation, or the sitrep — those are the Gemma-backed calls;
+// the 4 s sync/health polls don't count). Drives the compass-needle spinner.
+// ---------------------------------------------------------------------------
+
+let agentInflight = 0
+const busyListeners = new Set()
+
+export function subscribeAgentBusy(fn) {
+  busyListeners.add(fn)
+  fn(agentInflight > 0)
+  return () => busyListeners.delete(fn)
+}
+
+function isAgentWork(path, method) {
+  return method !== 'GET' || path.startsWith('/api/sitrep')
+}
+
+function agentWorkStart() {
+  agentInflight += 1
+  if (agentInflight === 1) busyListeners.forEach((fn) => fn(true))
+}
+
+function agentWorkEnd() {
+  agentInflight = Math.max(0, agentInflight - 1)
+  if (agentInflight === 0) busyListeners.forEach((fn) => fn(false))
+}
+
+// ---------------------------------------------------------------------------
 // Low-level request: unwraps the {success, data, error} envelope
 // ---------------------------------------------------------------------------
 
 async function request(path, { method = 'GET', body, signal } = {}) {
+  const tracked = isAgentWork(path, method)
+  if (tracked) agentWorkStart()
+  try {
+    return await requestInner(path, { method, body, signal })
+  } finally {
+    if (tracked) agentWorkEnd()
+  }
+}
+
+async function requestInner(path, { method = 'GET', body, signal } = {}) {
   let res
   try {
     res = await fetch(`${API_BASE}${path}`, {
@@ -105,9 +144,23 @@ export const api = {
   // client_ref: idempotency key (the outbox localId) — retries with the same
   // ref replay the stored report instead of duplicating it on the hub.
   // reported_by: "Name · rol" from the device profile, stored on the report.
+  // date: when the report was composed on the phone (ISO) — may differ from hub receipt time.
+  // image_base64/image_mime: optional photo (pre-compressed by the field app).
   // lat/lon/accuracy: best-effort phone GPS (additive; omitted when absent).
-  async submitReport({ text, source_device = null, lang = 'es', client_ref = null, reported_by = null, lat = null, lon = null, accuracy = null }) {
-    if (USE_MOCKS) return mock.submitReport({ text, source_device, lang })
+  async submitReport({
+    text,
+    source_device = null,
+    lang = 'es',
+    client_ref = null,
+    reported_by = null,
+    date = null,
+    image_base64 = null,
+    image_mime = null,
+    lat = null,
+    lon = null,
+    accuracy = null,
+  }) {
+    if (USE_MOCKS) return mock.submitReport({ text: text || '(foto)', source_device, lang })
     return request('/api/reports', {
       method: 'POST',
       body: {
@@ -116,6 +169,8 @@ export const api = {
         lang,
         ...(client_ref ? { client_ref } : {}),
         ...(reported_by ? { reported_by } : {}),
+        ...(date ? { date } : {}),
+        ...(image_base64 ? { image_base64, image_mime: image_mime || 'image/jpeg' } : {}),
         ...(Number.isFinite(lat) && Number.isFinite(lon)
           ? { lat, lon, ...(Number.isFinite(accuracy) ? { accuracy } : {}) }
           : {}),
