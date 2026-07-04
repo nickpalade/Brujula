@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
-  Background,
   Controls,
   Handle,
   Panel,
@@ -15,12 +14,14 @@ import './commandGraph.css';
 import Badge from '../shared/Badge.jsx';
 import Button from '../shared/Button.jsx';
 import Icon from '../shared/Icon.jsx';
+import { useBorderGlow } from '../shared/BorderGlow.jsx';
 import { CATEGORY_LABEL, sortByPriority } from '../shared/urgency.js';
 import GraphInspector from './GraphInspector.jsx';
 import SitrepModal from './SitrepModal.jsx';
 import MapPanel from './MapPanel.jsx';
 import AlertComposer from './AlertComposer.jsx';
 import ContextChat from '../shared/ContextChat.jsx';
+import DotGrid from '../vendor/DotGrid.jsx';
 import { useWatchdog } from './useWatchdog.js';
 import * as dataSource from './dataSource.js';
 import {
@@ -88,6 +89,7 @@ function shortText(value, max = 120) {
 }
 
 function GraphShellNode({ children, tone = 'default', testId, ariaLabel, selectTarget, onSelect }) {
+  const glow = useBorderGlow({ backgroundColor: 'rgba(17, 21, 18, 0.96)', glowRadius: 24 });
   const inspect = () => {
     if (selectTarget) onSelect?.(selectTarget);
   };
@@ -100,14 +102,17 @@ function GraphShellNode({ children, tone = 'default', testId, ariaLabel, selectT
 
   return (
     <div
-      className="cmd-graph-node"
+      className="cmd-graph-node border-glow-host"
       data-tone={tone}
       data-testid={testId}
       role={selectTarget ? 'button' : undefined}
       tabIndex={selectTarget ? 0 : undefined}
       aria-label={ariaLabel}
       onKeyDown={handleKeyDown}
+      onPointerMove={glow.onPointerMove}
+      style={glow.style}
     >
+      <span className="edge-light" aria-hidden="true" />
       <Handle type="target" position={Position.Left} className="cmd-graph-handle" />
       <Handle type="source" position={Position.Right} className="cmd-graph-handle" />
       {children}
@@ -116,8 +121,14 @@ function GraphShellNode({ children, tone = 'default', testId, ariaLabel, selectT
 }
 
 function GemmaNode({ data }) {
+  const glow = useBorderGlow({ backgroundColor: 'rgba(17, 21, 18, 0.98)' });
   return (
-    <div className="cmd-graph-node cmd-graph-node--brain">
+    <div
+      className="cmd-graph-node cmd-graph-node--brain border-glow-host"
+      onPointerMove={glow.onPointerMove}
+      style={glow.style}
+    >
+      <span className="edge-light" aria-hidden="true" />
       <Handle type="target" position={Position.Left} id="in" className="cmd-graph-handle" />
       <Handle type="source" position={Position.Right} id="out" className="cmd-graph-handle" />
       <Handle type="source" position={Position.Bottom} id="bottom" className="cmd-graph-handle" />
@@ -1159,6 +1170,21 @@ function CommandGraph() {
       </header>
 
       <main className="cmd-graph-main" aria-label="Node command graph">
+        {/* Same interactive pixel-dot field as the mobile client. */}
+        <div className="cmd-graph-dots" aria-hidden="true">
+          <DotGrid
+            dotSize={2.5}
+            gap={26}
+            baseColor="#22332a"
+            activeColor="#b03a46"
+            proximity={80}
+            speedTrigger={140}
+            shockRadius={130}
+            shockStrength={2.5}
+            resistance={700}
+            returnDuration={1.2}
+          />
+        </div>
         {loading && incidents.length === 0 ? (
           <div className="cmd-graph-loading" role="status">
             Loading command graph...
@@ -1188,7 +1214,6 @@ function CommandGraph() {
               }}
               proOptions={{ hideAttribution: true }}
             >
-              <Background color="rgba(140, 170, 150, 0.18)" gap={28} size={1} />
               <Controls position="bottom-left" />
               <Panel position="top-left" className="cmd-graph-filters" role="group" aria-label="Graph filters">
                 {GRAPH_FILTERS.map((filter) => (

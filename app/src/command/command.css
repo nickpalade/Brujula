@@ -386,6 +386,8 @@
 .cmd-feed {
   min-height: 0;
   background: var(--bru-bg-0);
+  /* Keep the BorderGlow interior fill in sync with the panel surface. */
+  --card-bg: var(--bru-bg-0);
 }
 .cmd-feed__counts {
   display: flex;
@@ -457,6 +459,7 @@
   flex: 0 0 auto;
   min-height: 0;
   background: var(--bru-bg-0);
+  --card-bg: var(--bru-bg-0);
 }
 .cmd-rail__panel--resources {
   flex: 0 0 auto;

@@ -177,6 +177,30 @@
   gap: clamp(var(--bru-s-3), 2vw, var(--bru-s-4));
 }
 
+/* BorderGlow shell around each console: the console keeps its own border and
+   surface; the shell only contributes the pointer-tracking edge glow. */
+.bru-console-glow.border-glow-card {
+  border: none;
+  background: transparent;
+  box-shadow: none;
+  transition: transform var(--bru-t-base);
+}
+.bru-console-glow.border-glow-card:hover,
+.bru-console-glow.border-glow-card:focus-within {
+  transform: translateY(-4px);
+}
+.bru-console-glow .border-glow-inner {
+  overflow: visible;
+}
+.bru-console-glow .bru-console {
+  height: 100%;
+}
+/* Lift is handled by the shell now — a nested lift would double the motion. */
+.bru-console-glow .bru-console:hover,
+.bru-console-glow .bru-console:focus-visible {
+  transform: none;
+}
+
 /* Each station card = a bordered field console you deploy into. */
 .bru-console {
   --c: var(--bru-brand);

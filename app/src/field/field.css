@@ -41,9 +41,8 @@
   max-width: 560px;
   margin: 0 auto;
   background-color: var(--f-bg);
-  /* Same flat SVG grid as the Command Post backdrop — no CSS tonal fades. */
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='40' height='40'%3E%3Cpath d='M0 0H40M0 0V40' stroke='%238caa96' stroke-opacity='0.06' stroke-width='1'/%3E%3C/svg%3E");
-  background-size: 40px 40px;
+  /* No line grid — the interactive pixel-dot field (.field-dots) is the
+     backdrop texture. */
   color: var(--f-text);
   /* Same self-hosted stack as Command Post (shared/fonts.css) — Barlow for
      UI text; falls back to system-ui before the woff2 resolves. */
@@ -1220,17 +1219,15 @@
   min-height: 100svh;
   color: var(--bru-text);
   background-color: var(--bru-bg-0);
-  background-image:
-    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23n)' opacity='0.05'/%3E%3C/svg%3E"),
-    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='40' height='40'%3E%3Cpath d='M0 0H40M0 0V40' stroke='%237f9387' stroke-opacity='0.04' stroke-width='1'/%3E%3C/svg%3E");
-  background-size: 140px 140px, 40px 40px;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23n)' opacity='0.05'/%3E%3C/svg%3E");
+  background-size: 140px 140px;
   border-inline: 1px solid rgba(140, 170, 150, 0.08);
   font: 15px/1.5 var(--bru-sans);
   isolation: isolate;
 }
 
 .field-dots {
-  opacity: 0.36;
+  opacity: 0.7;
 }
 
 .field-header {
@@ -1365,14 +1362,16 @@
   scrollbar-gutter: stable;
 }
 
+/* No wrapper plates — sections sit directly on the field background;
+   only inputs, chips and cards carry a fill. */
 .field-panel,
 .status-bar,
 .ask,
 .field-queue {
-  background: rgba(17, 23, 19, 0.9);
-  border: 1px solid var(--bru-border);
-  border-radius: var(--bru-r-md);
-  box-shadow: inset 0 1px 0 rgba(239, 244, 241, 0.02);
+  background: transparent;
+  border: none;
+  border-radius: 0;
+  box-shadow: none;
 }
 
 .field-panel,

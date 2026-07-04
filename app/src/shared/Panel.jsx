@@ -4,6 +4,7 @@
  */
 import { useCallback, useEffect, useRef, useState } from 'react';
 import Icon from './Icon.jsx';
+import { useBorderGlow } from './BorderGlow.jsx';
 
 function Panel({
   title,
@@ -19,7 +20,10 @@ function Panel({
   const [expanded, setExpanded] = useState(false);
   const expandButtonRef = useRef(null);
   const wasExpandedRef = useRef(false);
-  const classes = ['bru-panel', expanded && 'bru-panel--expanded', className].filter(Boolean).join(' ');
+  const glow = useBorderGlow();
+  const classes = ['bru-panel', 'border-glow-host', expanded && 'bru-panel--expanded', className]
+    .filter(Boolean)
+    .join(' ');
   const bodyClasses = [
     'bru-panel__body',
     flush && 'bru-panel__body--flush',
@@ -49,7 +53,14 @@ function Panel({
   }, [expanded]);
 
   return (
-    <section className={classes} aria-label={title} {...rest}>
+    <section
+      className={classes}
+      aria-label={title}
+      onPointerMove={glow.onPointerMove}
+      style={glow.style}
+      {...rest}
+    >
+      <span className="edge-light" aria-hidden="true" />
       {(title || actions) && (
         <header className="bru-panel__head">
           <span className="bru-panel__title">

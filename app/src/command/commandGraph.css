@@ -1,10 +1,10 @@
-.cmd-graph-root {
-  /* Flat field material only — no center glow; the canvas should read as a
-     plotting table, not a hero backdrop. */
-  background:
-    linear-gradient(135deg, rgba(140, 170, 150, 0.06) 0 1px, transparent 1px 100%),
-    var(--bru-bg-0);
-  background-size: 32px 32px, auto;
+/* Doubled class beats the .bru-app shell rule (same layer, later grid). */
+.bru-app.cmd-graph-root {
+  /* No line grids — the backdrop is the interactive pixel-dot field
+     (.cmd-graph-dots), same as the mobile field client. Grain noise only. */
+  background-color: var(--bru-bg-0);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23n)' opacity='0.05'/%3E%3C/svg%3E");
+  background-size: 140px 140px;
 }
 
 .cmd-graph-topbar {
@@ -21,7 +21,17 @@
   min-height: 0;
 }
 
+/* Interactive pixel-dot backdrop (vendor DotGrid), mirroring .field-dots. */
+.cmd-graph-dots {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  opacity: 0.7;
+}
+
 .cmd-graph-main .react-flow {
+  position: relative;
+  z-index: 1;
   background: transparent;
 }
 

@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { api } from './api.js'
 import Icon from './Icon.jsx'
+import { useBorderGlow } from './BorderGlow.jsx'
 import './contextChat.css'
 
 const EXAMPLES = {
@@ -82,6 +83,7 @@ const COPY = {
 // the same in-memory board the graph renders). Defaults to the shared client.
 function ContextChat({ station = 'command', className = '', dataApi = api }) {
   const copy = COPY[station] ?? COPY.command
+  const glow = useBorderGlow()
   const [question, setQuestion] = useState('')
   const [messages, setMessages] = useState([
     {
@@ -181,11 +183,20 @@ function ContextChat({ station = 'command', className = '', dataApi = api }) {
 
   return (
     <section
-      className={['context-chat', `context-chat--${station}`, fullscreen && 'context-chat--fullscreen', className]
+      className={[
+        'context-chat',
+        `context-chat--${station}`,
+        'border-glow-host',
+        fullscreen && 'context-chat--fullscreen',
+        className,
+      ]
         .filter(Boolean)
         .join(' ')}
       aria-label={copy.ariaLabel}
+      onPointerMove={glow.onPointerMove}
+      style={glow.style}
     >
+      <span className="edge-light" aria-hidden="true" />
       <header className="context-chat__head">
         <span className="context-chat__title">
           <Icon name="feed" size={16} />

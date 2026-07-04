@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import Badge from '../shared/Badge.jsx';
 import Button from '../shared/Button.jsx';
 import Icon from '../shared/Icon.jsx';
+import { useBorderGlow } from '../shared/BorderGlow.jsx';
 import { CATEGORY_LABEL, formatAge } from '../shared/urgency.js';
 import { patchIncident } from './dataSource.js';
 
@@ -94,6 +95,7 @@ function GraphInspector({
   onDeactivateAlert,
 }) {
   const closeButtonRef = useRef(null);
+  const glow = useBorderGlow();
 
   // Incident edit mode (mirrors IncidentDrawer's edit/resolve code path).
   const [editMode, setEditMode] = useState(false);
@@ -203,7 +205,15 @@ function GraphInspector({
   return (
     <>
       <div className="cmd-drawer-scrim" onClick={onClose} />
-      <aside className="cmd-drawer cmd-graph-inspector" role="dialog" aria-label="Graph relationship inspector" data-testid="graph-inspector">
+      <aside
+        className="cmd-drawer cmd-graph-inspector border-glow-host"
+        role="dialog"
+        aria-label="Graph relationship inspector"
+        data-testid="graph-inspector"
+        onPointerMove={glow.onPointerMove}
+        style={glow.style}
+      >
+        <span className="edge-light" aria-hidden="true" />
         <header className="cmd-drawer__head" data-urgency={incident?.urgency ?? alert?.severity}>
           <div className="cmd-drawer__head-badges">
             <Badge variant="accent">{typeLabel}</Badge>

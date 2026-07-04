@@ -309,8 +309,8 @@ function FieldClient() {
         <DotGrid
           dotSize={2.5}
           gap={26}
-          baseColor="#131c16"
-          activeColor="#5c2a31"
+          baseColor="#22332a"
+          activeColor="#b03a46"
           proximity={80}
           speedTrigger={140}
           shockRadius={130}

@@ -5,6 +5,7 @@ import CommandPost from './command/CommandPost.jsx'
 import CommandGraph from './command/CommandGraph.jsx'
 import FieldClient from './field/FieldClient.jsx'
 import IntroSplash from './shared/IntroSplash.jsx'
+import BorderGlow from './shared/BorderGlow.jsx'
 import './App.css'
 
 const LOCAL_COMMAND_HOSTS = new Set(['localhost', '127.0.0.1', '::1', '[::1]'])
@@ -87,8 +88,13 @@ function Home() {
 
         <nav className="bru-landing__grid">
           {STATIONS.map((s, i) => (
-            <Link
+            <BorderGlow
               key={s.to}
+              className="bru-console-glow"
+              borderRadius={14}
+              backgroundColor="var(--bru-bg-1)"
+            >
+            <Link
               to={s.to}
               className="bru-console"
               data-accent={s.accent}
@@ -115,6 +121,7 @@ function Home() {
                 </span>
               </div>
             </Link>
+            </BorderGlow>
           ))}
         </nav>
       </main>
