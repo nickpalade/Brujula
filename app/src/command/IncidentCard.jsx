@@ -1,5 +1,6 @@
 import Card from '../shared/Card.jsx';
 import Badge from '../shared/Badge.jsx';
+import DecryptedText from '../vendor/DecryptedText.jsx';
 import { CATEGORY_LABEL, formatAge, isLiveVictim } from '../shared/urgency.js';
 
 const STATUS_LABEL = {
@@ -40,7 +41,17 @@ function IncidentCard({ incident, selected, hasProposal, onSelect }) {
         </span>
       </div>
 
-      <p className="cmd-incident__summary">{incident.summary}</p>
+      {/* Incoming intelligence "decodes" as it lands — the moment Gemma's
+          structured output reaches the board. Animates once per card. */}
+      <p className="cmd-incident__summary">
+        <DecryptedText
+          text={incident.summary ?? ''}
+          animateOn="view"
+          sequential
+          speed={14}
+          encryptedClassName="cmd-incident__encrypted"
+        />
+      </p>
 
       <div className="cmd-incident__foot">
         <span className="bru-meta" title="Location">

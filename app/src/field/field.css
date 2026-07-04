@@ -513,18 +513,20 @@
   transition: background-color 0.35s ease, color 0.35s ease;
 }
 
-/* Incoming assignment: garnet pixel shimmer behind the card until it's
-   acknowledged. The wrapper is layout-neutral; the card renders above the
-   canvas and goes translucent so the pixels read through its edges. */
+/* Pixel shimmer around in-flight cards: garnet for incoming taskings, amber
+   for outgoing reports. The card sits INSET in the wrapper (padding) so the
+   canvas shows as a live shimmering frame around it — content on top of the
+   canvas would otherwise cover it completely. */
 .assign-pixel {
-  border-radius: 14px;
+  border-radius: 18px;
+  padding: 10px;
   margin-bottom: 12px;
 }
 .assign-pixel .card--in-pixel {
   position: relative;
   z-index: 1;
   margin-bottom: 0;
-  background: rgba(23, 33, 27, 0.82);
+  background: rgba(23, 33, 27, 0.9);
 }
 
 @media (prefers-reduced-motion: reduce) {
