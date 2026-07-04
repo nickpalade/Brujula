@@ -432,10 +432,12 @@ app.use(hubRouter);
 app.use(askRouter);
 
 // Offline map tiles for the Command Post map (prefetched with the Settings →
-// Offline maps UI or `npm run fetch:tiles`, into data/tiles/{z}/{x}/{y}.png).
+// Offline maps UI or `npm run fetch:tiles`, into data/tiles/voyager/{z}/{x}/{y}.png).
 // Missing tiles just 404 — Leaflet shows a blank square, never an error.
 // Immutable cache: tile content never changes between prefetches.
-const TILES_DIR = path.join(path.dirname(fileURLToPath(import.meta.url)), "..", "data", "tiles");
+// Keep this provider-specific so previously downloaded dark tiles cannot leak
+// into the conventional-color basemap at identical z/x/y coordinates.
+const TILES_DIR = path.join(path.dirname(fileURLToPath(import.meta.url)), "..", "data", "tiles", "voyager");
 app.use("/tiles", express.static(TILES_DIR, { immutable: true, maxAge: "30d" }));
 if (!fs.existsSync(TILES_DIR)) {
   logger.warn("[web] data/tiles not found — download an area in Settings → Offline maps (or run `npm run fetch:tiles`) to enable the offline map");

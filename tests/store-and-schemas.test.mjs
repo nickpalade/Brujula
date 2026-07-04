@@ -34,8 +34,11 @@ test("store reset seeds the board and sync deltas hide internal sequence fields"
   store.updateReport(report.id, { parsed_into: incident.id });
 
   const delta = store.syncSince(sinceSeed);
-  assert.equal(delta.reports, undefined);
+  assert.ok(delta.reports.some((item) => item.id === report.id));
+  assert.equal(delta.reports.find((item) => item.id === report.id).parsed_into, incident.id);
   assert.ok(delta.incidents.some((item) => item.id === incident.id));
+  assert.ok(delta.incidents.find((item) => item.id === incident.id).merged_report_ids.includes(report.id));
+  assert.equal(Object.hasOwn(delta.reports[0], "_seq"), false);
   assert.equal(Object.hasOwn(delta.incidents[0], "_seq"), false);
 });
 

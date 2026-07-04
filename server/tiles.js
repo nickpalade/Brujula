@@ -1,7 +1,7 @@
 // Offline tile prefetch service — the backend of Settings → Offline maps.
 //
 // Same tile source and slippy-map math as scripts/fetch-tiles.mjs (CARTO
-// dark_all — NOT tile.openstreetmap.org, whose usage policy forbids bulk
+// Voyager — NOT tile.openstreetmap.org, whose usage policy forbids bulk
 // downloads), wrapped as an in-process download manager so the Command Post
 // can pull new areas on demand during demo prep (the one moment the laptop
 // has internet) and list/clear what is already on disk.
@@ -24,12 +24,12 @@ import path from "node:path";
 
 import { logger } from "./logger.js";
 
-export const TILE_URL = "https://basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png";
+export const TILE_URL = "https://basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png";
 export const ZOOM_MIN = 11;
 export const ZOOM_MAX = 16;
 export const MAX_TILES = 10_000;
 // Estimate basis for the client's "~Y MB" preview: ~12 KB/tile is a safe
-// average for CARTO dark_all over mixed urban areas (sparse coastal regions
+// average for CARTO Voyager over mixed urban areas (sparse coastal regions
 // come in far smaller — the seeded Vargas set is ~1.4 KB/tile). The areas
 // registry stores REAL on-disk bytes after each download.
 export const EST_TILE_BYTES = 12 * 1024;

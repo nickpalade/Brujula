@@ -12,6 +12,7 @@ process.env.REPORT_ACK_TIMEOUT_MS = "5000";
 
 const store = await import("../server/store.js");
 const { hubRouter, mergeReportIntoIncident, dedupKindsCompatible } = await import("../server/routes/hub.js");
+const { findExplicitCorrectionMatch } = await import("../server/pipeline/index.js");
 
 let server;
 let base;
@@ -119,7 +120,70 @@ test("registration creates dispatchable resources and crew status updates availa
   assert.equal(returning.resource.field_status, "returning");
 });
 
+test("a crew registering after an unmatched need creates a proposed dispatch", async () => {
+  const incident = expectOk(await api("/api/incidents", {
+    method: "POST",
+    body: {
+      kind: "need",
+      category: "rescue",
+      location: "Playa Grande, Catia La Mar",
+      people_count: 8,
+      urgency: "critical",
+      summary: "Building collapsed with eight people trapped.",
+    },
+  }));
+  assert.equal(
+    store.listDispatches().some((dispatch) => dispatch.incident_id === incident.id),
+    false,
+  );
+
+  const registration = expectOk(await api("/api/register", {
+    method: "POST",
+    body: {
+      role: "crew",
+      name: "Late Rescue Crew",
+      skill: "machinery",
+      location: "Caraballeda",
+      team_size: 6,
+      device_id: "late-rescue-crew",
+    },
+  }));
+
+  const dispatch = store.listDispatches().find(
+    (item) => item.incident_id === incident.id && item.state === "proposed",
+  );
+  assert.ok(dispatch, "the newly available crew should trigger matching for the open need");
+  assert.equal(dispatch.resource_id, registration.resource.id);
+  assert.equal(store.getIncident(incident.id).proposed_dispatch_id, dispatch.id);
+});
+
+test("matching does not propose an unrelated resource just because it is available", async () => {
+  const created = expectOk(await api("/api/reports", {
+    method: "POST",
+    body: {
+      text: "Building collapsed in Playa Grande with 8 people trapped.",
+      client_ref: "no-forced-mismatch",
+    },
+  }));
+
+  assert.equal(
+    store.listDispatches().some((dispatch) => dispatch.incident_id === created.incident.id),
+    false,
+  );
+});
+
 test("dispatch confirmation commits resources and enforces forward lifecycle", async () => {
+  const registration = expectOk(await api("/api/register", {
+    method: "POST",
+    body: {
+      role: "crew",
+      name: "Rescue Machinery Team",
+      skill: "machinery",
+      location: "Caraballeda",
+      team_size: 5,
+      device_id: "dispatch-crew",
+    },
+  }));
   const created = expectOk(await api("/api/reports", {
     method: "POST",
     body: {
@@ -129,6 +193,7 @@ test("dispatch confirmation commits resources and enforces forward lifecycle", a
   }));
   const dispatch = store.listDispatches().find((item) => item.incident_id === created.incident.id);
   assert.ok(dispatch, "pipeline should propose a dispatch for the rescue need");
+  assert.equal(dispatch.resource_id, registration.resource.id);
 
   const confirmed = expectOk(await api(`/api/incidents/${created.incident.id}/dispatch`, {
     method: "POST",
@@ -373,4 +438,75 @@ test("resource reports merged as evidence do not inflate need people counts", ()
   assert.equal(merged.people_count, 25);
   assert.equal(merged.urgency, "critical");
   assert.deepEqual(merged.merged_report_ids, ["rep-need", "rep-resource"]);
+});
+
+test("an explicit correction links a named person to the existing group incident", () => {
+  const rubble = {
+    id: "inc-rubble",
+    kind: "need",
+    category: "rescue",
+    location: null,
+    people_count: 12,
+    summary: "12 people trapped in rubble.",
+  };
+  const separateBuilding = {
+    id: "inc-building",
+    kind: "need",
+    category: "rescue",
+    location: null,
+    people_count: 1,
+    summary: "Nick is trapped inside a building.",
+  };
+
+  const match = findExplicitCorrectionMatch(
+    {
+      kind: "need",
+      category: "rescue",
+      people_count: 13,
+      raw_text:
+        "Nick is not trapped in a separate building, he is in fact trapped in the rubble with the 12 people. It is now 13 people.",
+    },
+    [rubble, separateBuilding],
+  );
+
+  assert.equal(match?.id, rubble.id);
+});
+
+test("ordinary no-location rescue reports are not deterministically merged", () => {
+  const match = findExplicitCorrectionMatch(
+    {
+      kind: "need",
+      category: "rescue",
+      people_count: 3,
+      raw_text: "Three people are trapped in a damaged house.",
+    },
+    [{ id: "inc-other", category: "rescue", people_count: 3, summary: "Three people trapped elsewhere." }],
+  );
+
+  assert.equal(match, null);
+});
+
+test("a correction moves Nick to the rubble incident and retires the false building incident", async () => {
+  const rubble = expectOk(await api("/api/reports", {
+    method: "POST",
+    body: { text: "12 people are trapped in rubble.", client_ref: "rubble-12" },
+  }));
+  const building = expectOk(await api("/api/reports", {
+    method: "POST",
+    body: { text: "Nick is trapped in the building.", client_ref: "nick-building" },
+  }));
+  assert.notEqual(building.incident.id, rubble.incident.id);
+
+  const correction = expectOk(await api("/api/reports", {
+    method: "POST",
+    body: {
+      text: "Nick is not trapped in a separate building, he is in fact trapped in the rubble with the 12 people. It is now 13 people.",
+      client_ref: "nick-correction",
+    },
+  }));
+
+  assert.equal(correction.incident.id, rubble.incident.id);
+  assert.equal(correction.incident.people_count, 13);
+  assert.equal(store.getIncident(building.incident.id).status, "resolved");
+  assert.equal(store.getIncident(building.incident.id).superseded_by, rubble.incident.id);
 });

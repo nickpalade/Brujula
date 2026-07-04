@@ -223,7 +223,9 @@ export const api = {
     })
   },
 
-  // GET /api/sync?since=<seq> → { seq, incidents, dispatches, resources, alerts }
+  // GET /api/sync?since=<seq> → complete relationship deltas. Reports are
+  // included so graph edges arrive atomically with their incident/person data;
+  // GET /api/reports remains available for direct evidence lookups.
   async sync(since = 0) {
     if (USE_MOCKS) return mock.sync(since)
     const q = Number.isFinite(since) ? since : 0

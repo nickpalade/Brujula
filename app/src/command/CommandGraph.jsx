@@ -16,6 +16,7 @@ import Button from '../shared/Button.jsx';
 import Icon from '../shared/Icon.jsx';
 import { useBorderGlow } from '../shared/BorderGlow.jsx';
 import { CATEGORY_LABEL, sortByPriority } from '../shared/urgency.js';
+import { getReportTitle } from './reportPresentation.js';
 import GraphInspector from './GraphInspector.jsx';
 import SmartEdge from './SmartEdge.jsx';
 import SitrepModal from './SitrepModal.jsx';
@@ -315,9 +316,7 @@ function ReportNode({ data }) {
         </Badge>
         {report.lang && <Badge variant="muted">{report.lang}</Badge>}
       </div>
-      <strong className="cmd-graph-node__title">
-        {report.source_device ?? report.reported_by ?? 'Unknown source'}
-      </strong>
+      <strong className="cmd-graph-node__title">{getReportTitle(report)}</strong>
       <p>{shortText(report.raw_text, 110)}</p>
       <div className="cmd-graph-node__meta">
         {report.created_at && <span>{new Date(report.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>}

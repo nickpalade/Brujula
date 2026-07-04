@@ -3,14 +3,13 @@
 //
 // SETUP-TIME ONLY (needs internet once, like bootstrap's model pull).
 // Downloads basemap raster tiles for the demo region into
-// data/tiles/{z}/{x}/{y}.png so the Command Post map works with zero network
+// data/tiles/voyager/{z}/{x}/{y}.png so the Command Post map works with zero network
 // at demo time (the Express hub serves them at /tiles/*).
 //
-// Tile source: CARTO's dark_all basemap (OSM data, © OpenStreetMap © CARTO).
+// Tile source: CARTO Voyager (OSM data, © OpenStreetMap © CARTO).
 // NOT tile.openstreetmap.org — OSM's usage policy forbids bulk downloading
 // and their server starts returning "Access blocked" placeholder tiles
-// mid-fetch (verified the hard way). CARTO's dark theme also matches the
-// command UI without CSS filters.
+// mid-fetch (verified the hard way). Voyager supplies conventional map colors.
 //
 // Defaults cover the Vargas coast (La Guaira: Catia La Mar → Caraballeda) at
 // zooms 11–16 — about 1.5k tiles / a few tens of MB. Resumable: existing
@@ -26,9 +25,10 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
-const OUT_DIR = path.join(HERE, "..", "data", "tiles");
+// Provider-specific cache prevents stale dark basemap PNGs from being reused.
+const OUT_DIR = path.join(HERE, "..", "data", "tiles", "voyager");
 
-const TILE_URL = process.env.TILES_URL || "https://basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png";
+const TILE_URL = process.env.TILES_URL || "https://basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png";
 const USER_AGENT = "brujula-offline-demo/1.0 (hackathon; one-time regional prefetch)";
 const CONCURRENCY = 2;
 const DELAY_MS = 150; // per worker, between requests

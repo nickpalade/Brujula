@@ -85,7 +85,12 @@ the NEW REPORT describes the SAME real-world incident as one already OPEN on the
 board — the same specific event, at the same specific place, even if worded very
 differently, with a different people count, or reported by a different person.
 
-To be a duplicate, ALL must hold:
+An explicit correction can establish identity from prior incident details even
+when it does not repeat a place name. Example: "Nick is not in a separate
+building; he is actually with the 12 people in the rubble" updates the existing
+12-person rubble incident, rather than creating another building incident.
+
+Otherwise, to be a duplicate, ALL must hold:
 1. Same category (a rescue and a water shortage are NEVER the same incident).
 2. Same specific site, not merely the same town. La Guaira and Catia La Mar each
    contain many separate incidents — sharing a town is NOT enough.

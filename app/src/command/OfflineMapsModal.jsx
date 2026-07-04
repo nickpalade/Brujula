@@ -38,7 +38,7 @@ const POLL_MS = 1000;
 // reachable when the laptop is online — exactly when downloading works too).
 // Offline, fall back to the hub's local tiles so the modal still shows
 // something meaningful for already-downloaded areas.
-const REMOTE_TILE_URL = 'https://basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png';
+const REMOTE_TILE_URL = 'https://basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png';
 const LOCAL_TILE_URL = '/tiles/{z}/{x}/{y}.png';
 const FALLBACK_TILE_URL = `data:image/svg+xml,${encodeURIComponent(`
 <svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 256 256">
