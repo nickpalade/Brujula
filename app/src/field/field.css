@@ -74,6 +74,21 @@
   gap: 10px;
   min-width: 0;
 }
+
+/* App-wide ambient dot layer: sits under everything; header/body/tabs stack
+   above it. The header and tab bar have opaque backgrounds, so the dots only
+   breathe through the page-dark body area. */
+.field-dots {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+}
+.field-header,
+.field-body,
+.field-tabs {
+  position: relative;
+  z-index: 1;
+}
 .field-header h1 {
   font-size: 19px;
   font-weight: 800;
