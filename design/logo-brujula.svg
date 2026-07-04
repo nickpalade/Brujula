@@ -1,16 +1,19 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" role="img" aria-label="Brújula logo">
-  <!-- Hand-built vector starting point (concept 1B: compass + signal gap).
-       Usable as-is for favicon/app icon; generated raster art can replace it. -->
+  <!-- Vector master traced from the chosen generated mark
+       (design/assets/logo-concepts-compass.png, right-hand version):
+       thin broken ring with the gap centered east, two white signal arcs
+       concentric with the ring inside the gap, slim rhombus needle
+       (garnet north half, off-white south half), garnet pivot dot. -->
   <!-- bosque background disc (delete for transparent use) -->
   <circle cx="128" cy="128" r="128" fill="#0e1411"/>
-  <!-- broken circle: the gap at NE suggests a signal/radio arc -->
-  <path d="M 191.9 84.1 A 78 78 0 1 1 172.6 66.7" fill="none" stroke="#eff4f1" stroke-width="8" stroke-linecap="round"/>
-  <!-- signal arcs through the gap -->
-  <path d="M 186 52 A 20 20 0 0 1 204 70" fill="none" stroke="#b03a46" stroke-width="7" stroke-linecap="round"/>
-  <path d="M 196 30 A 42 42 0 0 1 226 60" fill="none" stroke="#b03a46" stroke-width="7" stroke-linecap="round" opacity="0.55"/>
-  <!-- needle: north half granate, south half off-white, slight instrument asymmetry -->
-  <polygon points="128,52 152,128 128,120 104,128" fill="#b03a46"/>
-  <polygon points="128,204 104,128 128,136 152,128" fill="#eff4f1"/>
-  <!-- pivot -->
-  <circle cx="128" cy="128" r="9" fill="#0e1411" stroke="#eff4f1" stroke-width="5"/>
+  <!-- broken ring: gap from 38° to 142° (clockwise from north), centered east -->
+  <path d="M 182.2 58.7 A 88 88 0 1 0 182.2 197.3" fill="none" stroke="#eff4f1" stroke-width="4.5" stroke-linecap="round"/>
+  <!-- signal arcs inside the gap, concentric with the ring -->
+  <path d="M 186 101 A 64 64 0 0 1 186 155" fill="none" stroke="#eff4f1" stroke-width="4.5" stroke-linecap="round"/>
+  <path d="M 200.1 79.3 A 87 87 0 0 1 200.1 176.7" fill="none" stroke="#eff4f1" stroke-width="4.5" stroke-linecap="round"/>
+  <!-- needle: slim rhombus, garnet north half, off-white south half -->
+  <polygon points="128,50.5 144.5,128 111.5,128" fill="#b03a46"/>
+  <polygon points="111.5,128 144.5,128 128,205.5" fill="#eff4f1"/>
+  <!-- pivot: garnet dot, slightly darker rim for definition on the red half -->
+  <circle cx="128" cy="128" r="9" fill="#b03a46" stroke="#8e2e39" stroke-width="2"/>
 </svg>
