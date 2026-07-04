@@ -11,7 +11,7 @@ import { LANGUAGES } from '../shared/languages.js';
 import { useI18n } from '../shared/i18n.jsx';
 import Icon from '../shared/Icon.jsx';
 
-function LanguagePicker() {
+function LanguagePicker({ compact = false }) {
   const { lang, setLang } = useI18n();
   const [languages, setLanguages] = useState(LANGUAGES);
   const [saving, setSaving] = useState(false);
@@ -60,8 +60,8 @@ function LanguagePicker() {
   );
 
   return (
-    <label className="cmd-lang" title="App language + AI summaries and the SITREP">
-      <Icon name="globe" className="cmd-lang__icon" />
+    <label className={`cmd-lang${compact ? ' cmd-lang--compact' : ''}`} title="App language + AI summaries and the SITREP">
+      {!compact && <Icon name="globe" className="cmd-lang__icon" />}
       <select
         className="cmd-lang__select"
         value={lang}

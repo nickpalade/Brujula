@@ -31,6 +31,7 @@ import {
 } from "./schemas.js";
 import { TranscriptionError, transcribeAudio } from "./transcription.js";
 import { hubRouter } from "./routes/hub.js";
+import { askRouter } from "./routes/ask.js";
 
 function buildParsePrompt(summaryLanguage) {
   return `You turn raw disaster field reports into structured JSON for a coordination
@@ -376,6 +377,10 @@ app.post("/api/transcribe", async (req, res) => {
 // Hub data layer + REST API under /api/* (agent HUB): reports, incidents,
 // resources, dispatch confirm/override, sync deltas, sitrep, advise.
 app.use(hubRouter);
+
+// Field assistant — POST /api/ask: grounded Q&A for responders (answers come
+// from the live board + the offline protocol KB, never open-ended).
+app.use(askRouter);
 
 // Offline map tiles for the Command Post map (prefetched once with
 // `npm run fetch:tiles` into data/tiles/{z}/{x}/{y}.png). Missing tiles just

@@ -136,6 +136,7 @@ test('opens the broadcast alert as an interactive modal', async ({ page }) => {
 });
 
 test('changes the summary language', async ({ page }) => {
+  await page.getByRole('button', { name: 'Command post settings' }).click();
   const langSelect = page.getByLabel('Summary language');
   await expect(langSelect).toBeVisible();
   await langSelect.selectOption('es');
@@ -143,13 +144,14 @@ test('changes the summary language', async ({ page }) => {
 });
 
 test('shows a QR code and link to connect a phone', async ({ page }) => {
-  await page.getByRole('button', { name: /Connect phone/ }).click();
+  await page.getByRole('button', { name: 'Command post settings' }).click();
+  await page.getByRole('button', { name: /Connect a field phone/ }).click();
 
   const modal = page.getByRole('dialog', { name: 'Connect a phone' });
   await expect(modal).toBeVisible();
 
-  // A QR code renders (qrcode.react draws an <svg>).
-  await expect(modal.getByRole('img')).toBeVisible();
+  // A QR code renders (qrcode.react draws an <svg>, not role=img).
+  await expect(modal.locator('.cmd-connect__qr svg')).toBeVisible();
 
   // The link points at /field on the current origin.
   const link = modal.locator('.cmd-connect__link');

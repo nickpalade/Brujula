@@ -78,8 +78,20 @@ export const translations = {
     // Tabs / toast
     'tab.report': 'Reportar',
     'tab.inbox': 'Asignaciones',
+    'tab.ask': 'Preguntar',
     'toast.saved': 'Reporte guardado — se enviará al hub',
     'toast.statusFailed': 'Sin conexión — estado no enviado, reintenta',
+
+    // Field assistant (Preguntar)
+    'ask.hint': 'Pregunta lo que necesites: qué está pasando, qué protocolo seguir, qué recursos hay. Las respuestas salen del tablero y de los protocolos — nada inventado.',
+    'ask.empty': 'Todavía no hay preguntas. Ej: "¿qué hago si encuentro a alguien atrapado?" o "¿hay agua disponible cerca?"',
+    'ask.placeholder': 'Escribe tu pregunta…',
+    'ask.send': 'Preguntar',
+    'ask.you': 'TÚ',
+    'ask.thinking': 'Consultando el tablero y los protocolos…',
+    'ask.thinkingShort': 'Pensando…',
+    'ask.error': 'No se pudo consultar — revisa la conexión al hub',
+    'ask.disclaimer': 'Guía operativa para respondedores — no es consejo médico. Ante la duda, consulta al Puesto de Mando.',
 
     // Crew mission status
     'fstatus.label': 'Mi estado',
@@ -278,8 +290,19 @@ export const translations = {
 
     'tab.report': 'Report',
     'tab.inbox': 'Assignments',
+    'tab.ask': 'Ask',
     'toast.saved': 'Report saved — it will be sent to the hub',
     'toast.statusFailed': 'Offline — status not sent, retry',
+
+    'ask.hint': 'Ask anything: what is happening, which protocol to follow, what resources exist. Answers come from the board and the protocols — nothing invented.',
+    'ask.empty': 'No questions yet. E.g.: "what do I do if I find someone trapped?" or "is there water available nearby?"',
+    'ask.placeholder': 'Type your question…',
+    'ask.send': 'Ask',
+    'ask.you': 'YOU',
+    'ask.thinking': 'Checking the board and the protocols…',
+    'ask.thinkingShort': 'Thinking…',
+    'ask.error': 'Could not ask — check the hub connection',
+    'ask.disclaimer': 'Operational guidance for responders — not medical advice. When in doubt, ask the Command Post.',
 
     'fstatus.label': 'My status',
     'fstatus.idle': 'Available',

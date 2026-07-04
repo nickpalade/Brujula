@@ -101,7 +101,7 @@ function ReportForm({ onSubmit }) {
   }
 
   return (
-    <div>
+    <section className="field-panel field-report">
       <label className="field-label" htmlFor="report-text">
         {t('rf.what')}
       </label>
@@ -210,7 +210,7 @@ function ReportForm({ onSubmit }) {
       >
         {t('rf.send')}
       </button>
-    </div>
+    </section>
   )
 }
 

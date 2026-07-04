@@ -230,6 +230,22 @@ export const api = {
     return request(`/api/sync?since=${q}`)
   },
 
+  // POST /api/ask → { answer, asked_at } — the field assistant. Grounded Q&A:
+  // the hub answers from the live board + offline protocol KB only.
+  async ask({ question, device_id = null, lang = 'es' }) {
+    if (USE_MOCKS) {
+      return {
+        answer:
+          'Asistente en modo demo: el hub respondería aquí basándose en el tablero y los protocolos.',
+        asked_at: new Date().toISOString(),
+      }
+    }
+    return request('/api/ask', {
+      method: 'POST',
+      body: { question, device_id, lang },
+    })
+  },
+
   // POST /api/advise → Advisory { incident_type, steps, source_label, cautions }
   async advise({ incident_type, context = '' }) {
     if (USE_MOCKS) return mock.advise({ incident_type, context })

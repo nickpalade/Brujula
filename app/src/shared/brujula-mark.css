@@ -1,6 +1,8 @@
-/* Compass-needle activity indicator. The needle "searches" while the agent
-   works: an eased full rotation, slightly slower through north — deliberate,
-   not frantic. Rotation center = viewBox center (the pivot). */
+/* Living compass mark. Two states, always in motion:
+   - idle: the logo-animated.svg cadence — slow start, accelerate, decelerate,
+     settle, rest — one revolution every few seconds. The brand breathes.
+   - busy (.bru-mark--spin): continuous faster seek while the agent works.
+   Rotation center = viewBox center (the pivot). */
 
 .bru-mark {
   display: block;
@@ -10,6 +12,20 @@
 .bru-mark__needle {
   transform-box: view-box;
   transform-origin: 50% 50%;
+  animation: bru-needle-settle 7s infinite;
+}
+
+@keyframes bru-needle-settle {
+  0% {
+    transform: rotate(0deg);
+    animation-timing-function: cubic-bezier(0.65, 0.05, 0.25, 1);
+  }
+  46% {
+    transform: rotate(360deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
 }
 
 .bru-mark--spin .bru-mark__needle {
@@ -22,6 +38,7 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .bru-mark__needle,
   .bru-mark--spin .bru-mark__needle {
     animation: none;
   }
