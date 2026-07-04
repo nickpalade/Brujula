@@ -4,6 +4,8 @@ import './command.css';
 import Panel from '../shared/Panel.jsx';
 import Badge from '../shared/Badge.jsx';
 import Button from '../shared/Button.jsx';
+import BrujulaMark from '../shared/BrujulaMark.jsx';
+import { useAgentBusy } from '../shared/useAgentBusy.js';
 import { sortByPriority } from '../shared/urgency.js';
 import IncidentCard from './IncidentCard.jsx';
 import DispatchProposal from './DispatchProposal.jsx';
@@ -42,6 +44,8 @@ function CommandPost() {
   const [sitrep, setSitrep] = useState(null);
   const [sitrepLoading, setSitrepLoading] = useState(false);
   const [sitrepError, setSitrepError] = useState(null);
+
+  const agentBusy = useAgentBusy();
 
   const seqRef = useRef(0);
 
@@ -156,7 +160,7 @@ function CommandPost() {
         </div>
 
         <div className="cmd-topbar__brand">
-          <img src="/logo-animated.svg" alt="" className="cmd-topbar__logo" />
+          <BrujulaMark size={60} spinning={agentBusy} title="Brújula — Command Post" />
           <div className="cmd-topbar__wordmark">
             <div className="cmd-topbar__title">BRÚJULA</div>
             <div className="cmd-topbar__sub">Command Post · La Guaira</div>

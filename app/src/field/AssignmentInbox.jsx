@@ -1,6 +1,10 @@
 // Assignment inbox — dispatches from the Command Post involving this device.
 // Each shows the AI/coordinator's tasking (resource → incident + rationale) and
 // an acknowledge tap so command knows the responder received it.
+// Unacknowledged taskings shimmer in (garnet pixel field) to pull the eye:
+// something INCOMING that still needs a confirmation tap.
+
+import PixelCard from '../vendor/PixelCard.jsx'
 
 function AssignmentInbox({ assignments, onAcknowledge }) {
   if (!assignments || assignments.length === 0) {
@@ -20,8 +24,8 @@ function AssignmentInbox({ assignments, onAcknowledge }) {
         const incident = a.incident
         const resource = a.resource
         const urgency = incident?.urgency
-        return (
-          <div className="card" key={a.id}>
+        const card = (
+          <div className={`card${a.acknowledged ? '' : ' card--in-pixel'}`}>
             <div className="card-top">
               <span className="cat-badge">
                 {incident?.category || 'asignación'}
@@ -57,6 +61,13 @@ function AssignmentInbox({ assignments, onAcknowledge }) {
               {a.acknowledged ? 'Confirmado ✓' : 'Confirmar recepción'}
             </button>
           </div>
+        )
+        return a.acknowledged ? (
+          <div key={a.id}>{card}</div>
+        ) : (
+          <PixelCard key={a.id} variant="granate" autoAnimate className="assign-pixel">
+            {card}
+          </PixelCard>
         )
       })}
     </div>

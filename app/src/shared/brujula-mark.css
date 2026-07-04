@@ -1,0 +1,28 @@
+/* Compass-needle activity indicator. The needle "searches" while the agent
+   works: an eased full rotation, slightly slower through north — deliberate,
+   not frantic. Rotation center = viewBox center (the pivot). */
+
+.bru-mark {
+  display: block;
+  flex-shrink: 0;
+}
+
+.bru-mark__needle {
+  transform-box: view-box;
+  transform-origin: 50% 50%;
+}
+
+.bru-mark--spin .bru-mark__needle {
+  animation: bru-needle-seek 1.6s cubic-bezier(0.45, 0.1, 0.55, 0.9) infinite;
+}
+
+@keyframes bru-needle-seek {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .bru-mark--spin .bru-mark__needle {
+    animation: none;
+  }
+}

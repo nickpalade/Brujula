@@ -26,12 +26,6 @@
   gap: var(--bru-s-3);
   justify-self: center;
 }
-.cmd-topbar__logo {
-  width: 60px;
-  height: 60px;
-  flex: none;
-  border-radius: 50%;
-}
 .cmd-topbar__wordmark {
   display: flex;
   flex-direction: column;
@@ -109,6 +103,21 @@
   display: flex;
   flex-direction: column;
   gap: var(--bru-s-3);
+}
+/* New incidents land, they don't pop — entrance on feed cards only. */
+.cmd-feed__list > * {
+  animation: cmd-card-in 0.32s ease-out;
+}
+@keyframes cmd-card-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .cmd-feed__list > * {
+    animation: none;
+  }
 }
 .cmd-feed__loading {
   display: flex;

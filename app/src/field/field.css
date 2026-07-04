@@ -72,12 +72,7 @@
   display: flex;
   align-items: center;
   gap: 10px;
-}
-.field-logo {
-  width: 34px;
-  height: 34px;
-  flex: none;
-  border-radius: 50%;
+  min-width: 0;
 }
 .field-header h1 {
   font-size: 19px;
@@ -182,6 +177,19 @@
 }
 
 /* Onboarding (first-open role signup) -------------------------------------- */
+/* Ambient dot field behind the signup — content stacks above it. */
+.onboard {
+  position: relative;
+}
+.onboard-dots {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+}
+.onboard > *:not(.onboard-dots) {
+  position: relative;
+  z-index: 1;
+}
 .onboard-title {
   font-size: 22px;
   font-weight: 700;
@@ -449,6 +457,14 @@
   border-radius: 14px;
   padding: 14px;
   margin-bottom: 12px;
+  animation: card-in 0.28s ease-out;
+}
+
+@keyframes card-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
 }
 .card-top {
   display: flex;
@@ -478,6 +494,31 @@
   padding: 4px 10px;
   border-radius: 999px;
   white-space: nowrap;
+  /* QUEUED → SYNCED → PARSED reads as one chip changing state, not a repaint */
+  transition: background-color 0.35s ease, color 0.35s ease;
+}
+
+/* Incoming assignment: garnet pixel shimmer behind the card until it's
+   acknowledged. The wrapper is layout-neutral; the card renders above the
+   canvas and goes translucent so the pixels read through its edges. */
+.assign-pixel {
+  border-radius: 14px;
+  margin-bottom: 12px;
+}
+.assign-pixel .card--in-pixel {
+  position: relative;
+  z-index: 1;
+  margin-bottom: 0;
+  background: rgba(23, 33, 27, 0.82);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .card {
+    animation: none;
+  }
+  .status-badge {
+    transition: none;
+  }
 }
 .st-QUEUED {
   background: rgba(245, 158, 11, 0.15);
