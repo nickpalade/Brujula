@@ -25,20 +25,6 @@ Grounded in the June 2026 Venezuela earthquakes (M7.2 + M7.5, La Guaira / Caraca
 
 ---
 
-## Demo video script (≤1:00)
-
-Judging weights **Demo 50%** — show the built system, not slides.
-
-| Segment | Duration | Content |
-|---|---|---|
-| **1. Ceco hook** | **≤10 s** | Fast cut: logo, "La Guaira, no network," laptop + phone on hotspot, zero internet. Sets stakes; no feature tour yet. |
-| **2. How it works** | **~25 s** | Voice-over on the **command graph**: field reports flow into the **Gemma brain** node → structured incidents → dedup merge → match proposal → coordinator **Confirm**. Mention: all Gemma steps run on the laptop; nothing leaves the LAN; retrieval is one tool inside the agent, not the product. |
-| **3. Live phone report** | **~25 s** | Phone in frame: Spanish voice/text report → outbox QUEUED → SYNCED → incident card lands on Command Post (priority, category, location). Agent proposes a dispatch; human taps **Confirm**; assignment appears on the phone. Close: *"Brújula works when everything else has failed."* |
-
-**Rehearsal runbook:** [DEMO.md](DEMO.md) (hotspot, warmup, seed, cut-beats for Q&A).
-
----
-
 ## Why Gemma is the brain (track argument)
 
 Brújula is not "a form with AI sprinkled on top." **Gemma is the reasoning core** — every messy report passes through a multi-step workflow before a human ever sees a dispatch card.
