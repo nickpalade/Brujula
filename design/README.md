@@ -11,6 +11,16 @@ it's the wrong design for this product**).
 | `option-2-granate-institucional.html` | **Granate Institucional** | Light, humanitarian-official. Paper background, deep granate authority. Feels like an institution you trust. |
 | `option-3-brujula-field.html` | **Brújula Field** | Utilitarian field tool. Cool dark slate + granate, oversized touch targets, sunlight-legible. Built for gloves and cracked screens. |
 
+**Field won the team vote**, but the bluish slate base didn't. Same Field
+system (components, targets, signal colors untouched), three background
+temperatures to pick from:
+
+| File | Base | One-liner |
+|---|---|---|
+| `option-3a-field-grafito.html` | **Grafito** | Pure neutral graphite. The background disappears; only granate + signal colors speak. Military-radio sobriety. Doesn't tint field photos. |
+| `option-3b-field-tierra.html` | **Tierra** | Warm umber/earth. The context of the work — dust, rubble, dusk. Granate harmonizes naturally; easier on eyes at night. |
+| `option-3c-field-vino.html` | **Vino** | Granate itself, desaturated and sunk to near-black. Full brand commitment, maximum personality on a demo screen. |
+
 ## Shared principles (whichever option wins)
 
 1. **Offline is a design constraint, not just a tech one.** System font stack

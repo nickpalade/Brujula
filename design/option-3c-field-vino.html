@@ -1,0 +1,117 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Brújula — Opción 3C · Field Vino</title>
+<style>
+  :root {
+    /* ---- tokens: FIELD VINO (el fondo es granate apagado casi negro) ---- */
+    --bg:        #170d10;
+    --surface:   #211318;
+    --surface-2: #2c1a21;
+    --line:      #402630;
+    --ink:       #f5edef;
+    --ink-dim:   #b8a2a9;
+    --brand:     #b8434f;   /* granate más vivo: sobre fondo vino necesita subir */
+    --brand-deep:#8a2937;
+    --critical:  #ff453a;
+    --high:      #ff9f0a;
+    --medium:    #ffd60a;
+    --low:       #93848a;
+    --ok:        #32d074;
+    --radius: 12px;
+  }
+  * { box-sizing: border-box; margin: 0; }
+  body { background: var(--bg); color: var(--ink);
+    font: 16px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    max-width: 880px; margin: 0 auto; padding: 32px 20px 80px; }
+  h1 { font-size: 26px; letter-spacing: 1px; }
+  h1 .compass { color: var(--brand); }
+  .tagline { color: var(--ink-dim); margin: 4px 0 28px; }
+  h2 { font-size: 13px; text-transform: uppercase; letter-spacing: 2px;
+    color: var(--ink-dim); margin: 36px 0 14px; }
+  h2::before { content: "■ "; color: var(--brand); }
+  .swatches { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px,1fr)); gap: 10px; }
+  .sw { border-radius: var(--radius); padding: 14px 12px 10px; border: 1px solid var(--line); }
+  .sw b { display: block; font-size: 12px; }
+  .sw code { font-size: 11px; opacity: .75; }
+  .badges { display: flex; gap: 10px; flex-wrap: wrap; }
+  .badge { font-size: 14px; font-weight: 800; letter-spacing: 1px; padding: 8px 18px;
+    border-radius: 8px; text-transform: uppercase; color: #170d10; }
+  .b-critical { background: var(--critical); color:#fff; }
+  .b-high { background: var(--high); }
+  .b-medium { background: var(--medium); }
+  .b-low { background: var(--low); }
+  .card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius);
+    padding: 20px; margin: 14px 0; }
+  .card.critical { outline: 3px solid var(--critical); outline-offset: -3px; }
+  .card .meta { color: var(--ink-dim); font-size: 14px; margin: 4px 0 12px; }
+  .reason { background: var(--surface-2); border-radius: 8px; padding: 12px 16px;
+    font-size: 15px; color: var(--ink-dim); margin: 12px 0; }
+  .reason b { color: var(--ink); }
+  .actions { display: flex; gap: 12px; margin-top: 16px; }
+  button { font: inherit; font-weight: 800; border-radius: 10px; padding: 16px 28px;
+    border: 2px solid transparent; cursor: pointer; font-size: 17px; flex: 1; }
+  .confirm { background: var(--brand); color: #fff; }
+  .confirm:active { background: var(--brand-deep); }
+  .override { background: transparent; color: var(--ink); border-color: var(--line); }
+  .feedrow { display: flex; align-items: center; gap: 12px; padding: 14px 8px;
+    border-bottom: 1px solid var(--line); font-size: 15px; }
+  .feedrow .pri { font-weight: 800; color: var(--brand); width: 28px; font-size: 18px; }
+  .dot { width: 14px; height: 14px; border-radius: 3px; flex: none; }
+  .note { color: var(--ink-dim); font-size: 13px; margin-top: 10px; }
+</style>
+</head>
+<body>
+  <h1><span class="compass">◈</span> BRÚJULA <span style="color:var(--ink-dim); font-weight:400">· Field · variante VINO</span></h1>
+  <p class="tagline">Opción 3C — la dirección Field <b>comprometida del todo con el granate</b>: el fondo es
+  vino casi negro. Toda la interfaz es marca.</p>
+
+  <h2>Por qué vino</h2>
+  <p>Si el granate es la identidad, que respire en todas partes: el fondo es el propio granate desaturado y
+  hundido casi a negro. Máxima personalidad y memorabilidad en un demo — nadie más tendrá esta pantalla.
+  El granate de acción sube un punto de viveza (<code>#B8434F</code>) para despegarse del fondo, y lo crítico
+  usa el rojo-señal más caliente. El riesgo a vigilar: que el conjunto no se sienta "todo rojo" — por eso
+  superficies y líneas van desaturadas, y los colores-señal quedan intactos.</p>
+
+  <h2>Paleta</h2>
+  <div class="swatches">
+    <div class="sw" style="background:#170d10"><b>Fondo vino</b><code>#170D10</code></div>
+    <div class="sw" style="background:#211318"><b>Superficie</b><code>#211318</code></div>
+    <div class="sw" style="background:#b8434f; color:#fff"><b>Granate (marca)</b><code>#B8434F</code></div>
+    <div class="sw" style="background:#8a2937; color:#fff"><b>Granate profundo</b><code>#8A2937</code></div>
+    <div class="sw" style="background:#ff453a; color:#fff"><b>Crítico</b><code>#FF453A</code></div>
+    <div class="sw" style="background:#ff9f0a; color:#170d10"><b>Alto</b><code>#FF9F0A</code></div>
+    <div class="sw" style="background:#ffd60a; color:#170d10"><b>Medio</b><code>#FFD60A</code></div>
+    <div class="sw" style="background:#32d074; color:#170d10"><b>OK / recurso</b><code>#32D074</code></div>
+  </div>
+
+  <h2>Escalera de urgencia</h2>
+  <div class="badges">
+    <span class="badge b-critical">Crítico</span>
+    <span class="badge b-high">Alto</span>
+    <span class="badge b-medium">Medio</span>
+    <span class="badge b-low">Bajo</span>
+  </div>
+  <p class="note">Comprobado sobre fondo vino: el crítico sigue dominando porque es más claro, más saturado y más caliente que todo lo demás.</p>
+
+  <h2>Tarjeta de acción</h2>
+  <div class="card critical">
+    <span class="badge b-critical">Crítico</span>
+    <h3 style="margin-top:12px">Edificio colapsado — se oyen voces, ~20 atrapados</h3>
+    <p class="meta">RESCATE + MAQUINARIA · Playa Grande, Catia La Mar · hace 4 min · 2 reportes fusionados</p>
+    <div class="reason"><b>El agente propone:</b> excavadora + cuadrilla (Caraballeda, ~3 km).
+    Rechazó el camión cisterna más cercano: la capacidad debe corresponder a la necesidad.</div>
+    <div class="actions">
+      <button class="confirm">CONFIRMAR</button>
+      <button class="override">ANULAR</button>
+    </div>
+  </div>
+
+  <h2>Feed priorizado</h2>
+  <div class="feedrow"><span class="pri">1</span><span class="dot" style="background:var(--critical)"></span> Colapso Playa Grande · 20 personas <span style="margin-left:auto; color:var(--ok); font-weight:700">excavadora ✓</span></div>
+  <div class="feedrow"><span class="pri">2</span><span class="dot" style="background:var(--high)"></span> Refugio San José sin agua · 300 personas</div>
+  <div class="feedrow"><span class="pri">3</span><span class="dot" style="background:var(--medium)"></span> 45 personas a la intemperie · Los Corales</div>
+</body>
+</html>
