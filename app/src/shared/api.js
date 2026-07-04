@@ -356,6 +356,41 @@ export const api = {
     if (USE_MOCKS) return mock.getTrends(window)
     return request(`/api/trends?window=${window}`)
   },
+
+  // ------------------------------------------------------------------
+  // Offline map tiles (Settings → Offline maps)
+  // ------------------------------------------------------------------
+
+  // GET /api/tiles/status → { zooms, max_tiles, regions, totals, download }
+  // Inventory of downloaded tile regions plus the in-flight download (if any).
+  async getTilesStatus() {
+    if (USE_MOCKS) return mock.getTilesStatus()
+    return request('/api/tiles/status')
+  },
+
+  // GET /api/tiles/connectivity → { online } — whether the HUB can reach the
+  // tile CDN (authoritative; the browser being online is not enough).
+  async getTilesConnectivity() {
+    if (USE_MOCKS) return mock.getTilesConnectivity()
+    return request('/api/tiles/connectivity')
+  },
+
+  // POST /api/tiles/download { bbox: [minLat,minLon,maxLat,maxLon], name? } → { download }
+  // 409 while another download runs, 400 when the area exceeds max_tiles.
+  async startTilesDownload(bbox, name = null) {
+    if (USE_MOCKS) return mock.startTilesDownload(bbox, name)
+    return request('/api/tiles/download', {
+      method: 'POST',
+      body: { bbox, ...(name ? { name } : {}) },
+    })
+  },
+
+  // DELETE /api/tiles → { cleared: true } — wipe every downloaded region.
+  // 409 while a download runs.
+  async clearTiles() {
+    if (USE_MOCKS) return mock.clearTiles()
+    return request('/api/tiles', { method: 'DELETE' })
+  },
 }
 
 export default api
@@ -385,6 +420,10 @@ export const patchResource = (id, patch) => api.patchResource(id, patch)
 export const getPersons = () => api.getPersons()
 export const setDispatchStatus = (dispatchId, opts) => api.setDispatchStatus(dispatchId, opts)
 export const getTrends = (window) => api.getTrends(window)
+export const getTilesStatus = () => api.getTilesStatus()
+export const getTilesConnectivity = () => api.getTilesConnectivity()
+export const startTilesDownload = (bbox, name) => api.startTilesDownload(bbox, name)
+export const clearTiles = () => api.clearTiles()
 
 // ===========================================================================
 // MOCK LAYER — fixture-shaped, in-memory, stateful.
@@ -523,6 +562,9 @@ const mockDB = {
     },
   ],
   language: 'es',
+  // Offline tiles mock state — a fake download "runs" for ~6 s, then lands in
+  // regions, mirroring GET /api/tiles/status semantics.
+  tiles: { regions: [], download: null },
 }
 
 function bump() {
@@ -863,6 +905,86 @@ const mock = {
         { location: 'La Guaira', current: 3, previous: 2, delta: 1 },
       ],
     })
+  },
+
+  // ---- Offline map tiles ----
+
+  getTilesStatus() {
+    const t = mockDB.tiles
+    // Advance the fake in-flight download: linear progress over ~6 s.
+    if (t.download && t.download.state === 'running') {
+      const elapsed = (Date.now() - t.download._startedMs) / 1000
+      const done = Math.min(t.download.total, Math.round(t.download.total * (elapsed / 6)))
+      t.download.done = done
+      t.download.downloaded = done
+      if (done >= t.download.total) {
+        t.download.state = 'done'
+        t.regions.push({
+          id: t.download.id,
+          name: t.download.name,
+          bbox: t.download.bbox,
+          zooms: [11, 16],
+          tiles: t.download.total,
+          bytes: t.download.total * 12 * 1024,
+          created_at: nowISO(),
+        })
+      }
+    }
+    const totals = t.regions.reduce(
+      (acc, r) => ({ tiles: acc.tiles + r.tiles, bytes: acc.bytes + r.bytes }),
+      { tiles: 0, bytes: 0 },
+    )
+    const { _startedMs, ...download } = t.download || {}
+    return delay({
+      zooms: [11, 16],
+      max_tiles: 10000,
+      est_tile_bytes: 12 * 1024,
+      regions: t.regions.map((r) => ({ ...r })),
+      totals,
+      download: t.download ? download : null,
+    })
+  },
+
+  getTilesConnectivity() {
+    const online = typeof navigator === 'undefined' || navigator.onLine !== false
+    return delay({ online })
+  },
+
+  startTilesDownload(bbox, name) {
+    const t = mockDB.tiles
+    if (t.download && t.download.state === 'running') {
+      return Promise.reject(new Error('a download is already running'))
+    }
+    if (!Array.isArray(bbox) || bbox.length !== 4 || !bbox.every(Number.isFinite)) {
+      return Promise.reject(new Error('invalid bbox'))
+    }
+    t.download = {
+      id: rid('dl'),
+      name: name || 'Área sin nombre',
+      bbox: [...bbox],
+      zooms: [11, 16],
+      total: 420,
+      done: 0,
+      downloaded: 0,
+      skipped: 0,
+      failed: 0,
+      state: 'running',
+      error: null,
+      started_at: nowISO(),
+      _startedMs: Date.now(),
+    }
+    const { _startedMs, ...download } = t.download
+    return delay({ download })
+  },
+
+  clearTiles() {
+    const t = mockDB.tiles
+    if (t.download && t.download.state === 'running') {
+      return Promise.reject(new Error('cannot clear while a download is running'))
+    }
+    t.regions = []
+    t.download = null
+    return delay({ cleared: true })
   },
 }
 

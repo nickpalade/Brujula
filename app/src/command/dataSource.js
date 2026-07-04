@@ -42,3 +42,13 @@ export const {
   setDispatchStatus,
   getTrends,
 } = backend;
+
+// Offline map tiles (Settings → Offline maps). These live in shared/api.js
+// only — it self-mocks on USE_MOCKS, so they work in both modes without a
+// duplicate in mockApi.js.
+export const {
+  getTilesStatus,
+  getTilesConnectivity,
+  startTilesDownload,
+  clearTiles,
+} = api;

@@ -35,12 +35,13 @@ npm install
 npm run build
 ```
 
-Offline map tiles for the Command Post map (one time, needs internet —
-downloads the demo region from OpenStreetMap into `data/tiles/`):
+Offline map tiles for the Command Post map (one time, needs internet — this
+is the demo-prep step: **download your area before going out**). Two ways:
 
-```bash
-npm run fetch:tiles
-```
+- **UI (preferred):** Command Post → **Settings → Offline maps** — pan/zoom
+  under the fixed box, watch the live "~tiles / ~MB" estimate, hit Download.
+- **CLI:** `npm run fetch:tiles` (downloads the default Vargas demo region
+  into `data/tiles/`).
 
 ## 2. Start the server
 
@@ -66,7 +67,7 @@ With the server running (and the model warm — `POST /warmup` first):
 npm run verify:hub         # the demo as 15 PASS/FAIL checks (/api stack)
 npm run verify             # 3 sample reports through /parse-report (quick smoke)
 npm run seed               # reset + reseed the demo board between runs
-npm test                   # unit/endpoint tests (geocoding, GPS, map tiles) — 39 checks, no model needed
+npm test                   # unit/endpoint tests (geocoding, GPS, map tiles, tile downloads) — 51 checks, no model needed
 ```
 
 `verify:hub` replays the full PRD §7 flow: report → parse → dedup merge →
@@ -172,21 +173,34 @@ incident, first hit wins, in this order):
 **Tile prefetch** (the "pre-downloaded map" model — like the bootstrap model
 pull, run once with internet before deploying):
 
-```bash
-npm run fetch:tiles        # ~4k tiles / ~6 MB → data/tiles/ (gitignored)
-```
+**Settings → Offline maps** (in the Command Post top bar) is the primary way —
+Google-Maps-offline-areas style. A fixed box sits over a small map; pan/zoom
+until the box covers your operating area, check the live **~tiles / ~MB
+estimate**, and hit **Download this area**. Decisions baked in:
 
-Defaults cover the La Guaira / Vargas coast at zooms 11–16 from CARTO's
-dark basemap (OSM data; do NOT point it at tile.openstreetmap.org — bulk
-downloads violate their policy and get blocked mid-fetch). Region/zoom/source
-are overridable for a different scenario:
+- Tiles are stored **on the hub laptop only** (`data/tiles/`, gitignored);
+  phones get the map through the hotspot from `/tiles/*`.
+- Zoom depth is fixed at the incident map's levels (**11–16**).
+- A safety cap refuses areas over **10,000 tiles** (button disabled client-side
+  AND a 400 server-side) so nobody bulk-downloads half of Venezuela.
+- Downloaded areas are kept as a **list** (name, tiles, size, date — persisted
+  in `data/tiles/areas.json`) with one **Clear all** button; no per-area delete.
+- Offline, the submenu still lists what's downloaded but the Download button is
+  disabled with a "needs internet" note (the hub probes the tile CDN itself).
+
+The **CLI alternative** still works and shares the same tile tree:
 
 ```bash
+npm run fetch:tiles        # default Vargas region, ~4k tiles / ~6 MB → data/tiles/
 TILES_BBOX="10.50,-67.12,10.70,-66.68" TILES_ZOOM="11-16" npm run fetch:tiles
 ```
 
-The map clamps panning to this region so the coordinator never scrolls into
-un-downloaded blank space. Missing tiles 404 harmlessly (blank squares).
+Both use CARTO's dark basemap (OSM data; do NOT point them at
+tile.openstreetmap.org — bulk downloads violate their policy and get blocked
+mid-fetch). Already-downloaded tiles are skipped, so re-running just fills
+gaps. The incident map clamps panning to the demo region so the coordinator
+never scrolls into un-downloaded blank space; missing tiles 404 harmlessly
+(blank squares).
 
 ### The agent pipeline (the coordinator's brain)
 
@@ -227,6 +241,10 @@ CPU; incidents surface through `/api/sync` when ready.
 | `GET /api/sync?since=<seq>` | delta sync — the phones' poll loop |
 | `POST /api/advise` | `{incident_type, context?}` → protocol advisory |
 | `GET /api/sitrep` | generated situation report |
+| `GET /api/tiles/status` | offline-map inventory: zooms, 10k cap, downloaded areas list + totals, in-flight download progress |
+| `GET /api/tiles/connectivity` | `{online}` — can the hub reach the tile CDN (gates the Download button) |
+| `POST /api/tiles/download` | `{bbox:[minLat,minLon,maxLat,maxLon], name?}` → starts a background tile download (400 bad bbox/over cap, 409 already running) |
+| `DELETE /api/tiles` | clear ALL downloaded tiles + the areas registry (409 while downloading) |
 
 All responses use the envelope `{"success": bool, "data": ..., "error": ...}`.
 JSON output is enforced with Ollama structured outputs (zod schema passed as
@@ -326,7 +344,7 @@ local Ollama. **Leave unset in the field.**
 |---|---|
 | bootstrap (Ollama install + model pull) | **Yes, once** |
 | npm install (root + app) | **Yes, once** |
-| map tile prefetch (`npm run fetch:tiles`) | **Yes, once** |
+| map tile prefetch (Settings → Offline maps, or `npm run fetch:tiles`) | **Yes, once** (demo prep) |
 | Command Post map (Leaflet + `/tiles/*`) | No — bundled JS + local tiles |
 | Ollama inference | No — localhost only |
 | Express hub + React app + field phones | No — LAN only |
@@ -347,11 +365,13 @@ server/routes/advise.js        # /api/advise proxy + local KB fallback
 server/pipeline/               # Gemma steps: parse/dedup/prioritize/match/sitrep
 server/store.js                # SQLite board store (data/hub.db)
 server/geocode.js              # offline gazetteer: location label -> lat/lon
+server/tiles.js                # tile math + download manager (Settings → Offline maps)
+server/routes/tiles.js         # /api/tiles/* REST surface for the downloader
 server/providers/              # ollama (default) | cloud (env-keyed)
 knowledge-service/             # Rares' FastAPI protocol matcher (:8100)
 design/                        # brand: tokens, logo SVGs (rings/compass/animated)
 fixtures/ + scripts/seed.js    # demo board seeds (npm run seed) + gazetteer.json
-scripts/fetch-tiles.mjs        # one-time offline map tile prefetch (npm run fetch:tiles)
+scripts/fetch-tiles.mjs        # CLI alternative for the tile prefetch (npm run fetch:tiles)
 tests/                         # node:test suites (npm test) — geocode/GPS/map data
 verify-hub.js                  # THE acceptance test (npm run verify:hub)
 verify.js                      # legacy /parse-report smoke test

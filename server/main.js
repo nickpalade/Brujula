@@ -32,6 +32,8 @@ import {
 import { TranscriptionError, transcribeAudio } from "./transcription.js";
 import { hubRouter } from "./routes/hub.js";
 import { askRouter } from "./routes/ask.js";
+import { createTilesService } from "./tiles.js";
+import { createTilesRouter } from "./routes/tiles.js";
 
 function buildParsePrompt(summaryLanguage) {
   return `You turn raw disaster field reports into structured JSON for a coordination
@@ -382,15 +384,20 @@ app.use(hubRouter);
 // from the live board + the offline protocol KB, never open-ended).
 app.use(askRouter);
 
-// Offline map tiles for the Command Post map (prefetched once with
-// `npm run fetch:tiles` into data/tiles/{z}/{x}/{y}.png). Missing tiles just
-// 404 — Leaflet shows a blank square, never an error. Immutable cache: tile
-// content never changes between prefetches.
+// Offline map tiles for the Command Post map (prefetched with the Settings →
+// Offline maps UI or `npm run fetch:tiles`, into data/tiles/{z}/{x}/{y}.png).
+// Missing tiles just 404 — Leaflet shows a blank square, never an error.
+// Immutable cache: tile content never changes between prefetches.
 const TILES_DIR = path.join(path.dirname(fileURLToPath(import.meta.url)), "..", "data", "tiles");
 app.use("/tiles", express.static(TILES_DIR, { immutable: true, maxAge: "30d" }));
 if (!fs.existsSync(TILES_DIR)) {
-  logger.warn("[web] data/tiles not found — run `npm run fetch:tiles` (once, with internet) to enable the offline map");
+  logger.warn("[web] data/tiles not found — download an area in Settings → Offline maps (or run `npm run fetch:tiles`) to enable the offline map");
 }
+
+// Settings → Offline maps: pre-download map areas while the laptop still has
+// internet (demo-prep). Tiles land in the same data/tiles/ tree that /tiles
+// serves; the areas registry lives at data/tiles/areas.json.
+app.use(createTilesRouter(createTilesService({ tilesDir: TILES_DIR })));
 
 // Built React app (Vite): serve app/dist assets + the two SPA routes so phones
 // and the command laptop need only the single LAN URL (INTEGRATION, Prompt 7.3).

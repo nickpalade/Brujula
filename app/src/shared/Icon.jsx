@@ -42,6 +42,13 @@ const ICON_PATHS = {
       <path d="m14 14-3 3 3 3" />
     </>
   ),
+  download: (
+    <>
+      <path d="M12 4v10" />
+      <path d="m8 10 4 4 4-4" />
+      <path d="M5 19h14" />
+    </>
+  ),
   edit: (
     <>
       <path d="M4 20h4l10.5-10.5a2.1 2.1 0 0 0-3-3L5 17v3Z" />
@@ -98,6 +105,13 @@ const ICON_PATHS = {
     <>
       <path d="M12 21s7-5.2 7-11a7 7 0 1 0-14 0c0 5.8 7 11 7 11Z" />
       <circle cx="12" cy="10" r="2.5" />
+    </>
+  ),
+  map: (
+    <>
+      <path d="M9 4 3 6v14l6-2 6 2 6-2V4l-6 2-6-2Z" />
+      <path d="M9 4v14" />
+      <path d="M15 6v14" />
     </>
   ),
   mic: (
@@ -165,6 +179,15 @@ const ICON_PATHS = {
       <path d="M8 8h8" />
       <path d="M8 12h8" />
       <path d="M8 16h5" />
+    </>
+  ),
+  trash: (
+    <>
+      <path d="M4 7h16" />
+      <path d="M9 7V4h6v3" />
+      <path d="m6 7 1 13h10l1-13" />
+      <path d="M10 11v5" />
+      <path d="M14 11v5" />
     </>
   ),
   trend: (
