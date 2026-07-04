@@ -24,7 +24,6 @@ import { OllamaError, deleteModel, listModels } from "./ollama-manager.js";
 import { getProvider } from "./providers/index.js";
 import { CloudError } from "./providers/cloud-provider.js";
 import { ParsedReport, ReportRequest, parsedReportJsonSchema } from "./schemas.js";
-import { agentRouter } from "./agent/routes.js";
 import { hubRouter } from "./routes/hub.js";
 
 function buildParsePrompt(summaryLanguage) {
@@ -93,7 +92,7 @@ async function ollamaReachable() {
 }
 
 const app = express();
-// 25mb: field reports may attach a photo as base64 (see POST /reports).
+// 25mb: field reports may attach a photo as base64 (see POST /api/reports).
 app.use(express.json({ limit: "25mb" }));
 
 app.get("/", (req, res) => {
@@ -346,9 +345,6 @@ app.post("/parse-report", async (req, res) => {
     status: 502,
   });
 });
-
-// Agent pipeline: parse → dedup → prioritize → match → advise → emit.
-app.use(agentRouter);
 
 // Hub data layer + REST API under /api/* (agent HUB): reports, incidents,
 // resources, dispatch confirm/override, sync deltas, sitrep, advise.

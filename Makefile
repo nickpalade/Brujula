@@ -1,4 +1,4 @@
-.PHONY: bootstrap install serve verify verify-agent
+.PHONY: bootstrap install serve verify
 
 bootstrap:
 	bash bootstrap.sh
@@ -11,6 +11,3 @@ serve:
 
 verify:
 	npm run verify
-
-verify-agent:
-	npm run verify:agent
