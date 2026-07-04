@@ -141,6 +141,18 @@ export const ResourcePatchRequest = z
     { message: "at least one field must be present" }
   );
 
+// POST /api/incidents — direct creation of an incident node (command post or
+// an applied chat proposal). The pipeline path (POST /api/reports) stays the
+// normal ingest route; this one is for deliberate, human-confirmed additions.
+export const IncidentCreateRequest = z.object({
+  kind: z.enum(["need", "resource", "status"]).default("need"),
+  category: z.enum(["rescue", "medical", "water", "shelter", "food", "machinery", "hazard", "status"]),
+  location: z.string().max(200).nullish(),
+  people_count: z.number().int().min(0).nullish(),
+  urgency: z.enum(["critical", "high", "medium", "low"]),
+  summary: z.string().min(1).max(500),
+});
+
 // POST /api/chat — grounded natural-language Q&A over the current hub board
 // and offline KB protocols. The client may identify the station for tone only.
 export const ChatRequest = z.object({

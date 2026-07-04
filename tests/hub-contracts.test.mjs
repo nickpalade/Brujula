@@ -219,6 +219,61 @@ test("human corrections, resources, alerts, trends, and chat use stable envelope
   assert.ok(Array.isArray(trends.categories));
 });
 
+test("chat proposes validated board actions and POST /api/incidents adds nodes", async () => {
+  const incident = store.addIncident({
+    category: "water",
+    location: "Escuela Simon Bolivar, Catia La Mar",
+    urgency: "high",
+    summary: "Shelter needs water.",
+  });
+
+  // Command station: the mock provider proposes an urgency escalation grounded
+  // in a real incident id from the context; the hub re-validates it.
+  const chat = expectOk(await api("/api/chat", {
+    method: "POST",
+    body: { question: "Escalate the water incident to critical urgency", station: "command" },
+  }));
+  assert.ok(Array.isArray(chat.proposed_actions));
+  const action = chat.proposed_actions.find((a) => a.type === "update_incident");
+  assert.ok(action, "expected an update_incident proposal");
+  assert.equal(action.incident_id, incident.id);
+  assert.equal(action.patch.urgency, "critical");
+  assert.ok(action.reason.length > 0);
+
+  // Applying a proposal goes through the same human-correction endpoint.
+  const applied = expectOk(await api(`/api/incidents/${action.incident_id}`, {
+    method: "PATCH",
+    body: action.patch,
+  }));
+  assert.equal(applied.urgency, "critical");
+  assert.equal(applied.corrected_by_human, true);
+
+  // Field station chats never carry actions.
+  const fieldChat = expectOk(await api("/api/chat", {
+    method: "POST",
+    body: { question: "Escalate the water incident to critical urgency", station: "field" },
+  }));
+  assert.equal((fieldChat.proposed_actions ?? []).length, 0);
+
+  // Direct incident creation (apply path for create_incident proposals).
+  const created = expectOk(await api("/api/incidents", {
+    method: "POST",
+    body: {
+      category: "shelter",
+      urgency: "high",
+      summary: "Families without shelter after the collapse.",
+      location: "Playa Grande, Catia La Mar",
+    },
+  }));
+  assert.equal(created.status, "open");
+  assert.equal(created.kind, "need");
+  assert.equal(created.category, "shelter");
+  assert.ok(store.getIncident(created.id));
+
+  const invalid = await api("/api/incidents", { method: "POST", body: { category: "nope" } });
+  assert.equal(invalid.status, 400);
+});
+
 test("parsed report fields are persisted and returned by GET /api/reports", async () => {
   const created = expectOk(await api("/api/reports", {
     method: "POST",

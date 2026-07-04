@@ -14,6 +14,48 @@ const EXAMPLES = {
   ],
 }
 
+const ACTION_LABEL = {
+  update_incident: 'Edit situation node',
+  create_incident: 'Add situation node',
+  create_alert: 'Add alert node',
+  update_resource: 'Edit resource node',
+}
+
+function describeAction(action) {
+  const kv = (obj) =>
+    Object.entries(obj || {})
+      .filter(([, v]) => v !== undefined && v !== null && v !== '')
+      .map(([k, v]) => `${k.replace(/_/g, ' ')} → ${v}`)
+      .join(', ')
+  switch (action.type) {
+    case 'update_incident':
+      return `${action.incident_id}: ${kv(action.patch)}`
+    case 'create_incident':
+      return `[${action.fields?.urgency}] ${action.fields?.category}${action.fields?.location ? ` @ ${action.fields.location}` : ''} — ${action.fields?.summary}`
+    case 'create_alert':
+      return `(${action.fields?.severity}) ${action.fields?.message}${action.fields?.zone ? ` — zone: ${action.fields.zone}` : ''}`
+    case 'update_resource':
+      return `${action.resource_id}: ${kv(action.patch)}`
+    default:
+      return ''
+  }
+}
+
+function applyActionRequest(action, dataApi) {
+  switch (action.type) {
+    case 'update_incident':
+      return dataApi.patchIncident(action.incident_id, action.patch)
+    case 'create_incident':
+      return dataApi.createIncident(action.fields)
+    case 'create_alert':
+      return dataApi.createAlert(action.fields)
+    case 'update_resource':
+      return dataApi.patchResource(action.resource_id, action.patch)
+    default:
+      return Promise.reject(new Error(`unknown action type: ${action.type}`))
+  }
+}
+
 const COPY = {
   command: {
     ariaLabel: 'Decision Assistant',
@@ -35,7 +77,10 @@ const COPY = {
   },
 }
 
-function ContextChat({ station = 'command', className = '' }) {
+// `dataApi` lets a host surface route applied actions through its own data
+// layer (the command graph passes its dataSource so mock-mode applies land on
+// the same in-memory board the graph renders). Defaults to the shared client.
+function ContextChat({ station = 'command', className = '', dataApi = api }) {
   const copy = COPY[station] ?? COPY.command
   const [question, setQuestion] = useState('')
   const [messages, setMessages] = useState([
@@ -77,7 +122,7 @@ function ContextChat({ station = 'command', className = '' }) {
     setError(null)
 
     try {
-      const answer = await api.chatContext({ question: trimmed, station })
+      const answer = await dataApi.chatContext({ question: trimmed, station })
       setMessages((prev) => [
         ...prev,
         {
@@ -85,6 +130,9 @@ function ContextChat({ station = 'command', className = '' }) {
           role: 'assistant',
           text: answer.answer,
           sources: Array.isArray(answer.sources) ? answer.sources : [],
+          actions: Array.isArray(answer.proposed_actions)
+            ? answer.proposed_actions.map((action) => ({ ...action, state: 'proposed', error: null }))
+            : [],
         },
       ])
     } catch (err) {
@@ -100,6 +148,34 @@ function ContextChat({ station = 'command', className = '' }) {
       ])
     } finally {
       setBusy(false)
+    }
+  }
+
+  const setActionState = (messageId, actionIndex, patch) => {
+    setMessages((prev) =>
+      prev.map((message) =>
+        message.id === messageId
+          ? {
+              ...message,
+              actions: message.actions.map((action, index) =>
+                index === actionIndex ? { ...action, ...patch } : action,
+              ),
+            }
+          : message,
+      ),
+    )
+  }
+
+  const applyAction = async (messageId, actionIndex, action) => {
+    setActionState(messageId, actionIndex, { state: 'applying', error: null })
+    try {
+      await applyActionRequest(action, dataApi)
+      setActionState(messageId, actionIndex, { state: 'applied' })
+    } catch (err) {
+      setActionState(messageId, actionIndex, {
+        state: 'proposed',
+        error: err.message || 'could not apply',
+      })
     }
   }
 
@@ -142,6 +218,55 @@ function ContextChat({ station = 'command', className = '' }) {
                     {source.label}
                   </span>
                 ))}
+              </div>
+            )}
+            {(message.actions ?? []).some((action) => action.state !== 'dismissed') && (
+              <div className="context-chat__actions" aria-label="Proposed board actions">
+                {message.actions.map((action, index) =>
+                  action.state === 'dismissed' ? null : (
+                    <div
+                      key={`${message.id}-action-${index}`}
+                      className="context-chat__action"
+                      data-testid="chat-proposed-action"
+                    >
+                      <div className="context-chat__action-head">
+                        <span className="context-chat__action-type">
+                          {ACTION_LABEL[action.type] ?? action.type}
+                        </span>
+                        {action.state === 'applied' && (
+                          <span className="context-chat__action-done">Applied</span>
+                        )}
+                      </div>
+                      <p className="context-chat__action-desc">{describeAction(action)}</p>
+                      {action.reason && <p className="context-chat__action-reason">{action.reason}</p>}
+                      {action.error && (
+                        <p className="context-chat__action-error" role="alert">
+                          {action.error}
+                        </p>
+                      )}
+                      {action.state !== 'applied' && (
+                        <div className="context-chat__action-buttons">
+                          <button
+                            type="button"
+                            className="context-chat__action-apply"
+                            disabled={action.state === 'applying'}
+                            onClick={() => applyAction(message.id, index, action)}
+                          >
+                            {action.state === 'applying' ? 'Applying…' : 'Apply'}
+                          </button>
+                          <button
+                            type="button"
+                            className="context-chat__action-dismiss"
+                            disabled={action.state === 'applying'}
+                            onClick={() => setActionState(message.id, index, { state: 'dismissed' })}
+                          >
+                            Dismiss
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  ),
+                )}
               </div>
             )}
           </article>

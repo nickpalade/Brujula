@@ -22,6 +22,7 @@ import MapPanel from './MapPanel.jsx';
 import AlertComposer from './AlertComposer.jsx';
 import ContextChat from '../shared/ContextChat.jsx';
 import { useWatchdog } from './useWatchdog.js';
+import * as dataSource from './dataSource.js';
 import {
   USE_MOCKS,
   getSync,
@@ -1257,7 +1258,7 @@ function CommandGraph() {
               <Icon name="close" />
             </Button>
           </div>
-          <ContextChat station="command" />
+          <ContextChat station="command" dataApi={dataSource} />
         </aside>
       )}
 

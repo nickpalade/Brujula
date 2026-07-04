@@ -191,22 +191,52 @@ function buildSitrep(text = "") {
 function chatAnswer(text = "") {
   const question = text.match(/QUESTION:\n(.+?)\n\nCONTEXT:/s)?.[1] ?? text;
   const lower = question.toLowerCase();
-  if (/\b(water|agua|resource|resources|inventory|available)\b/.test(lower)) {
+  const base = (() => {
+    if (/\b(water|agua|resource|resources|inventory|available)\b/.test(lower)) {
+      return {
+        answer: "The water tanker is available from the resource inventory and can support potable-water distribution.",
+        sources: [{ label: "Resource Inventory", type: "resource" }],
+      };
+    }
+    if (/\b(rescue|collapse|silence|trapped|machinery|shoring)\b/.test(lower)) {
+      return {
+        answer: "Before machinery starts, rescue crews should enforce silence periods, listen for trapped survivors, and confirm shoring or structural stability.",
+        sources: [{ label: "Knowledge Base: rescue", type: "kb" }],
+      };
+    }
     return {
-      answer: "The water tanker is available from the resource inventory and can support potable-water distribution.",
-      sources: [{ label: "Resource Inventory", type: "resource" }],
+      answer: "The KB contains response protocols and current board context for incidents, resources, dispatches, people, alerts, and field reports.",
+      sources: [{ label: "Knowledge Base: protocols", type: "kb" }],
     };
+  })();
+  return { ...base, proposed_actions: chatProposedActions(text, lower) };
+}
+
+// Deterministic stand-in for Gemma's action proposals: escalation questions
+// propose an urgency bump on the first incident id present in the context;
+// alert/broadcast questions propose a warning alert.
+function chatProposedActions(text, lower) {
+  const actions = [];
+  if (/\b(escalate|escalar|critical|critico|crítico|urgency|urgencia|upgrade)\b/.test(lower)) {
+    const incidentId = text.match(/"id":\s*"(inc_[^"]+)"/)?.[1];
+    if (incidentId) {
+      actions.push({
+        type: "update_incident",
+        reason: "Escalation requested; protocol supports raising urgency for this incident.",
+        incident_id: incidentId,
+        urgency: "critical",
+      });
+    }
   }
-  if (/\b(rescue|collapse|silence|trapped|machinery|shoring)\b/.test(lower)) {
-    return {
-      answer: "Before machinery starts, rescue crews should enforce silence periods, listen for trapped survivors, and confirm shoring or structural stability.",
-      sources: [{ label: "Knowledge Base: rescue", type: "kb" }],
-    };
+  if (/\b(alert|alerta|aftershock|replica|réplica|broadcast|warn|warning)\b/.test(lower)) {
+    actions.push({
+      type: "create_alert",
+      reason: "The question asks to warn responders; a broadcast alert reaches every station.",
+      message: "Aftershock risk — keep clear of damaged structures until cleared.",
+      severity: "warning",
+    });
   }
-  return {
-    answer: "The KB contains response protocols and current board context for incidents, resources, dispatches, people, alerts, and field reports.",
-    sources: [{ label: "Knowledge Base: protocols", type: "kb" }],
-  };
+  return actions;
 }
 
 function extractPeople(text) {

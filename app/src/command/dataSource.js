@@ -35,6 +35,7 @@ export const {
   getAlerts,
   createAlert,
   deactivateAlert,
+  createIncident,
   patchIncident,
   rematchIncident,
   patchResource,

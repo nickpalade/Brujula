@@ -168,6 +168,40 @@ test.describe('graph command interface', () => {
     await expect(page.locator('.cmd-sync')).toContainText(/synced \d+s ago/);
   });
 
+  test('Gemma chat proposes node changes the operator can apply', async ({ page }) => {
+    await openGraph(page);
+
+    await page.getByRole('button', { name: 'Ask Gemma' }).click();
+    const chat = page.getByRole('complementary', { name: 'Gemma chat panel' });
+    await expect(chat).toBeVisible();
+
+    await chat
+      .getByLabel('Ask Gemma about current decisions')
+      .fill('Escalate the shelter water situation to critical and broadcast an aftershock alert');
+    await chat.getByRole('button', { name: 'Ask' }).click();
+
+    const actions = chat.getByTestId('chat-proposed-action');
+    await expect(actions).toHaveCount(2, { timeout: 10_000 });
+    await expect(actions.first()).toContainText('Edit situation node');
+    await expect(actions.first()).toContainText('urgency → critical');
+    await expect(actions.last()).toContainText('Add alert node');
+
+    // Dismiss works without touching the board.
+    await actions.last().getByRole('button', { name: 'Dismiss' }).click();
+    await expect(actions).toHaveCount(1);
+    await expect(page.getByTestId('graph-node-alert')).toHaveCount(0);
+
+    // Applying the escalation goes through PATCH /api/incidents/:id and the
+    // graph picks it up on the next sync poll.
+    await actions.first().getByRole('button', { name: 'Apply' }).click();
+    await expect(actions.first()).toContainText('Applied', { timeout: 10_000 });
+
+    await chat.getByRole('button', { name: 'Close Gemma chat' }).click();
+    const filters = page.getByRole('group', { name: 'Graph filters' });
+    await filters.getByRole('button', { name: 'Critical only' }).click();
+    await expect(page.getByTestId('graph-node-incident')).toHaveCount(2, { timeout: 15_000 });
+  });
+
   test('graph nodes are keyboard inspectable', async ({ page }) => {
     await openGraph(page);
 

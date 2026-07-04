@@ -16,6 +16,7 @@ import OfflineMapsModal from './OfflineMapsModal.jsx';
 import CommandSettings from './CommandSettings.jsx';
 import { loadCommandDensity, saveCommandDensity } from './commandSettingsStorage.js';
 import ContextChat from '../shared/ContextChat.jsx';
+import * as dataSource from './dataSource.js';
 import {
   USE_MOCKS,
   getSync,
@@ -475,7 +476,7 @@ function CommandPost() {
             )}
           </Panel>
 
-          <ContextChat station="command" />
+          <ContextChat station="command" dataApi={dataSource} />
         </div>
       </main>
 

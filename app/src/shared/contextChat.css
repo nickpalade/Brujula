@@ -138,6 +138,92 @@
   margin-top: 8px;
 }
 
+.context-chat__actions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.context-chat__action {
+  border: 1px solid var(--bru-accent-border, var(--f-accent, #b03a46));
+  border-radius: 10px;
+  padding: 9px 10px;
+  background: rgba(176, 58, 70, 0.08);
+}
+
+.context-chat__action-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.context-chat__action-type {
+  font-family: var(--bru-mono, monospace);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.8px;
+  text-transform: uppercase;
+  color: var(--bru-accent, var(--f-accent, #b03a46));
+}
+
+.context-chat__action-done {
+  font-family: var(--bru-mono, monospace);
+  font-size: 10px;
+  letter-spacing: 0.6px;
+  text-transform: uppercase;
+  color: var(--bru-ok, #4c9a6f);
+  border: 1px solid currentColor;
+  border-radius: 999px;
+  padding: 2px 7px;
+}
+
+.context-chat__action-desc {
+  margin: 6px 0 0;
+  font-size: 13px;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+
+.context-chat__action-reason {
+  margin: 4px 0 0;
+  font-size: 11.5px;
+  color: var(--bru-text-dim, var(--f-text-dim, #9cb3a5));
+}
+
+.context-chat__action-error {
+  margin: 4px 0 0;
+  font-size: 11.5px;
+  color: var(--bru-critical, var(--f-critical, #ff453a));
+}
+
+.context-chat__action-buttons {
+  display: flex;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.context-chat__action-buttons button {
+  min-height: 32px;
+  border-radius: 8px;
+  padding: 4px 14px;
+  font: 700 12px/1.2 var(--bru-sans, system-ui);
+  cursor: pointer;
+}
+
+.context-chat__action-apply {
+  border: 1px solid var(--bru-accent-border, var(--f-accent, #b03a46));
+  background: var(--bru-accent, var(--f-accent, #b03a46));
+  color: white;
+}
+
+.context-chat__action-dismiss {
+  border: 1px solid var(--bru-border, var(--f-border, rgba(255, 255, 255, 0.16)));
+  background: transparent;
+  color: var(--bru-text-dim, var(--f-text-dim, #9cb3a5));
+}
+
 .context-chat__examples {
   display: flex;
   gap: 8px;

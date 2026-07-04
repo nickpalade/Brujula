@@ -17,6 +17,7 @@ import {
   DispatchActionRequest,
   DispatchStatusRequest,
   HubReportRequest,
+  IncidentCreateRequest,
   IncidentPatchRequest,
   RegisterRequest,
   ResourcePatchRequest,
@@ -230,7 +231,7 @@ function buildChatPrompt(station) {
     station === "field"
       ? "a field responder on a phone; be brief, actionable, and plain-language"
       : "a command post operator; be concise, operational, and source-aware";
-  return `You answer questions about an offline disaster coordination hub.
+  const base = `You answer questions about an offline disaster coordination hub.
 Audience: ${audience}.
 
 Rules:
@@ -239,10 +240,26 @@ Rules:
 - Do not give patient-specific medical diagnosis.
 - Keep the answer under 8 short bullets or 2 short paragraphs.
 - Return JSON only with { "answer": string, "sources": [{ "label": string, "type": string }] }.`;
+  if (station !== "command") return base;
+  return `${base}
+
+You may additionally propose board changes in "proposed_actions" (max 3) when the
+question asks for a change or a knowledge-base protocol clearly requires one.
+Every proposal is reviewed by the human operator before anything happens.
+Each action object needs "type", a short "reason" citing the context, plus:
+- type "update_incident": "incident_id" copied EXACTLY from the context, and only
+  the changed fields among category (rescue|medical|water|shelter|food|machinery|hazard|status),
+  location, people_count, urgency (critical|high|medium|low), summary,
+  status (open|dispatched|resolved).
+- type "create_incident": category, urgency, summary; optional location, people_count.
+- type "create_alert": message, severity (info|warning|critical); optional zone.
+- type "update_resource": "resource_id" copied EXACTLY from the context, and the
+  changed fields among quantity, unit, status (available|committed).
+Never invent ids. When no change is warranted, return an empty "proposed_actions".`;
 }
 
-function chatAnswerOllamaSchema() {
-  return {
+function chatAnswerOllamaSchema(station) {
+  const schema = {
     type: "object",
     properties: {
       answer: { type: "string" },
@@ -260,6 +277,106 @@ function chatAnswerOllamaSchema() {
     },
     required: ["answer", "sources"],
   };
+  if (station === "command") {
+    // Flat action items (all mutation fields optional) — small local models
+    // handle a flat optional-field object far better than a discriminated
+    // union; the server re-validates per type and drops anything malformed.
+    schema.properties.proposed_actions = {
+      type: "array",
+      items: {
+        type: "object",
+        properties: {
+          type: {
+            type: "string",
+            enum: ["update_incident", "create_incident", "create_alert", "update_resource"],
+          },
+          reason: { type: "string" },
+          incident_id: { type: "string" },
+          resource_id: { type: "string" },
+          category: { type: "string" },
+          urgency: { type: "string" },
+          summary: { type: "string" },
+          location: { type: "string" },
+          people_count: { type: "integer" },
+          status: { type: "string" },
+          message: { type: "string" },
+          severity: { type: "string" },
+          zone: { type: "string" },
+          quantity: { type: "integer" },
+          unit: { type: "string" },
+        },
+        required: ["type", "reason"],
+      },
+    };
+  }
+  return schema;
+}
+
+// ---- Chat proposed actions ------------------------------------------------
+// Gemma may attach board mutations to a command-station chat answer. They are
+// suggestions only: each is re-validated here (same Zod schemas as the manual
+// endpoints, plus live-store id checks) and anything malformed is dropped, so
+// the UI only ever renders applicable proposals. Applying one goes through the
+// existing human endpoints — the model never mutates the board directly.
+
+const CHAT_ACTION_LIMIT = 3;
+
+function pickPresent(raw, keys) {
+  const out = {};
+  for (const key of keys) {
+    if (raw[key] !== undefined && raw[key] !== null && raw[key] !== "") out[key] = raw[key];
+  }
+  return out;
+}
+
+function validateChatAction(raw) {
+  if (!raw || typeof raw !== "object") return null;
+  const reason = typeof raw.reason === "string" ? raw.reason.slice(0, 300) : "";
+  switch (raw.type) {
+    case "update_incident": {
+      if (!raw.incident_id || !store.getIncident(raw.incident_id)) return null;
+      const parsed = IncidentPatchRequest.safeParse(
+        pickPresent(raw, ["category", "location", "people_count", "urgency", "summary", "status"]),
+      );
+      if (!parsed.success) return null;
+      return { type: "update_incident", reason, incident_id: raw.incident_id, patch: parsed.data };
+    }
+    case "create_incident": {
+      const parsed = IncidentCreateRequest.safeParse(
+        pickPresent(raw, ["kind", "category", "location", "people_count", "urgency", "summary"]),
+      );
+      if (!parsed.success) return null;
+      return { type: "create_incident", reason, fields: parsed.data };
+    }
+    case "create_alert": {
+      const parsed = AlertRequest.safeParse(pickPresent(raw, ["message", "severity", "zone"]));
+      if (!parsed.success) return null;
+      return { type: "create_alert", reason, fields: parsed.data };
+    }
+    case "update_resource": {
+      if (!raw.resource_id || !store.getResource(raw.resource_id)) return null;
+      const parsed = ResourcePatchRequest.safeParse(pickPresent(raw, ["quantity", "unit", "status"]));
+      if (!parsed.success) return null;
+      return { type: "update_resource", reason, resource_id: raw.resource_id, patch: parsed.data };
+    }
+    default:
+      return null;
+  }
+}
+
+function normalizeChatActions(rawActions) {
+  if (!Array.isArray(rawActions)) return [];
+  const actions = [];
+  for (const raw of rawActions) {
+    if (actions.length >= CHAT_ACTION_LIMIT) break;
+    const action = validateChatAction(raw);
+    if (action) {
+      actions.push(action);
+    } else {
+      logger.warn(`[hub] dropped invalid chat action: ${JSON.stringify(raw).slice(0, 200)}`);
+    }
+  }
+  return actions;
 }
 
 const CHAT_SOURCE_TYPES = new Set([
@@ -296,8 +413,7 @@ function normalizeChatSourceType(source, contextSources) {
   return "board";
 }
 
-function parseChatAnswer(raw, contextSources) {
-  const parsed = JSON.parse(raw);
+function parseChatAnswer(parsed, contextSources) {
   const normalized = {
     answer: parsed.answer,
     sources: Array.isArray(parsed.sources)
@@ -947,12 +1063,17 @@ hubRouter.post("/api/chat", async (req, res) => {
     const raw = await provider.generateStructured({
       systemPrompt: buildChatPrompt(station),
       userText: `QUESTION:\n${question}\n\nCONTEXT:\n${context}`,
-      jsonSchema: chatAnswerOllamaSchema(),
+      jsonSchema: chatAnswerOllamaSchema(station),
     });
-    const answer = parseChatAnswer(raw, sources);
+    const parsedRaw = JSON.parse(raw);
+    const answer = parseChatAnswer(parsedRaw, sources);
+    // Actions are command-post only: the field station asks, it never edits.
+    const proposedActions =
+      station === "command" ? normalizeChatActions(parsedRaw.proposed_actions) : [];
     return envelope(res, {
       data: {
         ...answer,
+        proposed_actions: proposedActions,
         generated_at: new Date().toISOString(),
       },
     });
@@ -1002,6 +1123,28 @@ hubRouter.post("/api/alerts/:id/deactivate", (req, res) => {
 // GET /api/alerts — list all alerts.
 hubRouter.get("/api/alerts", (req, res) => {
   envelope(res, { data: store.listAlerts() });
+});
+
+// ---- Incident creation ----------------------------------------------------
+
+// POST /api/incidents — deliberate creation of an incident node without a
+// field report (command post entry, or an applied chat proposal). The map pin
+// comes from the offline gazetteer when the location label resolves.
+hubRouter.post("/api/incidents", (req, res) => {
+  const parsed = IncidentCreateRequest.safeParse(req.body);
+  if (!parsed.success) {
+    return envelope(res, {
+      error:
+        "body must be {\"category\", \"urgency\", \"summary\", \"location\"?, " +
+        "\"people_count\"?, \"kind\"?: \"need\"|\"resource\"|\"status\"}",
+      status: 400,
+    });
+  }
+  const fields = parsed.data;
+  const coords = resolveCoords(null, fields.location ?? null);
+  const incident = store.addIncident({ ...fields, ...coords });
+  logger.info(`[hub] incident ${incident.id} created directly (${fields.category} @ ${fields.location ?? "unknown"})`);
+  envelope(res, { data: incident });
 });
 
 // ---- Incident correction ------------------------------------------------

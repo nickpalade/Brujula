@@ -397,6 +397,29 @@ export async function getAlerts() {
   return clone(alerts.filter((alert) => alert.active !== false));
 }
 
+/* POST /api/incidents equivalent — deliberate creation of an incident node
+ * (command entry, or an applied chat proposal). */
+export async function createIncident(fields = {}) {
+  await delay(200);
+  const incident = {
+    id: rid('inc'),
+    kind: fields.kind || 'need',
+    category: fields.category,
+    location: fields.location ?? null,
+    people_count: fields.people_count ?? null,
+    urgency: fields.urgency,
+    status: 'open',
+    summary: fields.summary,
+    merged_report_ids: [],
+    proposed_dispatch_id: null,
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+  };
+  incidents.push(incident);
+  bump();
+  return clone(incident);
+}
+
 /* PATCH /api/incidents/:id equivalent — human correction of incident fields. */
 export async function patchIncident(id, patch = {}) {
   await delay(200);
@@ -440,6 +463,64 @@ export async function rematchIncident(id) {
   }
   bump();
   return { dispatch: dispatch ? clone(dispatch) : null };
+}
+
+/* POST /api/chat equivalent — deterministic grounded answers over THIS mock
+ * board, with proposed board actions (command station only), mirroring the
+ * hub's Gemma chat contract. */
+export async function chatContext({ question, station = 'command' } = {}) {
+  await delay(350);
+  const q = (question || '').toLowerCase();
+
+  const proposed_actions = [];
+  if (station !== 'field') {
+    if (/escalate|escalar|critical|critico|crítico|urgency|urgencia|upgrade/.test(q)) {
+      const target = incidents.find((i) => i.status === 'open' && i.urgency !== 'critical');
+      if (target) {
+        proposed_actions.push({
+          type: 'update_incident',
+          reason: `Escalation requested for "${target.summary.slice(0, 60)}".`,
+          incident_id: target.id,
+          patch: { urgency: 'critical' },
+        });
+      }
+    }
+    if (/alert|alerta|aftershock|replica|réplica|broadcast|warn/.test(q)) {
+      proposed_actions.push({
+        type: 'create_alert',
+        reason: 'The question asks to warn responders; a broadcast alert reaches every station.',
+        fields: {
+          message: 'Aftershock risk — keep clear of damaged structures until cleared.',
+          severity: 'warning',
+          zone: null,
+        },
+      });
+    }
+  }
+
+  let answer;
+  let sources;
+  if (/water|agua|resource|inventory|available|disponible/.test(q)) {
+    const water = resources.find((r) => r.type === 'water');
+    answer = water
+      ? `${water.label} is available from ${water.location}. Capacity: ${water.capacity}.`
+      : 'No available water resource is currently listed in the inventory.';
+    sources = [{ label: 'Resource Inventory', type: 'resource' }];
+  } else if (/rescue|collapse|silence|trapped|usar|rescate/.test(q)) {
+    answer = [
+      'For rescue/collapse work, enforce silence periods before machinery starts so crews can listen for trapped survivors.',
+      'Confirm shoring and structural stability before entry or lifting.',
+    ].join('\n');
+    sources = [{ label: 'Knowledge Base: rescue', type: 'kb' }];
+  } else {
+    const firstIncident = incidents.find((i) => i.status === 'open') ?? incidents[0];
+    answer = firstIncident
+      ? `Top board context: ${firstIncident.summary}`
+      : 'No incident context is currently available.';
+    sources = [{ label: 'Current Incident Board', type: 'incident' }];
+  }
+
+  return { answer, sources, proposed_actions, generated_at: new Date().toISOString() };
 }
 
 /* UI languages the app is translated into (see shared/languages.js). */

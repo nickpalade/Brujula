@@ -3,7 +3,9 @@ import { expect, test } from '@playwright/test';
 test('landing routes expose every station', async ({ page }) => {
   await page.goto('/');
 
-  await expect(page.getByRole('heading', { name: /BRÚJULA/i })).toBeVisible();
+  // getByRole('main') scopes past the intro-splash wordmark, which is also an
+  // h1 labelled BRÚJULA while the welcome animation plays.
+  await expect(page.getByRole('main').getByRole('heading', { name: /BRÚJULA/i })).toBeVisible();
   await expect(page.getByRole('link', { name: /Grafo de Mando/i })).toHaveAttribute('href', '/graph');
   await expect(page.getByRole('link', { name: /Puesto de Mando/i })).toHaveAttribute('href', '/command');
   await expect(page.getByRole('link', { name: /Cliente de Campo/i })).toHaveAttribute('href', '/field');

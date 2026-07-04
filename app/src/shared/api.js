@@ -313,6 +313,17 @@ export const api = {
     return request('/api/alerts')
   },
 
+  // POST /api/incidents { category, urgency, summary, location?, people_count?, kind? } → incident
+  // Deliberate incident creation without a field report (command entry, or an
+  // applied chat proposal). The hub geocodes the location label when it can.
+  async createIncident(fields) {
+    if (USE_MOCKS) return mock.createIncident(fields)
+    return request('/api/incidents', {
+      method: 'POST',
+      body: fields,
+    })
+  },
+
   // PATCH /api/incidents/:id { category?, location?, people_count?, urgency?, summary?, status? } → incident
   // Update incident fields (sets corrected_by_human: true)
   async patchIncident(id, patch) {
@@ -424,6 +435,7 @@ export const setLanguageConfig = (language) => api.setLanguageConfig(language)
 export const getAlerts = () => api.getAlerts()
 export const createAlert = (args) => api.createAlert(args)
 export const deactivateAlert = (id) => api.deactivateAlert(id)
+export const createIncident = (fields) => api.createIncident(fields)
 export const patchIncident = (id, patch) => api.patchIncident(id, patch)
 export const rematchIncident = (id) => api.rematchIncident(id)
 export const patchResource = (id, patch) => api.patchResource(id, patch)
@@ -815,6 +827,26 @@ const mock = {
     return delay((mockDB.alerts || []).filter((a) => a.active))
   },
 
+  createIncident(fields) {
+    const incident = {
+      id: rid('inc'),
+      kind: fields.kind || 'need',
+      category: fields.category,
+      location: fields.location ?? null,
+      people_count: fields.people_count ?? null,
+      urgency: fields.urgency,
+      status: 'open',
+      summary: fields.summary,
+      merged_report_ids: [],
+      proposed_dispatch_id: null,
+      created_at: nowISO(),
+      updated_at: nowISO(),
+    }
+    mockDB.incidents.push(incident)
+    incident._seq = bump()
+    return delay(stripSeq(incident))
+  },
+
   patchIncident(id, patch) {
     const incident = mockDB.incidents.find((i) => i.id === id)
     if (!incident) return Promise.reject(new Error('incident not found'))
@@ -1003,6 +1035,34 @@ const mock = {
     let answer
     let sources
 
+    // Deterministic stand-in for Gemma's proposed board actions (command only):
+    // escalation questions propose an urgency bump, alert questions a broadcast.
+    const proposed_actions = []
+    if (station !== 'field') {
+      if (/escalate|escalar|critical|critico|crítico|urgency|urgencia|upgrade/.test(q)) {
+        const target = prioritize(mockDB.incidents).find((i) => i.status === 'open' && i.urgency !== 'critical')
+        if (target) {
+          proposed_actions.push({
+            type: 'update_incident',
+            reason: `Escalation requested for "${target.summary.slice(0, 60)}".`,
+            incident_id: target.id,
+            patch: { urgency: 'critical' },
+          })
+        }
+      }
+      if (/alert|alerta|aftershock|replica|réplica|broadcast|warn/.test(q)) {
+        proposed_actions.push({
+          type: 'create_alert',
+          reason: 'The question asks to warn responders; a broadcast alert reaches every station.',
+          fields: {
+            message: 'Aftershock risk — keep clear of damaged structures until cleared.',
+            severity: 'warning',
+            zone: null,
+          },
+        })
+      }
+    }
+
     if (/water|agua|resource|inventory|available|disponible/.test(q)) {
       const water = mockDB.resources.find((r) => r.type === 'water')
       answer = water
@@ -1023,7 +1083,7 @@ const mock = {
       sources = [{ label: 'Current Incident Board', type: 'incident' }]
     }
 
-    return delay({ answer, sources, generated_at: nowISO() })
+    return delay({ answer, sources, proposed_actions, generated_at: nowISO() })
   },
 }
 
