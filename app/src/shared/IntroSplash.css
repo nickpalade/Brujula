@@ -94,14 +94,18 @@
 
 .bru-intro__glow {
   position: absolute;
-  inset: -22px;
+  inset: -120px;
   border-radius: 50%;
   background: radial-gradient(
     circle,
-    rgba(176, 58, 70, 0.45),
-    transparent 70%
+    rgba(176, 58, 70, 0.42) 0%,
+    rgba(176, 58, 70, 0.22) 22%,
+    rgba(176, 58, 70, 0.1) 40%,
+    rgba(176, 58, 70, 0.04) 58%,
+    rgba(176, 58, 70, 0.01) 72%,
+    transparent 100%
   );
-  filter: blur(6px);
+  filter: blur(14px);
   pointer-events: none;
   animation: bru-intro-glow-pulse 2.2s ease-in-out infinite;
 }
