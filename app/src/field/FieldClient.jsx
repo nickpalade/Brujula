@@ -7,6 +7,8 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import './field.css'
 import { api, USE_MOCKS } from '../shared/api.js'
+import { useAgentBusy } from '../shared/useAgentBusy.js'
+import BrujulaMark from '../shared/BrujulaMark.jsx'
 import { useOutbox } from './useOutbox.js'
 import { useAssignments } from './useAssignments.js'
 import Onboarding from './Onboarding.jsx'
@@ -113,6 +115,7 @@ function FieldClient() {
   const [tab, setTab] = useState('report')
   const [toast, setToast] = useState(null)
   const [statusBusy, setStatusBusy] = useState(false)
+  const agentBusy = useAgentBusy()
 
   useRegistration(profile)
 
@@ -151,7 +154,7 @@ function FieldClient() {
       <div className="field-app">
         <header className="field-header">
           <div className="field-brand">
-            <img src="/logo-animated.svg" alt="" className="field-logo" />
+            <BrujulaMark size={32} spinning={agentBusy} />
             <div>
               <h1>Brújula</h1>
               <div className="field-sub">
@@ -188,7 +191,7 @@ function FieldClient() {
     <div className="field-app">
       <header className="field-header">
         <div className="field-brand">
-          <img src="/logo-animated.svg" alt="" className="field-logo" />
+          <BrujulaMark size={32} spinning={agentBusy} />
           <div>
             <h1>Brújula</h1>
             <div className="field-sub">

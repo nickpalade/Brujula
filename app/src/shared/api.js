@@ -27,10 +27,49 @@ export const API_BASE =
   (typeof window !== 'undefined' ? window.location.origin : 'http://localhost:8000')
 
 // ---------------------------------------------------------------------------
+// Agent-activity signal — true while a request that makes the hub THINK is in
+// flight (any mutation, or the sitrep — those are the Gemma-backed calls;
+// the 4 s sync/health polls don't count). Drives the compass-needle spinner.
+// ---------------------------------------------------------------------------
+
+let agentInflight = 0
+const busyListeners = new Set()
+
+export function subscribeAgentBusy(fn) {
+  busyListeners.add(fn)
+  fn(agentInflight > 0)
+  return () => busyListeners.delete(fn)
+}
+
+function isAgentWork(path, method) {
+  return method !== 'GET' || path.startsWith('/api/sitrep')
+}
+
+function agentWorkStart() {
+  agentInflight += 1
+  if (agentInflight === 1) busyListeners.forEach((fn) => fn(true))
+}
+
+function agentWorkEnd() {
+  agentInflight = Math.max(0, agentInflight - 1)
+  if (agentInflight === 0) busyListeners.forEach((fn) => fn(false))
+}
+
+// ---------------------------------------------------------------------------
 // Low-level request: unwraps the {success, data, error} envelope
 // ---------------------------------------------------------------------------
 
 async function request(path, { method = 'GET', body, signal } = {}) {
+  const tracked = isAgentWork(path, method)
+  if (tracked) agentWorkStart()
+  try {
+    return await requestInner(path, { method, body, signal })
+  } finally {
+    if (tracked) agentWorkEnd()
+  }
+}
+
+async function requestInner(path, { method = 'GET', body, signal } = {}) {
   let res
   try {
     res = await fetch(`${API_BASE}${path}`, {
