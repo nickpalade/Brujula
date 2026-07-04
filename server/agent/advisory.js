@@ -92,27 +92,59 @@ const GENERIC = {
   cautions: [STANDARD_CAUTION],
 };
 
-export async function advise(incidentType, context = {}) {
+// Our board categories → knowledge-service incident_types (see
+// knowledge-service/CLAUDE.md). Unmapped categories go as "other"; the
+// service degrades gracefully by contract.
+const KB_INCIDENT_TYPE = {
+  rescue: "structural_collapse",
+  machinery: "structural_collapse",
+  medical: "casualty_triage",
+  water: "water_sanitation",
+  shelter: "shelter_disease",
+};
+
+// Normalize the knowledge-service response
+// {guidance: [{action, rationale, ...}], safety_flags, disclaimer, source_standards}
+// into the advisory card shape the frontend renders: {steps, source_label, cautions}.
+function fromKbResponse(body) {
+  if (!Array.isArray(body?.guidance) || body.guidance.length === 0) return null;
+  return {
+    steps: body.guidance.map((g) =>
+      g.rationale ? `${g.action} (${g.rationale})` : g.action,
+    ),
+    source_label: (body.source_standards ?? []).join(", ") || "knowledge-service",
+    cautions: [...(body.safety_flags ?? []), ...(body.disclaimer ? [body.disclaimer] : [])],
+    incident_type: body.incident_type,
+    source: "protocol-kb",
+  };
+}
+
+export async function advise(category, context = {}) {
   const url = process.env.PROTOCOL_KB_URL;
   if (url) {
     try {
       const resp = await fetch(`${url.replace(/\/+$/, "")}/advise`, {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ incident_type: incidentType, context }),
+        body: JSON.stringify({
+          incident_type: KB_INCIDENT_TYPE[category] ?? "other",
+          needs: [category],
+          context: {
+            location_label: context.location ?? null,
+            casualty_count: context.people_estimate ?? null,
+            notes: context.summary ?? null,
+          },
+        }),
         signal: AbortSignal.timeout(5_000),
       });
       if (resp.ok) {
-        const body = await resp.json();
-        const advisory = body.data ?? body;
-        if (Array.isArray(advisory.steps)) {
-          return { ...advisory, source: "protocol-kb" };
-        }
+        const advisory = fromKbResponse(await resp.json());
+        if (advisory) return advisory;
       }
       logger.warn(`Protocol KB returned unusable response (HTTP ${resp.status}); using local KB.`);
     } catch (err) {
       logger.warn(`Protocol KB unreachable (${err.message}); using local KB.`);
     }
   }
-  return { ...(KB[incidentType] ?? GENERIC), source: "local" };
+  return { ...(KB[category] ?? GENERIC), source: "local" };
 }

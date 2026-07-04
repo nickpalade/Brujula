@@ -233,6 +233,7 @@ export async function ingestReport({ text, sourceDevice, imageBase64, imageMime 
   const advisory = await advise(incident.category, {
     location: incident.location,
     summary: incident.summary,
+    people_estimate: incident.people_estimate,
   });
 
   // 6. EMIT — the action card. Priority is computed against the whole board.

@@ -88,6 +88,7 @@ agentRouter.get("/incidents/:id", async (req, res) => {
   const advisory = await advise(found.incident.category, {
     location: found.incident.location,
     summary: found.incident.summary,
+    people_estimate: found.incident.people_estimate,
   });
   envelope(res, { data: { ...found, advisory } });
 });
