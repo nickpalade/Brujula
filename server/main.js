@@ -23,7 +23,13 @@ import * as ollamaManager from "./ollama-manager.js";
 import { OllamaError, deleteModel, listModels } from "./ollama-manager.js";
 import { getProvider } from "./providers/index.js";
 import { CloudError } from "./providers/cloud-provider.js";
-import { ParsedReport, ReportRequest, parsedReportJsonSchema } from "./schemas.js";
+import {
+  ParsedReport,
+  ReportRequest,
+  VoiceTranscriptionRequest,
+  parsedReportJsonSchema,
+} from "./schemas.js";
+import { TranscriptionError, transcribeAudio } from "./transcription.js";
 import { hubRouter } from "./routes/hub.js";
 
 function buildParsePrompt(summaryLanguage) {
@@ -49,7 +55,7 @@ const PARSE_RETRIES = 2;
 const STATIC_DIR = path.join(path.dirname(fileURLToPath(import.meta.url)), "static");
 // Built React app (Vite output). Served so phones need only the one LAN URL:
 //   http://<lan-ip>:8000/field   and   http://<lan-ip>:8000/command
-// Build it with `cd app && npm install && npm run build` (produces app/dist).
+// Build it with `npm install && npm run build` from the repo root (produces app/dist).
 const APP_DIST = path.join(path.dirname(fileURLToPath(import.meta.url)), "..", "app", "dist");
 
 const NameRequest = z.object({ name: z.string().min(1) });
@@ -346,6 +352,27 @@ app.post("/parse-report", async (req, res) => {
   });
 });
 
+// Phone voice path: the phone records a short clip, the laptop hub transcribes
+// with a local model/command, then the phone confirms or edits before reporting.
+app.post("/api/transcribe", async (req, res) => {
+  const parsed = VoiceTranscriptionRequest.safeParse(req.body);
+  if (!parsed.success) {
+    return envelope(res, {
+      error: "body must be {\"audio_base64\", \"audio_mime\"?, \"lang\"?}",
+      status: 422,
+    });
+  }
+  try {
+    const result = await transcribeAudio(parsed.data);
+    envelope(res, { data: result });
+  } catch (err) {
+    if (err instanceof TranscriptionError) {
+      return envelope(res, { error: err.message, status: err.status });
+    }
+    throw err;
+  }
+});
+
 // Hub data layer + REST API under /api/* (agent HUB): reports, incidents,
 // resources, dispatch confirm/override, sync deltas, sitrep, advise.
 app.use(hubRouter);
@@ -362,10 +389,11 @@ if (fs.existsSync(APP_DIST)) {
   app.get("/field", sendApp);
   logger.info(`[web] serving built React app from ${APP_DIST} at /command and /field`);
 } else {
-  logger.warn(`[web] app/dist not found — run \`cd app && npm run build\` to serve the UI (${APP_DIST})`);
+  logger.warn(`[web] app/dist not found — run \`npm run build\` to serve the UI (${APP_DIST})`);
 }
 
-app.use((err, req, res, next) => {
+// Express only treats 4-arity middleware as an error handler — _next must stay
+app.use((err, req, res, _next) => {
   if (err.type === "entity.parse.failed") {
     return envelope(res, { error: "invalid JSON body", status: 400 });
   }

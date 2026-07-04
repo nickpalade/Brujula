@@ -2,42 +2,24 @@
 // reporter (only reports what's happening), a volunteer team, or a
 // specialized crew. Volunteers/crews are registered on the hub as available
 // resources, so the agent's match step can propose dispatching them.
+//
+// The first choice is the language: picking it re-renders this whole screen in
+// the chosen language immediately (via the app i18n context).
 
 import { useState } from 'react'
+import { LANGUAGES } from '../shared/languages.js'
+import { useI18n } from '../shared/i18n.jsx'
 import DotGrid from '../vendor/DotGrid.jsx'
 
-const ROLES = [
-  {
-    id: 'reporter',
-    title: 'Reportero',
-    desc: 'Solo informo lo que está pasando a mi alrededor.',
-  },
-  {
-    id: 'volunteer',
-    title: 'Voluntario',
-    desc: 'Puedo ayudar con trabajo general: refugios, reparto, apoyo.',
-  },
-  {
-    id: 'crew',
-    title: 'Equipo especializado',
-    desc: 'Somos un equipo con una capacidad concreta (rescate, médico…).',
-  },
-]
-
-const SKILLS = [
-  { id: 'rescue', label: 'Rescate' },
-  { id: 'medical', label: 'Médico' },
-  { id: 'water', label: 'Agua' },
-  { id: 'shelter', label: 'Refugio' },
-  { id: 'food', label: 'Comida' },
-  { id: 'machinery', label: 'Maquinaria' },
-]
+const ROLE_IDS = ['reporter', 'volunteer', 'crew']
+const SKILL_IDS = ['rescue', 'medical', 'water', 'shelter', 'food', 'machinery']
 
 function makeDeviceId() {
   return `dev_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 6)}`
 }
 
 function Onboarding({ onComplete }) {
+  const { lang, setLang, t } = useI18n()
   const [role, setRole] = useState(null)
   const [name, setName] = useState('')
   const [skill, setSkill] = useState(null)
@@ -53,6 +35,7 @@ function Onboarding({ onComplete }) {
     onComplete({
       role,
       name: name.trim(),
+      lang,
       skill: needsSkill ? skill : null,
       location: location.trim() || null,
       team_size: showTeamFields && teamSize ? parseInt(teamSize, 10) : null,
@@ -62,8 +45,6 @@ function Onboarding({ onComplete }) {
 
   return (
     <div className="onboard">
-      {/* Ambient dot field, Bosque-toned; dots warm to garnet near the finger
-          and shockwave on tap. First-open only — unmounts after signup. */}
       <div className="onboard-dots" aria-hidden="true">
         <DotGrid
           dotSize={3}
@@ -77,22 +58,40 @@ function Onboarding({ onComplete }) {
           returnDuration={1.2}
         />
       </div>
-      <h2 className="onboard-title">¿Quién eres en el terreno?</h2>
-      <p className="onboard-sub">
-        Esto le dice al puesto de mando qué puedes hacer. Se puede cambiar
-        después.
-      </p>
+      <h2 className="onboard-title">{t('ob.welcome')}</h2>
+      <p className="onboard-sub">{t('ob.langIntro')}</p>
+
+      <label className="field-label" htmlFor="ob-lang">
+        {t('lang.label')}
+      </label>
+      <select
+        id="ob-lang"
+        className="field-input onboard-lang"
+        value={lang}
+        onChange={(e) => setLang(e.target.value)}
+      >
+        {LANGUAGES.map((l) => (
+          <option key={l.code} value={l.code}>
+            {l.name}
+          </option>
+        ))}
+      </select>
+
+      <h2 className="onboard-title" style={{ marginTop: 28 }}>
+        {t('ob.whoTitle')}
+      </h2>
+      <p className="onboard-sub">{t('ob.whoSub')}</p>
 
       <div className="role-cards">
-        {ROLES.map((r) => (
+        {ROLE_IDS.map((id) => (
           <button
-            key={r.id}
+            key={id}
             type="button"
-            className={`role-card${role === r.id ? ' selected' : ''}`}
-            onClick={() => setRole(r.id)}
+            className={`role-card${role === id ? ' selected' : ''}`}
+            onClick={() => setRole(id)}
           >
-            <span className="role-card-title">{r.title}</span>
-            <span className="role-card-desc">{r.desc}</span>
+            <span className="role-card-title">{t(`role.${id}.title`)}</span>
+            <span className="role-card-desc">{t(`role.${id}.desc`)}</span>
           </button>
         ))}
       </div>
@@ -100,29 +99,29 @@ function Onboarding({ onComplete }) {
       {role && (
         <>
           <label className="field-label" htmlFor="ob-name">
-            {role === 'reporter' ? 'Tu nombre' : 'Nombre del equipo o responsable'}
+            {role === 'reporter' ? t('ob.nameReporter') : t('ob.nameTeam')}
           </label>
           <input
             id="ob-name"
             className="field-input"
             value={name}
             onChange={(e) => setName(e.target.value)}
-            placeholder={role === 'reporter' ? 'Ej: María P.' : 'Ej: Cuadrilla Delta'}
+            placeholder={role === 'reporter' ? t('ob.namePhReporter') : t('ob.namePhTeam')}
             autoComplete="off"
           />
 
           {needsSkill && (
             <>
-              <span className="field-label">Especialidad</span>
+              <span className="field-label">{t('ob.specialty')}</span>
               <div className="chip-row">
-                {SKILLS.map((s) => (
+                {SKILL_IDS.map((id) => (
                   <button
-                    key={s.id}
+                    key={id}
                     type="button"
-                    className={`chip${skill === s.id ? ' selected' : ''}`}
-                    onClick={() => setSkill(s.id)}
+                    className={`chip${skill === id ? ' selected' : ''}`}
+                    onClick={() => setSkill(id)}
                   >
-                    {s.label}
+                    {t(`cat.${id}`)}
                   </button>
                 ))}
               </div>
@@ -133,7 +132,7 @@ function Onboarding({ onComplete }) {
             <div className="field-row" style={{ marginTop: 18 }}>
               <div>
                 <label className="field-label" htmlFor="ob-size">
-                  Personas
+                  {t('ob.people')}
                 </label>
                 <input
                   id="ob-size"
@@ -148,14 +147,14 @@ function Onboarding({ onComplete }) {
               </div>
               <div>
                 <label className="field-label" htmlFor="ob-loc">
-                  Dónde están
+                  {t('ob.where')}
                 </label>
                 <input
                   id="ob-loc"
                   className="field-input"
                   value={location}
                   onChange={(e) => setLocation(e.target.value)}
-                  placeholder="Ej: Caraballeda"
+                  placeholder={t('ob.wherePh')}
                   autoComplete="off"
                 />
               </div>
@@ -163,7 +162,7 @@ function Onboarding({ onComplete }) {
           )}
 
           <button type="button" className="send-btn" disabled={!ready} onClick={start}>
-            Comenzar
+            {t('ob.start')}
           </button>
         </>
       )}

@@ -45,6 +45,12 @@ Rules:
   null unless kind = resource.
 - "summary": ONE short plain-text sentence in ${languageName} for the
   coordination board. No markdown, no asterisks.
+- "persons": an array of named individuals mentioned in the report. For each
+  person: extract {name, status, detail}. name = the person's name as written.
+  status = "missing" (person is missing/trapped/in danger), "found" (located/
+  alive/safe), or "safe" (confirmed safe). detail = one short clause about them
+  (e.g., "under rubble", "hospitalized", "returned home"). Return [] when no
+  named individuals are mentioned — do NOT count unnamed groups ("20 trapped").
 
 If a photo is attached, read it: visible damage, hazards, trapped or injured
 people, standing water, collapsed structures. Combine it with the text — a

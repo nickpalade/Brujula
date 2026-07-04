@@ -28,11 +28,11 @@ powershell -ExecutionPolicy Bypass -File bootstrap.ps1
 bash bootstrap.sh          # or: make bootstrap
 ```
 
-Node deps and the React app (one time):
+Node deps and the React app (one time — npm workspaces install root + app together):
 
 ```bash
 npm install
-cd app && npm install && npm run build && cd ..
+npm run build
 ```
 
 ## 2. Start the server
@@ -108,11 +108,34 @@ Everything is served from the one Express server; phones need ONE LAN URL.
   when the hub is reachable (SYNCED), and show PARSED when the pipeline
   lands. Retries are idempotent (`client_ref`), so flaky radio can't
   duplicate reports.
-- **Voice input** (es-VE speech recognition) and **photo triage** — 📷 Añadir
-  foto attaches a camera/gallery photo (compressed on-device to ~100-250 KB so
-  it fits the offline outbox; photo-only reports allowed). Multimodal Gemma
-  reads damage/hazards/people from it — a photo can raise urgency or fill
-  fields the text missed.
+- **Voice input** — phone records audio, sends it over the LAN to the laptop
+  hub, the hub transcribes with a local STT model/command, then the phone shows
+  an editable confirmation before the text enters the report. This follows the
+  Meetily-style privacy posture: audio and transcript stay on your machine.
+- **Photo triage** — 📷 Añadir foto attaches a camera/gallery photo (compressed
+  on-device to ~100-250 KB so it fits the offline outbox; photo-only reports
+  allowed). Multimodal Gemma reads damage/hazards/people from it — a photo can
+  raise urgency or fill fields the text missed.
+
+#### Local voice transcription
+
+Configure the laptop STT command before starting the server. The included
+wrapper uses local Whisper through `faster-whisper` (`pip install faster-whisper`;
+make sure `ffmpeg` is on PATH for phone `webm/opus` clips). The command runs
+locally and may print plain transcript text to stdout, JSON like `{"text":"..."}`,
+or write to `{output}`.
+
+```powershell
+$env:BRUJULA_TRANSCRIBE_COMMAND = 'python .\scripts\transcribe-local.py {input} {lang}'
+npm start
+```
+
+For a Whisper/Parakeet wrapper, use `{input}`, `{lang}`, and optionally
+`{output}` placeholders:
+
+```bash
+BRUJULA_TRANSCRIBE_COMMAND='python scripts/transcribe-local.py {input} {lang}' npm start
+```
 
 ### The agent pipeline (the coordinator's brain)
 
@@ -141,6 +164,7 @@ CPU; incidents surface through `/api/sync` when ready.
 
 | Endpoint | What it does |
 |---|---|
+| `POST /api/transcribe` | `{audio_base64, audio_mime?, lang?}` → `{text, model}` from the laptop local STT command |
 | `POST /api/reports` | `{text?, image_base64?, image_mime?, source_device?, lang?, client_ref?, reported_by?}` → `{report, incident\|null}` (idempotent by `client_ref`) |
 | `GET /api/reports?ids=a,b` | report bodies (dedup evidence for the drawer); omit `ids` for all |
 | `GET /api/incidents` | priority-ordered board |

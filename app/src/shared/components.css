@@ -1,5 +1,19 @@
 /* Brújula base component styles. Generic — used by /command and /field. */
 
+/* ---------------- Icon ---------------- */
+.bru-icon {
+  width: 1em;
+  height: 1em;
+  flex: none;
+  display: inline-block;
+  color: currentColor;
+  vertical-align: -0.14em;
+}
+
+.bru-icon--solid {
+  stroke-width: 2.2;
+}
+
 /* ---------------- Button ---------------- */
 .bru-btn {
   display: inline-flex;
@@ -154,10 +168,12 @@
 .bru-card--interactive:hover {
   border-color: var(--bru-border-strong);
   background: var(--bru-bg-3);
+  transform: translateY(-1px);
 }
 .bru-card--selected {
   border-color: var(--bru-accent-border);
-  box-shadow: 0 0 0 1px var(--bru-accent-border);
+  outline: 1px solid var(--bru-accent-border);
+  outline-offset: -2px;
 }
 
 /* Left urgency spine — instant triage at a glance. */
@@ -175,14 +191,12 @@
   padding-left: calc(var(--bru-s-4) + 4px);
 }
 
-/* A critical card should glow and pulse — it "screams". */
+/* A critical card should be unmistakable without glow. */
 .bru-card--alarm {
   border-color: var(--bru-critical-border);
-  background: linear-gradient(
-    180deg,
-    var(--bru-critical-bg),
-    var(--bru-bg-2) 60%
-  );
+  background: var(--bru-bg-2);
+  outline: 2px solid var(--bru-critical-border);
+  outline-offset: -4px;
   animation: bru-pulse 1.8s ease-in-out infinite;
 }
 
@@ -194,6 +208,7 @@
   display: flex;
   flex-direction: column;
   min-height: 0;
+  view-transition-name: none;
 }
 .bru-panel__head {
   display: flex;
@@ -215,6 +230,84 @@
   text-transform: uppercase;
   color: var(--bru-text-dim);
 }
+/* Garnet tick — skewed stencil mark in front of every panel title. Small,
+   repeated everywhere, it's the visual signature that stitches the two
+   stations together. */
+.bru-panel__title::before {
+  content: '';
+  width: 5px;
+  height: 13px;
+  flex: none;
+  background: var(--bru-accent);
+  transform: skewX(-14deg);
+}
+.bru-panel__actions {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--bru-s-2);
+}
+.bru-panel__actions > .bru-badge {
+  min-width: 0;
+  max-width: min(52vw, 380px);
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.bru-panel__expand {
+  width: 30px;
+  height: 30px;
+  flex: none;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border: 1px solid transparent;
+  border-radius: var(--bru-r-sm);
+  background: transparent;
+  color: var(--bru-text-mute);
+  cursor: pointer;
+  transition: color var(--bru-t-fast), background var(--bru-t-fast), border-color var(--bru-t-fast), transform var(--bru-t-fast);
+}
+.bru-panel__expand:hover {
+  color: var(--bru-text);
+  background: var(--bru-bg-3);
+  border-color: var(--bru-border-strong);
+  transform: scale(1.05);
+}
+.bru-panel__expand:focus-visible {
+  outline: 2px solid var(--bru-accent);
+  outline-offset: 2px;
+}
+.bru-panel--expanded {
+  position: fixed !important;
+  inset: var(--bru-s-4) !important;
+  z-index: 100;
+  width: auto !important;
+  height: auto !important;
+  max-width: none !important;
+  max-height: none !important;
+  margin: 0 !important;
+  background: var(--bru-bg-1);
+  border-color: var(--bru-accent-border);
+  box-shadow: 0 0 0 100vmax rgba(3, 10, 7, 0.82), var(--bru-shadow-3);
+  view-transition-name: expanded-panel;
+  animation: bru-panel-expand 220ms cubic-bezier(.2,.8,.2,1) both;
+}
+.bru-panel--expanded .bru-panel__head {
+  padding: var(--bru-s-4) var(--bru-s-5);
+}
+.bru-panel--expanded .bru-panel__body {
+  padding: var(--bru-s-5);
+}
+@keyframes bru-panel-expand {
+  from { opacity: 0; transform: scale(.975) translateY(8px); }
+  to { opacity: 1; transform: scale(1) translateY(0); }
+}
+::view-transition-old(expanded-panel),
+::view-transition-new(expanded-panel) {
+  animation-duration: 260ms;
+  animation-timing-function: cubic-bezier(.2,.8,.2,1);
+}
 .bru-panel__body {
   padding: var(--bru-s-4);
   overflow-y: auto;
@@ -223,6 +316,20 @@
 }
 .bru-panel__body--flush {
   padding: 0;
+}
+
+@media (max-width: 640px) {
+  .bru-panel__head { padding: var(--bru-s-3); }
+  .bru-panel__body { padding: var(--bru-s-3); }
+  .bru-panel--expanded { inset: 6px !important; }
+  .bru-panel--expanded .bru-panel__head,
+  .bru-panel--expanded .bru-panel__body { padding: var(--bru-s-3); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .bru-panel--expanded { animation: none; }
+  ::view-transition-old(expanded-panel),
+  ::view-transition-new(expanded-panel) { animation-duration: 1ms; }
 }
 
 /* ---------------- Utility bits reused across pages ---------------- */
@@ -256,11 +363,7 @@
   position: absolute;
   inset: 0;
   transform: translateX(-100%);
-  background: linear-gradient(
-    90deg,
-    transparent,
-    rgba(255, 255, 255, 0.05),
-    transparent
-  );
+  background: rgba(140, 170, 150, 0.08);
+  width: 24%;
   animation: bru-shimmer 1.3s infinite;
 }

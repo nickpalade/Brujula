@@ -390,7 +390,7 @@ async function runOffline(base, { serverUp }) {
 
   // --- no CDN/external URLs baked into the built bundle --------------------
   if (!fs.existsSync(APP_DIST)) {
-    fail("bundle loads no external resources", `app/dist not found — build it (cd app && npm run build) before auditing/serving. Without it the hub serves no UI to phones.`);
+    fail("bundle loads no external resources", `app/dist not found — build it (npm run build) before auditing/serving. Without it the hub serves no UI to phones.`);
   } else {
     const files = walkFiles(APP_DIST, [".html", ".js", ".css", ".mjs"]);
     const urlRe = /https?:\/\/[^\s"'`)<>\\]+/g;

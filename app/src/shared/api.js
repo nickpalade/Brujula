@@ -144,9 +144,6 @@ export const api = {
   // client_ref: idempotency key (the outbox localId) — retries with the same
   // ref replay the stored report instead of duplicating it on the hub.
   // reported_by: "Name · rol" from the device profile, stored on the report.
-  // date: when the report was actually composed/sent on the phone (ISO string)
-  // — distinct from the hub's own receipt time, since a queued report can sit
-  // offline for a while before this call ever reaches the server.
   // image_base64/image_mime: optional photo (pre-compressed by the field app);
   // the hub's parse step reads it multimodally, text may be null when present.
   async submitReport({
@@ -155,7 +152,6 @@ export const api = {
     lang = 'es',
     client_ref = null,
     reported_by = null,
-    date = null,
     image_base64 = null,
     image_mime = null,
   }) {
@@ -168,9 +164,18 @@ export const api = {
         lang,
         ...(client_ref ? { client_ref } : {}),
         ...(reported_by ? { reported_by } : {}),
-        ...(date ? { date } : {}),
         ...(image_base64 ? { image_base64, image_mime: image_mime || 'image/jpeg' } : {}),
       },
+    })
+  },
+
+  // POST /api/transcribe — phone audio clip → laptop local STT → transcript.
+  // The phone confirms/edits the returned text before it becomes report text.
+  async transcribeVoice({ audio_base64, audio_mime, lang = 'es' }) {
+    if (USE_MOCKS) return { text: '(transcripción demo) Necesitamos ayuda médica urgente.', model: 'mock-stt' }
+    return request('/api/transcribe', {
+      method: 'POST',
+      body: { audio_base64, audio_mime, lang },
     })
   },
 
@@ -199,7 +204,19 @@ export const api = {
     })
   },
 
-  // GET /api/sync?since=<seq> → { seq, incidents, dispatches, resources }
+  // POST /api/dispatches/:id/status — field updates dispatch state.
+  // state: "accepted"|"en_route"|"on_site"|"done". outcome is optional for done state.
+  async setDispatchStatus(dispatchId, { state, outcome = null } = {}) {
+    if (USE_MOCKS) return mock.setDispatchStatus(dispatchId, { state, outcome })
+    const body = { state }
+    if (outcome) body.outcome = outcome
+    return request(`/api/dispatches/${encodeURIComponent(dispatchId)}/status`, {
+      method: 'POST',
+      body,
+    })
+  },
+
+  // GET /api/sync?since=<seq> → { seq, incidents, dispatches, resources, alerts }
   async sync(since = 0) {
     if (USE_MOCKS) return mock.sync(since)
     const q = Number.isFinite(since) ? since : 0
@@ -233,6 +250,89 @@ export const api = {
       return []
     }
   },
+
+  // GET /language-config → { language, languages: [{code, name}] }
+  // The summary/sitrep output language (persisted server-side in
+  // brujula_config.json). Controls the language of every model-generated
+  // summary and the SITREP.
+  async getLanguageConfig() {
+    if (USE_MOCKS) return mock.getLanguageConfig()
+    return request('/language-config')
+  },
+
+  // POST /language-config { language: '<code>' } → { language }
+  async setLanguageConfig(language) {
+    if (USE_MOCKS) return mock.setLanguageConfig(language)
+    return request('/language-config', { method: 'POST', body: { language } })
+  },
+
+  // POST /api/alerts { message, severity, zone? } → alert
+  // Broadcast alert from the command post (message, severity:info|warning|critical, optional zone)
+  async createAlert({ message, severity = 'info', zone = null }) {
+    if (USE_MOCKS) return mock.createAlert({ message, severity, zone })
+    return request('/api/alerts', {
+      method: 'POST',
+      body: { message, severity, ...(zone ? { zone } : {}) },
+    })
+  },
+
+  // POST /api/alerts/:id/deactivate → alert
+  // Deactivate an active alert
+  async deactivateAlert(id) {
+    if (USE_MOCKS) return mock.deactivateAlert(id)
+    return request(`/api/alerts/${encodeURIComponent(id)}/deactivate`, { method: 'POST', body: {} })
+  },
+
+  // GET /api/alerts → alert[]
+  // Fetch all active alerts
+  async getAlerts() {
+    if (USE_MOCKS) return mock.getAlerts()
+    return request('/api/alerts')
+  },
+
+  // PATCH /api/incidents/:id { category?, location?, people_count?, urgency?, summary?, status? } → incident
+  // Update incident fields (sets corrected_by_human: true)
+  async patchIncident(id, patch) {
+    if (USE_MOCKS) return mock.patchIncident(id, patch)
+    return request(`/api/incidents/${encodeURIComponent(id)}`, {
+      method: 'PATCH',
+      body: patch,
+    })
+  },
+
+  // POST /api/incidents/:id/rematch → { dispatch: Dispatch|null }
+  // Re-run matching for an incident; old proposal becomes state "withdrawn"
+  async rematchIncident(id) {
+    if (USE_MOCKS) return mock.rematchIncident(id)
+    return request(`/api/incidents/${encodeURIComponent(id)}/rematch`, {
+      method: 'POST',
+      body: {},
+    })
+  },
+
+  // PATCH /api/resources/:id { quantity?, unit?, status? } → resource
+  // Update resource inventory (quantity/unit may be int|null and string|null)
+  async patchResource(id, patch) {
+    if (USE_MOCKS) return mock.patchResource(id, patch)
+    return request(`/api/resources/${encodeURIComponent(id)}`, {
+      method: 'PATCH',
+      body: patch,
+    })
+  },
+
+  // GET /api/persons → person[]
+  // Fetch missing-persons registry { id, name, status: "missing"|"found"|"safe", detail, incident_id, matched, created_at, updated_at }
+  async getPersons() {
+    if (USE_MOCKS) return mock.getPersons()
+    return request('/api/persons')
+  },
+
+  // GET /api/trends?window=120 → { generated_at, window_minutes, categories: [{category, current, previous, delta}], locations: [...] }
+  // Fetch trend data over the past window minutes (e.g., 120 = 2h)
+  async getTrends(window = 120) {
+    if (USE_MOCKS) return mock.getTrends(window)
+    return request(`/api/trends?window=${window}`)
+  },
 }
 
 export default api
@@ -243,6 +343,7 @@ export default api
 // ---------------------------------------------------------------------------
 
 export const submitReport = (args) => api.submitReport(args)
+export const transcribeVoice = (args) => api.transcribeVoice(args)
 export const getIncidents = () => api.getIncidents()
 export const getResources = () => api.getResources()
 export const getSync = (since) => api.sync(since)
@@ -250,6 +351,17 @@ export const getSitrep = () => api.sitrep()
 export const advise = (args) => api.advise(args)
 export const confirmDispatch = (incidentId, opts) => api.dispatch(incidentId, opts)
 export const getReports = (ids) => api.getReports(ids)
+export const getLanguageConfig = () => api.getLanguageConfig()
+export const setLanguageConfig = (language) => api.setLanguageConfig(language)
+export const getAlerts = () => api.getAlerts()
+export const createAlert = (args) => api.createAlert(args)
+export const deactivateAlert = (id) => api.deactivateAlert(id)
+export const patchIncident = (id, patch) => api.patchIncident(id, patch)
+export const rematchIncident = (id) => api.rematchIncident(id)
+export const patchResource = (id, patch) => api.patchResource(id, patch)
+export const getPersons = () => api.getPersons()
+export const setDispatchStatus = (dispatchId, opts) => api.setDispatchStatus(dispatchId, opts)
+export const getTrends = (window) => api.getTrends(window)
 
 // ===========================================================================
 // MOCK LAYER — fixture-shaped, in-memory, stateful.
@@ -346,12 +458,42 @@ const seedResources = [
 
 const URGENCY_RANK = { critical: 0, high: 1, medium: 2, low: 3 }
 
+// UI languages the app is translated into (see shared/languages.js).
+const MOCK_LANGUAGES = [
+  { code: 'es', name: 'Español' },
+  { code: 'en', name: 'English' },
+]
+
 const mockDB = {
   seq: seedIncidents.length + seedResources.length,
   reports: [],
   incidents: seedIncidents.map((i) => ({ ...i })),
   resources: seedResources.map((r) => ({ ...r })),
   dispatches: [],
+  alerts: [],
+  persons: [
+    {
+      id: 'per-1',
+      name: 'María G.',
+      status: 'missing',
+      detail: 'Last seen near Catia La Mar',
+      incident_id: 'inc-seed-collapse-playa-grande',
+      matched: false,
+      created_at: nowISO(),
+      updated_at: nowISO(),
+    },
+    {
+      id: 'per-2',
+      name: 'Carlos R.',
+      status: 'found',
+      detail: 'Located at Refugio San José',
+      incident_id: 'inc-seed-collapse-playa-grande',
+      matched: true,
+      created_at: nowISO(),
+      updated_at: nowISO(),
+    },
+  ],
+  language: 'es',
 }
 
 function bump() {
@@ -498,6 +640,8 @@ const mock = {
       incidents: changed(mockDB.incidents),
       dispatches: changed(mockDB.dispatches),
       resources: changed(mockDB.resources),
+      alerts: mockDB.alerts ? changed(mockDB.alerts) : [],
+      persons: (mockDB.persons || []).map(stripSeq),
     })
   },
 
@@ -542,6 +686,18 @@ const mock = {
     return delay([])
   },
 
+  getLanguageConfig() {
+    return delay({ language: mockDB.language, languages: MOCK_LANGUAGES })
+  },
+
+  setLanguageConfig(language) {
+    if (!MOCK_LANGUAGES.some((l) => l.code === language)) {
+      return Promise.reject(new Error(`unsupported language: ${language}`))
+    }
+    mockDB.language = language
+    return delay({ language })
+  },
+
   sitrep() {
     const open = mockDB.incidents.filter((i) => i.status === 'open')
     const dispatched = mockDB.dispatches.filter((d) => d.state === 'confirmed')
@@ -550,6 +706,134 @@ const mock = {
       `${open.length} open incidents, ${dispatched.length} confirmed deployments.\n` +
       open.map((i) => `• [${i.urgency.toUpperCase()}] ${i.summary}`).join('\n')
     return delay({ text, generated_at: nowISO() })
+  },
+
+  createAlert({ message, severity, zone }) {
+    const alert = {
+      id: rid('alrt'),
+      message,
+      severity: severity || 'info',
+      zone: zone || null,
+      active: true,
+      created_at: nowISO(),
+    }
+    mockDB.alerts = mockDB.alerts || []
+    mockDB.alerts.push(alert)
+    return delay(alert)
+  },
+
+  deactivateAlert(id) {
+    const alerts = mockDB.alerts || []
+    const alert = alerts.find((a) => a.id === id)
+    if (alert) alert.active = false
+    return delay(alert || { id, active: false })
+  },
+
+  getAlerts() {
+    return delay((mockDB.alerts || []).filter((a) => a.active))
+  },
+
+  patchIncident(id, patch) {
+    const incident = mockDB.incidents.find((i) => i.id === id)
+    if (!incident) return Promise.reject(new Error('incident not found'))
+    const updated = { ...incident, ...patch, corrected_by_human: true, updated_at: nowISO() }
+    Object.assign(incident, updated)
+    incident._seq = bump()
+    return delay(stripSeq(incident))
+  },
+
+  rematchIncident(id) {
+    // Mark old proposal as withdrawn, propose a new one (or null)
+    const incident = mockDB.incidents.find((i) => i.id === id)
+    if (!incident) return Promise.reject(new Error('incident not found'))
+    const oldDispatch = mockDB.dispatches.find((d) => d.id === incident.proposed_dispatch_id)
+    if (oldDispatch) oldDispatch.state = 'withdrawn'
+    // Simple mock: pick a random available resource if any
+    const match = mockDB.resources.find((r) => r.status === 'available')
+    let newDispatch = null
+    if (match) {
+      newDispatch = {
+        id: rid('dsp'),
+        incident_id: id,
+        resource_id: match.id,
+        state: 'proposed',
+        rationale: `Re-matched: ${match.label}`,
+        proposed_by_ai: true,
+        confirmed_by_human_at: null,
+      }
+      mockDB.dispatches.push(newDispatch)
+      incident.proposed_dispatch_id = newDispatch.id
+      newDispatch._seq = bump()
+    }
+    incident._seq = bump()
+    return delay({ dispatch: newDispatch ? stripSeq(newDispatch) : null })
+  },
+
+  patchResource(id, patch) {
+    const resource = mockDB.resources.find((r) => r.id === id)
+    if (!resource) return Promise.reject(new Error('resource not found'))
+    Object.assign(resource, patch)
+    resource._seq = bump()
+    return delay(stripSeq(resource))
+  },
+
+  getPersons() {
+    // Mock persons list
+    return delay([
+      {
+        id: 'per-1',
+        name: 'María G.',
+        status: 'missing',
+        detail: 'Last seen near Catia La Mar',
+        incident_id: 'inc-seed-collapse-playa-grande',
+        matched: false,
+        created_at: nowISO(),
+        updated_at: nowISO(),
+      },
+      {
+        id: 'per-2',
+        name: 'Carlos R.',
+        status: 'found',
+        detail: 'Located at Refugio San José',
+        incident_id: 'inc-seed-collapse-playa-grande',
+        matched: true,
+        created_at: nowISO(),
+        updated_at: nowISO(),
+      },
+    ])
+  },
+
+  setDispatchStatus(dispatchId, { state, outcome }) {
+    const dispatch = mockDB.dispatches.find((d) => d.id === dispatchId)
+    if (!dispatch) return Promise.reject(new Error('dispatch not found'))
+    dispatch.state = state
+    if (outcome) dispatch.outcome = outcome
+    dispatch.status_updated_at = nowISO()
+    dispatch._seq = bump()
+    const resource = mockDB.resources.find((r) => r.id === dispatch.resource_id)
+    const incident = mockDB.incidents.find((i) => i.id === dispatch.incident_id)
+    if (incident) incident._seq = bump()
+    return delay({
+      dispatch: stripSeq(dispatch),
+      resource: resource ? stripSeq(resource) : null,
+      incident: incident ? stripSeq(incident) : null,
+    })
+  },
+
+  getTrends(window) {
+    return delay({
+      generated_at: nowISO(),
+      window_minutes: window,
+      categories: [
+        { category: 'rescue', current: 3, previous: 2, delta: 1 },
+        { category: 'water', current: 2, previous: 3, delta: -1 },
+        { category: 'medical', current: 4, previous: 4, delta: 0 },
+      ],
+      locations: [
+        { location: 'Catia La Mar', current: 5, previous: 4, delta: 1 },
+        { location: 'La Guaira', current: 3, previous: 2, delta: 1 },
+      ],
+    })
   },
 }
 

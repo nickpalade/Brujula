@@ -20,7 +20,13 @@ export const URGENCIES = ["critical", "high", "medium", "low"];
 // Emits the CONTRACTS.md parseReport shape: {kind, category, location,
 // people_count, urgency, summary}. resource_label is a harmless superset field
 // HUB may use to label a Resource — callers relying on the 6 contract fields
-// are unaffected.
+// are unaffected. persons is a superset field for missing-persons registry.
+const PersonRecord = z.object({
+  name: z.string().min(1).max(120),
+  status: z.enum(["missing", "found", "safe"]),
+  detail: z.string().nullable(),
+});
+
 export const ParsePipeline = z.object({
   kind: z
     .enum(KINDS)
@@ -41,6 +47,10 @@ export const ParsePipeline = z.object({
     .nullable()
     .describe("Short label of what is offered, only when kind=resource. Otherwise null."),
   summary: z.string().describe("One short board line in the requested summary language."),
+  persons: z
+    .array(PersonRecord)
+    .default([])
+    .describe("Named individuals mentioned: missing/found/safe status."),
 });
 
 export function parsePipelineJsonSchema() {

@@ -37,6 +37,14 @@ desktop.ini
 # Test / coverage output
 coverage/
 .nyc_output/
+playwright-report/
+test-results/
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
 
 # Build output
 dist/

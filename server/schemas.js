@@ -23,6 +23,12 @@ export const ReportRequest = z.object({
     .describe("Raw field report, messy natural language, any language."),
 });
 
+export const VoiceTranscriptionRequest = z.object({
+  audio_base64: z.string().min(1),
+  audio_mime: z.string().max(100).nullish(),
+  lang: z.string().max(20).default("es"),
+});
+
 export function parsedReportJsonSchema() {
   return z.toJSONSchema(ParsedReport);
 }
@@ -84,3 +90,45 @@ export const DispatchActionRequest = z
     message: "resource_id is required when action is \"override\"",
     path: ["resource_id"],
   });
+
+// POST /api/alerts — broadcast an alert to all clients.
+export const AlertRequest = z.object({
+  message: z.string().min(1).max(500),
+  severity: z.enum(["info", "warning", "critical"]),
+  zone: z.string().max(200).nullish(),
+});
+
+// PATCH /api/incidents/:id — human correction of incident fields.
+// At least one key must be present.
+export const IncidentPatchRequest = z
+  .object({
+    category: z.enum(["rescue", "medical", "water", "shelter", "food", "machinery", "hazard", "status"]).nullish(),
+    location: z.string().max(200).nullable().nullish(),
+    people_count: z.number().int().min(0).nullable().nullish(),
+    urgency: z.enum(["critical", "high", "medium", "low"]).nullish(),
+    summary: z.string().max(500).nullish(),
+    status: z.enum(["open", "dispatched", "resolved"]).nullish(),
+  })
+  .refine(
+    (v) => Object.values(v).some((val) => val !== undefined),
+    { message: "at least one field must be present" }
+  );
+
+// POST /api/dispatches/:id/status — update dispatch state through lifecycle.
+export const DispatchStatusRequest = z.object({
+  state: z.enum(["accepted", "en_route", "on_site", "done"]),
+  outcome: z.string().max(1000).nullish(),
+});
+
+// PATCH /api/resources/:id — update resource quantity/unit/status.
+// At least one key must be present.
+export const ResourcePatchRequest = z
+  .object({
+    quantity: z.number().int().min(0).nullable().nullish(),
+    unit: z.string().max(40).nullish(),
+    status: z.enum(["available", "committed"]).nullish(),
+  })
+  .refine(
+    (v) => Object.values(v).some((val) => val !== undefined),
+    { message: "at least one field must be present" }
+  );

@@ -1,0 +1,50 @@
+/*
+ * Field client — typography + texture layer.
+ *
+ * Lives OUTSIDE field.css on purpose: field.css is under heavy concurrent
+ * edit, so the anti-slop pass (self-hosted faces, film grain, display-face
+ * accents) ships as an additive file imported from index.css. Selectors are
+ * specificity-boosted (.field-app prefix / doubled class) so they win over
+ * field.css regardless of import order. Fold into field.css when it settles.
+ *
+ * Faces (see shared/fonts.css, all bundled woff2 — offline-safe):
+ *   Chakra Petch — display: wordmark, onboarding title, SEND button.
+ *   Barlow       — body text.
+ *   JetBrains Mono — status/category badges.
+ */
+
+.field-app.field-app {
+  font-family: 'Barlow', system-ui, 'Segoe UI', sans-serif;
+  /* Faint film grain (inline SVG) — same material feel as the Command Post
+     backdrop, kept lighter for small screens. Wins over field.css's
+     `background:` shorthand via doubled-class specificity. */
+  background-color: #0e1411;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
+  background-size: 140px 140px;
+}
+
+/* Wordmark — same squared display face as the Command Post topbar, so both
+   stations read as one product. */
+.field-app .field-header h1 {
+  font-family: 'Chakra Petch', 'Barlow', system-ui, sans-serif;
+  font-weight: 700;
+  letter-spacing: 2px;
+}
+
+.field-app .onboard-title {
+  font-family: 'Chakra Petch', 'Barlow', system-ui, sans-serif;
+}
+
+/* The giant SEND button is the field app's money shot — give it the
+   stencil-plate treatment. */
+.field-app .send-btn {
+  font-family: 'Chakra Petch', 'Barlow', system-ui, sans-serif;
+  font-weight: 700;
+  letter-spacing: 1.5px;
+}
+
+/* Outbox status + category tags — mono, like the Command Post badges. */
+.field-app .status-badge,
+.field-app .cat-badge {
+  font-family: 'JetBrains Mono', ui-monospace, Consolas, monospace;
+}
