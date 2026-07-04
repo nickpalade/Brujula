@@ -20,6 +20,23 @@ test.describe('graph command interface', () => {
     await expect(page.getByText('Maria Lopez')).toBeVisible();
   });
 
+  test('surfaces pending approvals without requiring graph discovery', async ({ page }) => {
+    await openGraph(page);
+
+    const queue = page.getByRole('region', { name: 'Dispatch approvals' });
+    await expect(queue).toBeVisible();
+    await expect(queue).toContainText('ACTION REQUIRED');
+    await expect(queue).toContainText('2 dispatches awaiting approval');
+
+    await queue.getByRole('button', { name: /Review dispatch for/i }).first().click();
+    const inspector = page.getByRole('dialog', { name: 'Graph relationship inspector' });
+    await expect(inspector).toBeVisible();
+    await expect(inspector.getByRole('button', { name: 'Confirm dispatch' })).toBeVisible();
+
+    await inspector.getByRole('button', { name: 'Confirm dispatch' }).click();
+    await expect(queue).toContainText('1 dispatch awaiting approval');
+  });
+
   test('clicking an incident node opens the relationship inspector', async ({ page }) => {
     await openGraph(page);
 
@@ -166,6 +183,17 @@ test.describe('graph command interface', () => {
     // Refresh keeps the sync indicator healthy
     await topbar.getByRole('button', { name: 'Refresh' }).click();
     await expect(page.locator('.cmd-sync')).toContainText(/synced \d+s ago/);
+  });
+
+  test('graph exposes the shared command settings', async ({ page }) => {
+    await openGraph(page);
+
+    await page.getByRole('button', { name: 'Command post settings' }).click();
+    const settings = page.getByRole('dialog', { name: 'Command post settings' });
+    await expect(settings).toBeVisible();
+    await expect(settings.getByText('Connect a field phone')).toBeVisible();
+    await expect(settings.getByText('Offline maps')).toBeVisible();
+    await expect(settings.getByText('Sync now')).toBeVisible();
   });
 
   test('Gemma chat proposes node changes the operator can apply', async ({ page }) => {
