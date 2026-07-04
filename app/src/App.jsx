@@ -4,6 +4,7 @@ import { BrowserRouter, Link, Route, Routes } from 'react-router-dom'
 import CommandPost from './command/CommandPost.jsx'
 import CommandGraph from './command/CommandGraph.jsx'
 import FieldClient from './field/FieldClient.jsx'
+import IntroSplash from './shared/IntroSplash.jsx'
 import './App.css'
 
 const LOCAL_COMMAND_HOSTS = new Set(['localhost', '127.0.0.1', '::1', '[::1]'])
@@ -185,14 +186,17 @@ function CommandRoute({ mode = 'post' }) {
 
 function App() {
   return (
-    <BrowserRouter>
-      <Routes>
-        <Route path="/" element={<Home />} />
-        <Route path="/command" element={<CommandRoute />} />
-        <Route path="/graph" element={<CommandRoute mode="graph" />} />
-        <Route path="/field" element={<FieldClient />} />
-      </Routes>
-    </BrowserRouter>
+    <>
+      <IntroSplash />
+      <BrowserRouter>
+        <Routes>
+          <Route path="/" element={<Home />} />
+          <Route path="/command" element={<CommandRoute />} />
+          <Route path="/graph" element={<CommandRoute mode="graph" />} />
+          <Route path="/field" element={<FieldClient />} />
+        </Routes>
+      </BrowserRouter>
+    </>
   )
 }
 

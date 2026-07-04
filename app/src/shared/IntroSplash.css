@@ -1,0 +1,245 @@
+@import './tokens.css';
+
+/*
+ * Entrance splash — plays once on load, before the app underneath.
+ * Rendered as a fixed overlay above the already-mounted router so
+ * there's no blank gap when it fades out.
+ */
+.bru-intro {
+  position: fixed;
+  inset: 0;
+  z-index: 999;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--bru-s-5);
+  background: var(--bru-bg-0);
+  cursor: pointer;
+  overflow: hidden;
+  opacity: 1;
+  transition: opacity 650ms ease;
+}
+
+.bru-intro--exit {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.bru-intro__scan {
+  position: absolute;
+  inset: 0;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23n)' opacity='0.05'/%3E%3C/svg%3E");
+  background-size: 140px 140px;
+  pointer-events: none;
+}
+
+.bru-intro__stage {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--bru-s-5);
+  perspective: 900px;
+}
+
+.bru-intro__compass-spin {
+  position: relative;
+  transform-style: preserve-3d;
+  animation: bru-intro-tumble 1.9s cubic-bezier(0.22, 0.61, 0.36, 1) 1;
+}
+
+@keyframes bru-intro-tumble {
+  0% {
+    transform: rotateY(-540deg) rotateX(12deg) scale(0.6);
+    opacity: 0;
+  }
+  55% {
+    opacity: 1;
+  }
+  100% {
+    transform: rotateY(0deg) rotateX(0deg) scale(1);
+    opacity: 1;
+  }
+}
+
+/* Pointer-driven parallax tilt, layered on top of the entrance tumble —
+   only engages once the tumble settles (see onAnimationEnd in the JSX). */
+.bru-intro__tilt {
+  position: relative;
+  transform-style: preserve-3d;
+  transition: transform 220ms ease-out;
+}
+
+.bru-intro__radar {
+  position: absolute;
+  inset: -46px;
+  border-radius: 50%;
+  background: conic-gradient(
+    from 0deg,
+    transparent 0deg,
+    rgba(176, 58, 70, 0.4) 16deg,
+    transparent 42deg
+  );
+  filter: blur(2px);
+  pointer-events: none;
+  animation: bru-intro-radar-spin 2.6s linear infinite;
+}
+
+@keyframes bru-intro-radar-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.bru-intro__glow {
+  position: absolute;
+  inset: -22px;
+  border-radius: 50%;
+  background: radial-gradient(
+    circle,
+    rgba(176, 58, 70, 0.45),
+    transparent 70%
+  );
+  filter: blur(6px);
+  pointer-events: none;
+  animation: bru-intro-glow-pulse 2.2s ease-in-out infinite;
+}
+
+@keyframes bru-intro-glow-pulse {
+  0%,
+  100% {
+    opacity: 0.6;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.08);
+  }
+}
+
+.bru-intro__compass {
+  position: relative;
+  display: block;
+  border-radius: 50%;
+  box-shadow: var(--bru-shadow-3);
+  backface-visibility: hidden;
+}
+
+.bru-intro__wordmark {
+  display: inline-flex;
+  gap: 2px;
+  font-family: var(--bru-mono);
+  font-size: clamp(28px, 6vw, 44px);
+  font-weight: 700;
+  color: var(--bru-brand);
+  text-align: center;
+  margin: 0;
+}
+
+.bru-intro__letter {
+  display: inline-block;
+  opacity: 0;
+  transform: translateY(18px) rotateX(-75deg);
+  transform-origin: 50% 100%;
+  animation: bru-intro-letter 620ms cubic-bezier(0.22, 0.61, 0.36, 1) forwards;
+  animation-delay: calc(1.05s + var(--i) * 60ms);
+}
+
+@keyframes bru-intro-letter {
+  to {
+    opacity: 1;
+    transform: translateY(0) rotateX(0deg);
+  }
+}
+
+.bru-intro__progress {
+  position: relative;
+  width: 140px;
+  height: 2px;
+  border-radius: 2px;
+  background: var(--bru-border);
+  overflow: hidden;
+}
+
+.bru-intro__progress span {
+  display: block;
+  height: 100%;
+  width: 0%;
+  background: var(--bru-brand);
+  animation-name: bru-intro-progress;
+  animation-timing-function: linear;
+  animation-fill-mode: forwards;
+}
+
+@keyframes bru-intro-progress {
+  from {
+    width: 0%;
+  }
+  to {
+    width: 100%;
+  }
+}
+
+.bru-intro__hint {
+  position: absolute;
+  bottom: var(--bru-s-5);
+  margin: 0;
+  font-family: var(--bru-mono);
+  font-size: 11px;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  color: var(--bru-text-mute);
+  opacity: 0;
+  animation: bru-intro-hint-pulse 2.4s ease 1.8s infinite;
+}
+
+@keyframes bru-intro-hint-pulse {
+  0%,
+  100% {
+    opacity: 0.5;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+.bru-intro__ripple {
+  position: fixed;
+  width: 12px;
+  height: 12px;
+  margin-left: -6px;
+  margin-top: -6px;
+  border-radius: 50%;
+  background: transparent;
+  border: 2px solid var(--bru-brand);
+  opacity: 0.9;
+  animation: bru-intro-ripple 650ms ease-out forwards;
+  pointer-events: none;
+}
+
+@keyframes bru-intro-ripple {
+  to {
+    transform: scale(18);
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .bru-intro,
+  .bru-intro__compass-spin,
+  .bru-intro__tilt,
+  .bru-intro__radar,
+  .bru-intro__glow,
+  .bru-intro__letter,
+  .bru-intro__hint,
+  .bru-intro__progress span,
+  .bru-intro__ripple {
+    animation: none !important;
+    transition-duration: 80ms !important;
+  }
+  .bru-intro__letter {
+    opacity: 1;
+    transform: none;
+  }
+}
