@@ -14,6 +14,7 @@ import IncidentDrawer from './IncidentDrawer.jsx';
 import SitrepModal from './SitrepModal.jsx';
 import MapPanel from './MapPanel.jsx';
 import ConnectModal from './ConnectModal.jsx';
+import OfflineMapsModal from './OfflineMapsModal.jsx';
 import CommandSettings from './CommandSettings.jsx';
 import { loadCommandDensity, saveCommandDensity } from './commandSettingsStorage.js';
 import {
@@ -65,6 +66,7 @@ function CommandPost() {
   const [sitrepError, setSitrepError] = useState(null);
 
   const [connectOpen, setConnectOpen] = useState(false);
+  const [offlineMapsOpen, setOfflineMapsOpen] = useState(false);
   const [alertComposerOpen, setAlertComposerOpen] = useState(false);
   const agentBusy = useAgentBusy();
   const [density, setDensity] = useState(loadCommandDensity);
@@ -232,6 +234,7 @@ function CommandPost() {
             density={density}
             onDensityChange={changeDensity}
             onConnectPhone={() => setConnectOpen(true)}
+            onOfflineMaps={() => setOfflineMapsOpen(true)}
             onRefresh={refresh}
             refreshing={loading}
           />
@@ -416,6 +419,8 @@ function CommandPost() {
       />
 
       <ConnectModal open={connectOpen} onClose={() => setConnectOpen(false)} />
+
+      <OfflineMapsModal open={offlineMapsOpen} onClose={() => setOfflineMapsOpen(false)} />
     </div>
   );
 }

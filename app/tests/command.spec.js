@@ -143,6 +143,31 @@ test('changes the summary language', async ({ page }) => {
   await expect(langSelect).toHaveValue('es');
 });
 
+test('opens the offline maps downloader from settings', async ({ page }) => {
+  await page.getByRole('button', { name: 'Command post settings' }).click();
+  await page.getByRole('button', { name: /Offline maps/ }).click();
+
+  const modal = page.getByRole('dialog', { name: 'Offline maps' });
+  await expect(modal).toBeVisible();
+
+  // The fixed selection box sits over the picker map (Google-Maps style).
+  await expect(modal.locator('.cmd-offline__box')).toBeVisible();
+  await expect(modal.getByText('DOWNLOAD AREA')).toBeVisible();
+
+  // A live tile/size estimate renders once Leaflet settles.
+  await expect(modal.locator('.cmd-offline__estimate')).toContainText(/tiles/, {
+    timeout: 10_000,
+  });
+
+  // Mock mode starts with no downloaded areas — the list degrades gracefully.
+  await expect(modal.getByText(/No areas downloaded yet/)).toBeVisible();
+
+  await page.screenshot({ path: 'test-results/offline-maps.png' });
+
+  await modal.getByRole('button', { name: /Close/ }).click();
+  await expect(modal).toBeHidden();
+});
+
 test('shows a QR code and link to connect a phone', async ({ page }) => {
   await page.getByRole('button', { name: 'Command post settings' }).click();
   await page.getByRole('button', { name: /Connect a field phone/ }).click();

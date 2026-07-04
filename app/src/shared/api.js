@@ -376,7 +376,7 @@ export const api = {
   },
 
   // POST /api/tiles/download { bbox: [minLat,minLon,maxLat,maxLon], name? } → { download }
-  // 409 while another download runs, 413 when the area exceeds max_tiles.
+  // 409 while another download runs, 400 when the area exceeds max_tiles.
   async startTilesDownload(bbox, name = null) {
     if (USE_MOCKS) return mock.startTilesDownload(bbox, name)
     return request('/api/tiles/download', {
@@ -938,6 +938,7 @@ const mock = {
     return delay({
       zooms: [11, 16],
       max_tiles: 10000,
+      est_tile_bytes: 12 * 1024,
       regions: t.regions.map((r) => ({ ...r })),
       totals,
       download: t.download ? download : null,

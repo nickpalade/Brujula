@@ -16,7 +16,7 @@ function SettingAction({ icon, label, detail, onClick }) {
   );
 }
 
-function CommandSettings({ onConnectPhone, onRefresh, refreshing, density, onDensityChange }) {
+function CommandSettings({ onConnectPhone, onOfflineMaps, onRefresh, refreshing, density, onDensityChange }) {
   const [open, setOpen] = useState(false);
   const [fullscreen, setFullscreen] = useState(Boolean(document.fullscreenElement));
   const rootRef = useRef(null);
@@ -112,6 +112,7 @@ function CommandSettings({ onConnectPhone, onRefresh, refreshing, density, onDen
           <div className="cmd-settings__section">
             <span className="cmd-settings__section-title">Station</span>
             <SettingAction icon="phone" label="Connect a field phone" detail="Open the local QR handoff" onClick={() => runAndClose(onConnectPhone)} />
+            <SettingAction icon="map" label="Offline maps" detail="Download map areas before going out" onClick={() => runAndClose(onOfflineMaps)} />
             <SettingAction icon="refresh" label={refreshing ? 'Syncing…' : 'Sync now'} detail="Pull the latest field and dispatch data" onClick={() => runAndClose(onRefresh)} />
             <SettingAction icon={fullscreen ? 'collapse' : 'expand'} label={fullscreen ? 'Exit fullscreen' : 'Enter fullscreen'} detail="Use the full display for the command board" onClick={() => runAndClose(toggleFullscreen)} />
           </div>
