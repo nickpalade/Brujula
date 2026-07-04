@@ -1,0 +1,262 @@
+/* Brújula base component styles. Generic — used by /command and /field. */
+
+/* ---------------- Button ---------------- */
+.bru-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--bru-s-2);
+  font-family: var(--bru-sans);
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.4px;
+  line-height: 1;
+  padding: 10px 16px;
+  border-radius: var(--bru-r-sm);
+  border: 1px solid var(--bru-border-strong);
+  background: var(--bru-bg-3);
+  color: var(--bru-text);
+  cursor: pointer;
+  transition:
+    background var(--bru-t-fast),
+    border-color var(--bru-t-fast),
+    transform var(--bru-t-fast),
+    filter var(--bru-t-fast);
+  user-select: none;
+  white-space: nowrap;
+}
+.bru-btn:hover:not(:disabled) {
+  filter: brightness(1.15);
+  border-color: var(--bru-text-mute);
+}
+.bru-btn:active:not(:disabled) {
+  transform: translateY(1px);
+}
+.bru-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+.bru-btn:focus-visible {
+  outline: 2px solid var(--bru-accent);
+  outline-offset: 2px;
+}
+
+.bru-btn--primary {
+  background: var(--bru-accent);
+  border-color: var(--bru-accent);
+  color: #04120f;
+}
+.bru-btn--confirm {
+  background: var(--bru-ok);
+  border-color: var(--bru-ok);
+  color: #052112;
+}
+.bru-btn--danger {
+  background: var(--bru-critical-bg);
+  border-color: var(--bru-critical-border);
+  color: var(--bru-critical);
+}
+.bru-btn--ghost {
+  background: transparent;
+  border-color: var(--bru-border);
+  color: var(--bru-text-dim);
+}
+.bru-btn--sm {
+  padding: 6px 10px;
+  font-size: 12px;
+}
+.bru-btn--lg {
+  padding: 14px 22px;
+  font-size: 15px;
+}
+.bru-btn--block {
+  width: 100%;
+}
+
+/* ---------------- Badge ---------------- */
+.bru-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--bru-mono);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.6px;
+  padding: 3px 8px;
+  border-radius: 999px;
+  border: 1px solid var(--bru-border-strong);
+  background: var(--bru-bg-3);
+  color: var(--bru-text-dim);
+  text-transform: uppercase;
+  white-space: nowrap;
+  line-height: 1.4;
+}
+.bru-badge__dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: currentColor;
+  flex: none;
+}
+
+/* Urgency variants read from --u-* set by [data-urgency]. */
+.bru-badge--urgency {
+  color: var(--u-color);
+  background: var(--u-bg);
+  border-color: var(--u-border);
+}
+.bru-badge--critical {
+  color: var(--bru-critical);
+  background: var(--bru-critical-bg);
+  border-color: var(--bru-critical-border);
+}
+.bru-badge--pulse {
+  animation: bru-pulse 1.4s ease-in-out infinite;
+}
+.bru-badge--ok {
+  color: var(--bru-ok);
+  background: var(--bru-ok-bg);
+  border-color: var(--bru-ok);
+}
+.bru-badge--warn {
+  color: var(--bru-warn);
+  background: var(--bru-warn-bg);
+  border-color: var(--bru-warn);
+}
+.bru-badge--accent {
+  color: var(--bru-accent);
+  background: var(--bru-accent-bg);
+  border-color: var(--bru-accent-border);
+}
+.bru-badge--muted {
+  color: var(--bru-text-mute);
+}
+
+/* ---------------- Card ---------------- */
+.bru-card {
+  position: relative;
+  background: var(--bru-bg-2);
+  border: 1px solid var(--bru-border);
+  border-radius: var(--bru-r-md);
+  padding: var(--bru-s-4);
+  transition:
+    border-color var(--bru-t-base),
+    background var(--bru-t-base),
+    transform var(--bru-t-fast);
+}
+.bru-card--interactive {
+  cursor: pointer;
+}
+.bru-card--interactive:hover {
+  border-color: var(--bru-border-strong);
+  background: var(--bru-bg-3);
+}
+.bru-card--selected {
+  border-color: var(--bru-accent-border);
+  box-shadow: 0 0 0 1px var(--bru-accent-border);
+}
+
+/* Left urgency spine — instant triage at a glance. */
+.bru-card--accented::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 4px;
+  border-radius: var(--bru-r-md) 0 0 var(--bru-r-md);
+  background: var(--u-color, var(--bru-border-strong));
+}
+.bru-card--accented {
+  padding-left: calc(var(--bru-s-4) + 4px);
+}
+
+/* A critical card should glow and pulse — it "screams". */
+.bru-card--alarm {
+  border-color: var(--bru-critical-border);
+  background: linear-gradient(
+    180deg,
+    var(--bru-critical-bg),
+    var(--bru-bg-2) 60%
+  );
+  animation: bru-pulse 1.8s ease-in-out infinite;
+}
+
+/* ---------------- Panel ---------------- */
+.bru-panel {
+  background: var(--bru-bg-1);
+  border: 1px solid var(--bru-border);
+  border-radius: var(--bru-r-md);
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+.bru-panel__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--bru-s-3);
+  padding: var(--bru-s-3) var(--bru-s-4);
+  border-bottom: 1px solid var(--bru-border);
+  flex: none;
+}
+.bru-panel__title {
+  display: flex;
+  align-items: center;
+  gap: var(--bru-s-2);
+  font-family: var(--bru-mono);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 1.2px;
+  text-transform: uppercase;
+  color: var(--bru-text-dim);
+}
+.bru-panel__body {
+  padding: var(--bru-s-4);
+  overflow-y: auto;
+  min-height: 0;
+  flex: 1;
+}
+.bru-panel__body--flush {
+  padding: 0;
+}
+
+/* ---------------- Utility bits reused across pages ---------------- */
+.bru-meta {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 12px;
+  color: var(--bru-text-dim);
+  font-family: var(--bru-mono);
+}
+.bru-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--bru-s-2);
+  text-align: center;
+  padding: var(--bru-s-6);
+  color: var(--bru-text-mute);
+  font-size: 13px;
+}
+.bru-skeleton {
+  position: relative;
+  overflow: hidden;
+  background: var(--bru-bg-2);
+  border-radius: var(--bru-r-sm);
+}
+.bru-skeleton::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  transform: translateX(-100%);
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.05),
+    transparent
+  );
+  animation: bru-shimmer 1.3s infinite;
+}

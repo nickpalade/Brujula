@@ -1,0 +1,413 @@
+/* Brújula Field client — mobile-first, thumb-reachable, one-handed.
+   Self-contained placeholder styling until COMMAND-UI ships shared design
+   tokens (context/inbox note pending). Scoped under .field-app so it never
+   fights the scaffold's index.css (#root fixed width / centered text). */
+
+.field-app {
+  /* Urgency tokens — kept in sync with the intended shared design system. */
+  --f-critical: #ef4444;
+  --f-high: #f97316;
+  --f-medium: #eab308;
+  --f-low: #38bdf8;
+
+  --f-queued: #f59e0b; /* amber */
+  --f-synced: #22c55e; /* green */
+  --f-parsed: #38bdf8; /* teal/blue */
+
+  --f-bg: #0d0f14;
+  --f-surface: #161922;
+  --f-surface-2: #1e222d;
+  --f-border: #2a2f3c;
+  --f-text: #e7eaf0;
+  --f-text-dim: #98a0b0;
+  --f-accent: #f97316;
+
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  max-width: 560px;
+  margin: 0 auto;
+  background: var(--f-bg);
+  color: var(--f-text);
+  font: 16px/1.4 system-ui, 'Segoe UI', Roboto, sans-serif;
+  text-align: left;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  box-sizing: border-box;
+}
+
+.field-app *,
+.field-app *::before,
+.field-app *::after {
+  box-sizing: border-box;
+}
+
+/* Header ------------------------------------------------------------------ */
+.field-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 12px 16px;
+  background: var(--f-surface);
+  border-bottom: 1px solid var(--f-border);
+}
+.field-header h1 {
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--f-text);
+  margin: 0;
+  letter-spacing: 0.2px;
+}
+.field-header .field-sub {
+  font-size: 12px;
+  color: var(--f-text-dim);
+}
+
+.conn-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 5px 10px;
+  border-radius: 999px;
+  border: 1px solid var(--f-border);
+  white-space: nowrap;
+}
+.conn-pill .dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+.conn-online {
+  color: var(--f-synced);
+}
+.conn-online .dot {
+  background: var(--f-synced);
+}
+.conn-offline {
+  color: var(--f-queued);
+}
+.conn-offline .dot {
+  background: var(--f-queued);
+}
+
+/* Scroll body ------------------------------------------------------------- */
+.field-body {
+  flex: 1;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  padding: 16px 16px 24px;
+}
+
+/* Tabs (bottom, thumb-reachable) ------------------------------------------ */
+.field-tabs {
+  display: flex;
+  border-top: 1px solid var(--f-border);
+  background: var(--f-surface);
+  padding-bottom: env(safe-area-inset-bottom, 0);
+}
+.field-tab {
+  flex: 1;
+  appearance: none;
+  border: none;
+  background: transparent;
+  color: var(--f-text-dim);
+  font-size: 13px;
+  font-weight: 600;
+  padding: 14px 8px;
+  cursor: pointer;
+  position: relative;
+}
+.field-tab.active {
+  color: var(--f-accent);
+}
+.field-tab.active::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 20%;
+  right: 20%;
+  height: 3px;
+  border-radius: 0 0 3px 3px;
+  background: var(--f-accent);
+}
+.field-tab .badge-count {
+  display: inline-block;
+  min-width: 18px;
+  padding: 0 5px;
+  margin-left: 6px;
+  font-size: 11px;
+  line-height: 18px;
+  text-align: center;
+  border-radius: 999px;
+  background: var(--f-critical);
+  color: #fff;
+}
+
+/* Report form ------------------------------------------------------------- */
+.field-label {
+  display: block;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--f-text-dim);
+  margin: 18px 0 8px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+.field-label:first-child {
+  margin-top: 0;
+}
+
+.report-textarea {
+  width: 100%;
+  min-height: 140px;
+  resize: vertical;
+  background: var(--f-surface);
+  color: var(--f-text);
+  border: 1px solid var(--f-border);
+  border-radius: 14px;
+  padding: 14px;
+  font-size: 18px;
+  line-height: 1.4;
+  font-family: inherit;
+}
+.report-textarea:focus {
+  outline: none;
+  border-color: var(--f-accent);
+}
+
+.textarea-wrap {
+  position: relative;
+}
+.mic-slot {
+  position: absolute;
+  right: 10px;
+  bottom: 10px;
+}
+
+/* Category chips ---------------------------------------------------------- */
+.chip-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.chip {
+  appearance: none;
+  border: 1px solid var(--f-border);
+  background: var(--f-surface);
+  color: var(--f-text);
+  padding: 10px 14px;
+  border-radius: 999px;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  min-height: 44px;
+}
+.chip.selected {
+  background: var(--f-accent);
+  border-color: var(--f-accent);
+  color: #0d0f14;
+}
+
+/* Inline number/text fields ---------------------------------------------- */
+.field-input {
+  width: 100%;
+  background: var(--f-surface);
+  color: var(--f-text);
+  border: 1px solid var(--f-border);
+  border-radius: 12px;
+  padding: 14px;
+  font-size: 17px;
+  font-family: inherit;
+}
+.field-input:focus {
+  outline: none;
+  border-color: var(--f-accent);
+}
+.field-row {
+  display: flex;
+  gap: 12px;
+}
+.field-row > div {
+  flex: 1;
+}
+
+/* Giant SEND button ------------------------------------------------------- */
+.send-btn {
+  width: 100%;
+  margin-top: 24px;
+  padding: 20px;
+  font-size: 20px;
+  font-weight: 800;
+  letter-spacing: 0.5px;
+  color: #0d0f14;
+  background: var(--f-accent);
+  border: none;
+  border-radius: 16px;
+  cursor: pointer;
+  min-height: 64px;
+  text-transform: uppercase;
+}
+.send-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+.send-btn:active:not(:disabled) {
+  transform: translateY(1px);
+}
+
+/* Mic placeholder --------------------------------------------------------- */
+.mic-btn {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  border: 1px solid var(--f-border);
+  background: var(--f-surface-2);
+  color: var(--f-text-dim);
+  font-size: 20px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.mic-btn[disabled] {
+  opacity: 0.5;
+}
+
+/* Queue / cards ----------------------------------------------------------- */
+.card {
+  background: var(--f-surface);
+  border: 1px solid var(--f-border);
+  border-radius: 14px;
+  padding: 14px;
+  margin-bottom: 12px;
+}
+.card-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 6px;
+}
+.card-text {
+  font-size: 15px;
+  color: var(--f-text);
+  word-break: break-word;
+}
+.card-meta {
+  font-size: 12px;
+  color: var(--f-text-dim);
+  margin-top: 8px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+}
+
+.status-badge {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  white-space: nowrap;
+}
+.st-QUEUED {
+  background: rgba(245, 158, 11, 0.15);
+  color: var(--f-queued);
+  border: 1px solid var(--f-queued);
+}
+.st-SYNCED {
+  background: rgba(34, 197, 94, 0.15);
+  color: var(--f-synced);
+  border: 1px solid var(--f-synced);
+}
+.st-PARSED {
+  background: rgba(56, 189, 248, 0.15);
+  color: var(--f-parsed);
+  border: 1px solid var(--f-parsed);
+}
+.st-ERROR {
+  background: rgba(239, 68, 68, 0.15);
+  color: var(--f-critical);
+  border: 1px solid var(--f-critical);
+}
+
+.cat-badge {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  padding: 3px 8px;
+  border-radius: 6px;
+  background: var(--f-surface-2);
+  color: var(--f-text-dim);
+}
+
+.urgency-critical { color: var(--f-critical); }
+.urgency-high { color: var(--f-high); }
+.urgency-medium { color: var(--f-medium); }
+.urgency-low { color: var(--f-low); }
+
+/* Assignment cards -------------------------------------------------------- */
+.assign-title {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--f-text);
+  margin-bottom: 4px;
+}
+.assign-rationale {
+  font-size: 14px;
+  color: var(--f-text-dim);
+  margin: 8px 0;
+}
+.ack-btn {
+  width: 100%;
+  margin-top: 8px;
+  padding: 14px;
+  font-size: 16px;
+  font-weight: 700;
+  border-radius: 12px;
+  border: none;
+  cursor: pointer;
+  background: var(--f-synced);
+  color: #0d0f14;
+  min-height: 52px;
+}
+.ack-btn.acked {
+  background: var(--f-surface-2);
+  color: var(--f-text-dim);
+  cursor: default;
+}
+
+/* Toast / empty ----------------------------------------------------------- */
+.empty {
+  text-align: center;
+  color: var(--f-text-dim);
+  padding: 40px 20px;
+  font-size: 15px;
+}
+.section-title {
+  font-size: 13px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--f-text-dim);
+  margin: 4px 0 12px;
+}
+.toast {
+  position: fixed;
+  left: 50%;
+  bottom: 84px;
+  transform: translateX(-50%);
+  background: var(--f-synced);
+  color: #0d0f14;
+  font-weight: 700;
+  padding: 12px 20px;
+  border-radius: 12px;
+  font-size: 14px;
+  z-index: 20;
+  max-width: 90%;
+}

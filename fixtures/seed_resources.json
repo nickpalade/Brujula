@@ -1,0 +1,26 @@
+[
+  {
+    "id": "res-seed-excavator-caraballeda",
+    "type": "machinery",
+    "label": "Excavator + 5-person crew (idle)",
+    "location": "Caraballeda",
+    "capacity": "1 excavator, 5-person operating crew",
+    "status": "available"
+  },
+  {
+    "id": "res-seed-clinic-catia-la-mar",
+    "type": "medical",
+    "label": "Improvised clinic with spare capacity",
+    "location": "Av. Principal, Catia La Mar",
+    "capacity": "12 beds free, 2 volunteer doctors on shift",
+    "status": "available"
+  },
+  {
+    "id": "res-seed-water-truck-la-guaira",
+    "type": "water",
+    "label": "Water tanker (cisterna) standing by",
+    "location": "Puerto de La Guaira staging area",
+    "capacity": "10,000 L potable water per trip",
+    "status": "available"
+  }
+]

@@ -1,4 +1,5 @@
 import { createSocket } from "node:dgram";
+import fs from "node:fs";
 import http from "node:http";
 import os from "node:os";
 import path from "node:path";
@@ -24,6 +25,7 @@ import { getProvider } from "./providers/index.js";
 import { CloudError } from "./providers/cloud-provider.js";
 import { ParsedReport, ReportRequest, parsedReportJsonSchema } from "./schemas.js";
 import { agentRouter } from "./agent/routes.js";
+import { hubRouter } from "./routes/hub.js";
 
 function buildParsePrompt(summaryLanguage) {
   return `You turn raw disaster field reports into structured JSON for a coordination
@@ -46,6 +48,10 @@ Output JSON only.`;
 const PARSE_RETRIES = 2;
 
 const STATIC_DIR = path.join(path.dirname(fileURLToPath(import.meta.url)), "static");
+// Built React app (Vite output). Served so phones need only the one LAN URL:
+//   http://<lan-ip>:8000/field   and   http://<lan-ip>:8000/command
+// Build it with `cd app && npm install && npm run build` (produces app/dist).
+const APP_DIST = path.join(path.dirname(fileURLToPath(import.meta.url)), "..", "app", "dist");
 
 const NameRequest = z.object({ name: z.string().min(1) });
 const ComputeRequest = z.object({ mode: z.string() });
@@ -343,6 +349,25 @@ app.post("/parse-report", async (req, res) => {
 
 // Agent pipeline: parse → dedup → prioritize → match → advise → emit.
 app.use(agentRouter);
+
+// Hub data layer + REST API under /api/* (agent HUB): reports, incidents,
+// resources, dispatch confirm/override, sync deltas, sitrep, advise.
+app.use(hubRouter);
+
+// Built React app (Vite): serve app/dist assets + the two SPA routes so phones
+// and the command laptop need only the single LAN URL (INTEGRATION, Prompt 7.3).
+// The existing model-server admin UI stays at "/" (registered above); the React
+// client lives at /command and /field. If app/dist is missing (not built yet),
+// this block is skipped and only the API + admin UI are served.
+if (fs.existsSync(APP_DIST)) {
+  app.use(express.static(APP_DIST));
+  const sendApp = (req, res) => res.sendFile("index.html", { root: APP_DIST });
+  app.get("/command", sendApp);
+  app.get("/field", sendApp);
+  logger.info(`[web] serving built React app from ${APP_DIST} at /command and /field`);
+} else {
+  logger.warn(`[web] app/dist not found — run \`cd app && npm run build\` to serve the UI (${APP_DIST})`);
+}
 
 app.use((err, req, res, next) => {
   if (err.type === "entity.parse.failed") {

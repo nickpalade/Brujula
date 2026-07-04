@@ -1,0 +1,198 @@
+/*
+ * Brújula design system — dark command-center tokens.
+ * Shared by /command and /field. Import once near the app root
+ * (or per-page). Owns global resets that override the Vite scaffold's
+ * light/centered #root so the command layout can go edge-to-edge.
+ */
+
+:root {
+  /* --- Surfaces (deep, low-glare, so urgency colors pop) --- */
+  --bru-bg-0: #0a0e14; /* app backdrop */
+  --bru-bg-1: #0f141c; /* rails / panels */
+  --bru-bg-2: #151b26; /* cards */
+  --bru-bg-3: #1c2432; /* elevated / hover */
+  --bru-bg-scrim: rgba(4, 7, 11, 0.72); /* modal/drawer backdrop */
+
+  /* --- Lines --- */
+  --bru-border: #232c3b;
+  --bru-border-strong: #33405a;
+  --bru-grid: rgba(90, 120, 170, 0.06); /* faint tactical grid */
+
+  /* --- Text --- */
+  --bru-text: #e6ecf5;
+  --bru-text-dim: #9aa7bd;
+  --bru-text-mute: #5f6b81;
+
+  /* --- Command accent (cool cyan — "signal") --- */
+  --bru-accent: #38e1c9;
+  --bru-accent-dim: #1f9e8d;
+  --bru-accent-bg: rgba(56, 225, 201, 0.12);
+  --bru-accent-border: rgba(56, 225, 201, 0.45);
+
+  /* --- Urgency scale (the core semantic tokens) --- */
+  --bru-critical: #ff3b47;
+  --bru-critical-bg: rgba(255, 59, 71, 0.14);
+  --bru-critical-border: rgba(255, 59, 71, 0.55);
+  --bru-critical-glow: rgba(255, 59, 71, 0.45);
+
+  --bru-high: #ff8c26;
+  --bru-high-bg: rgba(255, 140, 38, 0.13);
+  --bru-high-border: rgba(255, 140, 38, 0.5);
+
+  --bru-medium: #f5c518;
+  --bru-medium-bg: rgba(245, 197, 24, 0.12);
+  --bru-medium-border: rgba(245, 197, 24, 0.45);
+
+  --bru-low: #4da3ff;
+  --bru-low-bg: rgba(77, 163, 255, 0.12);
+  --bru-low-border: rgba(77, 163, 255, 0.45);
+
+  /* --- Status semantics --- */
+  --bru-ok: #35d07f; /* available / confirmed / synced */
+  --bru-ok-bg: rgba(53, 208, 127, 0.13);
+  --bru-warn: #f5c518; /* queued / pending */
+  --bru-warn-bg: rgba(245, 197, 24, 0.12);
+  --bru-committed: #9aa7bd; /* resource committed / muted state */
+
+  /* --- Typography --- */
+  --bru-sans: "Inter", system-ui, "Segoe UI", Roboto, sans-serif;
+  --bru-mono: "JetBrains Mono", ui-monospace, "SF Mono", Consolas, monospace;
+
+  /* --- Radius --- */
+  --bru-r-sm: 6px;
+  --bru-r-md: 10px;
+  --bru-r-lg: 14px;
+
+  /* --- Spacing scale --- */
+  --bru-s-1: 4px;
+  --bru-s-2: 8px;
+  --bru-s-3: 12px;
+  --bru-s-4: 16px;
+  --bru-s-5: 24px;
+  --bru-s-6: 32px;
+
+  /* --- Elevation --- */
+  --bru-shadow-1: 0 1px 2px rgba(0, 0, 0, 0.4);
+  --bru-shadow-2: 0 8px 24px rgba(0, 0, 0, 0.45);
+  --bru-shadow-3: 0 20px 60px rgba(0, 0, 0, 0.6);
+
+  /* --- Motion --- */
+  --bru-t-fast: 120ms ease;
+  --bru-t-base: 200ms ease;
+}
+
+/* Per-urgency convenience mapping used by data-urgency attributes. */
+[data-urgency="critical"] {
+  --u-color: var(--bru-critical);
+  --u-bg: var(--bru-critical-bg);
+  --u-border: var(--bru-critical-border);
+}
+[data-urgency="high"] {
+  --u-color: var(--bru-high);
+  --u-bg: var(--bru-high-bg);
+  --u-border: var(--bru-high-border);
+}
+[data-urgency="medium"] {
+  --u-color: var(--bru-medium);
+  --u-bg: var(--bru-medium-bg);
+  --u-border: var(--bru-medium-border);
+}
+[data-urgency="low"] {
+  --u-color: var(--bru-low);
+  --u-bg: var(--bru-low-bg);
+  --u-border: var(--bru-low-border);
+}
+
+/* --- Global reset / overrides of the Vite scaffold light theme --- */
+.bru-app {
+  color: var(--bru-text);
+  background-color: var(--bru-bg-0);
+  background-image:
+    linear-gradient(var(--bru-grid) 1px, transparent 1px),
+    linear-gradient(90deg, var(--bru-grid) 1px, transparent 1px);
+  background-size: 40px 40px;
+  font-family: var(--bru-sans);
+  font-size: 15px;
+  line-height: 1.5;
+  letter-spacing: 0.1px;
+  min-height: 100svh;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+/* Neutralize the scaffold's centered narrow #root so command/field
+ * pages can use the full viewport. Scoped-safe: only bites when a
+ * .bru-app is mounted inside #root. */
+#root:has(.bru-app) {
+  width: 100%;
+  max-width: none;
+  margin: 0;
+  text-align: left;
+  border-inline: none;
+}
+
+.bru-app *,
+.bru-app *::before,
+.bru-app *::after {
+  box-sizing: border-box;
+}
+
+.bru-app h1,
+.bru-app h2,
+.bru-app h3 {
+  font-family: var(--bru-sans);
+  color: var(--bru-text);
+  margin: 0;
+  letter-spacing: -0.2px;
+}
+
+.bru-app ::selection {
+  background: var(--bru-accent-bg);
+}
+
+/* Custom scrollbars keep the command-center look consistent. */
+.bru-app ::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+.bru-app ::-webkit-scrollbar-thumb {
+  background: var(--bru-border-strong);
+  border-radius: 8px;
+}
+.bru-app ::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+/* Shared keyframes used by Badge/Card pulse + loading states. */
+@keyframes bru-pulse {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 var(--bru-critical-glow);
+  }
+  50% {
+    box-shadow: 0 0 0 6px rgba(255, 59, 71, 0);
+  }
+}
+
+@keyframes bru-blink {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.35;
+  }
+}
+
+@keyframes bru-shimmer {
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .bru-app * {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+  }
+}

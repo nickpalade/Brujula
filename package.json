@@ -11,6 +11,7 @@
     "start": "node server/main.js",
     "serve": "node server/main.js",
     "dev": "node --watch server/main.js",
+    "seed": "node scripts/seed.js",
     "verify": "node verify.js",
     "verify:agent": "node verify-agent.js"
   },

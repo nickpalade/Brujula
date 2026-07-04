@@ -1,0 +1,11 @@
+# Brujula knowledge-service - dependencies.
+# The service runs fully OFFLINE at runtime; only this install step needs the
+# network, and only once. (fastapi pulls in pydantic v2 automatically.)
+
+# --- runtime ---
+fastapi>=0.110
+uvicorn[standard]>=0.29
+
+# --- tests (mock smoke tests; real suite still TODO) ---
+pytest>=8.0
+httpx>=0.27          # required by fastapi.testclient.TestClient
