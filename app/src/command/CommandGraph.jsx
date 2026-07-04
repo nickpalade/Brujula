@@ -17,11 +17,17 @@ import Button from '../shared/Button.jsx';
 import Icon from '../shared/Icon.jsx';
 import { CATEGORY_LABEL, sortByPriority } from '../shared/urgency.js';
 import GraphInspector from './GraphInspector.jsx';
+import SmartEdge from './SmartEdge.jsx';
 import SitrepModal from './SitrepModal.jsx';
 import MapPanel from './MapPanel.jsx';
 import AlertComposer from './AlertComposer.jsx';
+import ConnectModal from './ConnectModal.jsx';
+import OfflineMapsModal from './OfflineMapsModal.jsx';
+import CommandSettings from './CommandSettings.jsx';
+import { loadCommandDensity, saveCommandDensity } from './commandSettingsStorage.js';
 import ContextChat from '../shared/ContextChat.jsx';
 import { useWatchdog } from './useWatchdog.js';
+import { computeOrganisedLayout } from './organiseLayout.js';
 import * as dataSource from './dataSource.js';
 import {
   USE_MOCKS,
@@ -40,7 +46,6 @@ const POLL_MS = 4000;
 const GRAPH_LAYOUT = {
   report: { x: -520, y: 80, gap: 155 },
   person: { x: -520, gap: 155 },
-  intake: { x: -120, y: -120 },
   brain: { x: -120, y: 260 },
   incident: { x: 280, y: 80, gap: 190 },
   dispatch: { x: 700, y: 80, gap: 180 },
@@ -53,6 +58,14 @@ const GRAPH_LAYOUT = {
 // content can exceed the 155 gap) plus the "People" section label.
 const PERSON_SECTION_BREAK = 140;
 const SECTION_LABEL_OFFSET = 56;
+
+// Spacing for the "Organise" action — derived from measured card sizes.
+// GAP_Y separates cards inside a stack, GUTTER_X separates columns,
+// ALERT_CLEARANCE keeps the alert row off the top.
+const ORGANISE_GAP_Y = 44;
+const ORGANISE_GAP_X = 64;
+const ORGANISE_GUTTER_X = 180;
+const ORGANISE_ALERT_CLEARANCE = 140;
 
 const GRAPH_FILTERS = [
   { id: 'all', label: 'All' },
@@ -87,7 +100,7 @@ function shortText(value, max = 120) {
   return value.length > max ? `${value.slice(0, max - 1)}...` : value;
 }
 
-function GraphShellNode({ children, tone = 'default', testId, ariaLabel, selectTarget, onSelect }) {
+function GraphShellNode({ children, tone = 'default', pulse = false, testId, ariaLabel, selectTarget, onSelect }) {
   const inspect = () => {
     if (selectTarget) onSelect?.(selectTarget);
   };
@@ -102,6 +115,7 @@ function GraphShellNode({ children, tone = 'default', testId, ariaLabel, selectT
     <div
       className="cmd-graph-node"
       data-tone={tone}
+      data-pulse={pulse || undefined}
       data-testid={testId}
       role={selectTarget ? 'button' : undefined}
       tabIndex={selectTarget ? 0 : undefined}
@@ -190,6 +204,7 @@ function DispatchNode({ data }) {
   return (
     <GraphShellNode
       tone={dispatch.state === 'proposed' ? 'accent' : 'ok'}
+      pulse={dispatch.state === 'proposed'}
       testId="graph-node-dispatch"
       ariaLabel={`Dispatch ${dispatch.state} for ${incident?.location ?? dispatch.incident_id}`}
       selectTarget={data.selectTarget}
@@ -327,20 +342,44 @@ function PersonNode({ data }) {
   );
 }
 
-function IntakeNode({ data }) {
+function ApprovalQueue({ proposals, incidentById, resourceById, busy, onApprove, onReview }) {
+  if (proposals.length === 0) return null;
+
   return (
-    <GraphShellNode tone="field">
-      <div className="cmd-graph-node__head">
-        <Badge variant="accent" dot>
-          Field intake
-        </Badge>
+    <section className="cmd-graph-approvals" role="region" aria-label="Dispatch approvals">
+      <div className="cmd-graph-approvals__head">
+        <div>
+          <span className="cmd-graph-approvals__eyebrow">ACTION REQUIRED</span>
+          <strong>{proposals.length} dispatch{proposals.length === 1 ? '' : 'es'} awaiting approval</strong>
+        </div>
+        <span className="cmd-graph-approvals__count" aria-hidden="true">{proposals.length}</span>
       </div>
-      <strong className="cmd-graph-node__title">Reports enter the graph</strong>
-      <p>Voice, photo, GPS and queued field reports feed Gemma before they become incidents.</p>
-      <div className="cmd-graph-node__meta">
-        <span>{data.incidentCount} incidents tracked</span>
+      <p className="cmd-graph-approvals__hint">Review Gemma's match, then approve or override it.</p>
+      <div className="cmd-graph-approvals__list">
+        {proposals.map((dispatch) => {
+          const incident = incidentById[dispatch.incident_id];
+          const resource = resourceById[dispatch.resource_id];
+          const destination = incident?.location ?? incident?.summary ?? dispatch.incident_id;
+          return (
+            <div className="cmd-graph-approvals__item" key={dispatch.id}>
+              <div className="cmd-graph-approvals__route">
+                <strong>{resource?.label ?? dispatch.resource_id}</strong>
+                <span aria-hidden="true">-&gt;</span>
+                <span>{destination}</span>
+              </div>
+              <div className="cmd-graph-approvals__actions">
+                <Button size="sm" variant="confirm" onClick={() => onApprove(dispatch)} disabled={busy} aria-label={`Approve dispatch for ${destination}`}>
+                  <Icon name="check" /> Approve
+                </Button>
+                <Button size="sm" variant="ghost" onClick={() => onReview(dispatch)} aria-label={`Review dispatch for ${destination}`}>
+                  Review
+                </Button>
+              </div>
+            </div>
+          );
+        })}
       </div>
-    </GraphShellNode>
+    </section>
   );
 }
 
@@ -354,6 +393,10 @@ function SectionLabelNode({ data }) {
   );
 }
 
+const edgeTypes = {
+  smart: SmartEdge,
+};
+
 const nodeTypes = {
   gemma: GemmaNode,
   incident: IncidentNode,
@@ -362,7 +405,6 @@ const nodeTypes = {
   alert: AlertNode,
   report: ReportNode,
   person: PersonNode,
-  intake: IntakeNode,
   sectionLabel: SectionLabelNode,
 };
 
@@ -384,6 +426,12 @@ function CommandGraph() {
   // recompute deterministic positions every sync; these overrides win so a
   // hand-arranged graph survives the 4s poll.
   const [nodeOverrides, setNodeOverrides] = useState({});
+  // Measured card sizes, keyed by node id. React Flow v12 hides any node whose
+  // object lacks `measured` dimensions until it re-measures, so when layout
+  // memos rebuild node objects mid-drag the graph blinks out for a frame
+  // unless the sizes are stamped back on.
+  const [nodeDimensions, setNodeDimensions] = useState({});
+  const [organiseTick, setOrganiseTick] = useState(0);
   const [dispatchBusy, setDispatchBusy] = useState(false);
   const [rematchBusyId, setRematchBusyId] = useState(null);
   const [sitrepOpen, setSitrepOpen] = useState(false);
@@ -393,6 +441,9 @@ function CommandGraph() {
   const [mapOpen, setMapOpen] = useState(false);
   const [chatOpen, setChatOpen] = useState(false);
   const [alertComposerOpen, setAlertComposerOpen] = useState(false);
+  const [connectOpen, setConnectOpen] = useState(false);
+  const [offlineMapsOpen, setOfflineMapsOpen] = useState(false);
+  const [density, setDensity] = useState(loadCommandDensity);
   const seqRef = useRef(0);
   const flowRef = useRef(null);
 
@@ -835,7 +886,7 @@ function CommandGraph() {
         data: { label },
       });
     };
-    addSectionLabel('label-gemma', 'Gemma', GRAPH_LAYOUT.intake.x, GRAPH_LAYOUT.intake.y - SECTION_LABEL_OFFSET);
+    addSectionLabel('label-gemma', 'Gemma', GRAPH_LAYOUT.brain.x, GRAPH_LAYOUT.brain.y - SECTION_LABEL_OFFSET);
     if (visibleReports.length > 0) {
       addSectionLabel('label-reports', 'Reports', GRAPH_LAYOUT.report.x, GRAPH_LAYOUT.report.y - SECTION_LABEL_OFFSET);
     }
@@ -854,12 +905,6 @@ function CommandGraph() {
 
     return [
       ...sectionLabelNodes,
-      {
-        id: 'field-intake',
-        type: 'intake',
-        position: GRAPH_LAYOUT.intake,
-        data: { incidentCount: incidents.length },
-      },
       {
         id: 'gemma-brain',
         type: 'gemma',
@@ -899,7 +944,9 @@ function CommandGraph() {
 
   // Drag support: React Flow is controlled here (nodes come from the memo
   // above), so position changes must be captured and re-applied or nodes
-  // snap back on the next sync repaint.
+  // snap back on the next sync repaint. Dimension changes must be captured
+  // too: a rebuilt node object without `measured` renders visibility:hidden
+  // until React Flow re-measures it, flashing the graph blank mid-drag.
   const handleNodesChange = useCallback((changes) => {
     setNodeOverrides((prev) => {
       let next = prev;
@@ -910,16 +957,39 @@ function CommandGraph() {
       }
       return next;
     });
+    setNodeDimensions((prev) => {
+      let next = prev;
+      for (const change of changes) {
+        if (change.type !== 'dimensions' || !change.dimensions) continue;
+        const current = next[change.id];
+        if (
+          current &&
+          current.width === change.dimensions.width &&
+          current.height === change.dimensions.height
+        ) {
+          continue;
+        }
+        if (next === prev) next = { ...prev };
+        next[change.id] = change.dimensions;
+      }
+      return next;
+    });
   }, []);
 
   const hasCustomLayout = Object.keys(nodeOverrides).length > 0;
 
   const positionedNodes = useMemo(() => {
-    if (!hasCustomLayout) return nodes;
-    return nodes.map((node) =>
-      nodeOverrides[node.id] ? { ...node, position: nodeOverrides[node.id] } : node,
-    );
-  }, [hasCustomLayout, nodeOverrides, nodes]);
+    return nodes.map((node) => {
+      const position = nodeOverrides[node.id];
+      const measured = nodeDimensions[node.id];
+      if (!position && !measured) return node;
+      return {
+        ...node,
+        ...(position ? { position } : {}),
+        ...(measured ? { measured } : {}),
+      };
+    });
+  }, [nodeDimensions, nodeOverrides, nodes]);
 
   const nodeSetKey = useMemo(
     () => nodes.map((node) => node.id).sort().join('|'),
@@ -943,6 +1013,128 @@ function CommandGraph() {
     });
   }, []);
 
+  // "Organise" — layered layout searched by iterative crossing minimisation
+  // (see organiseLayout.js). Columns stay fixed; the vertical order in each
+  // column is refined with barycenter sweeps + pairwise swaps until edge
+  // crossings hit zero or stop improving, then connected cards are pulled
+  // level with their neighbours.
+  // Writes the tidy positions into nodeOverrides so they survive polling.
+  const organiseLayout = useCallback(() => {
+    const instance = flowRef.current;
+    if (!instance) return;
+    // Measure rendered cards straight from the DOM — the React Flow instance
+    // is controlled from the nodes memo above, so getNodes() dimensions are
+    // unreliable here (missing `measured` collapsed every card to a fallback
+    // height and the columns overlapped).
+    const measured = new Map();
+    for (const element of document.querySelectorAll('.react-flow__node')) {
+      measured.set(element.getAttribute('data-id'), {
+        width: element.offsetWidth,
+        height: element.offsetHeight,
+      });
+    }
+    const heightOf = (id) => measured.get(id)?.height ?? 150;
+    const widthOf = (id) => measured.get(id)?.width ?? 280;
+
+    const { incidents, reports, persons, dispatches, resources, alerts } = visibleGraph;
+    const incidentIdSet = new Set(incidents.map((incident) => incident.id));
+
+    // Edge pairs mirror the rendered edges (minus alert/loop styling
+    // variants) — they drive the crossing count the search minimises.
+    const edgePairs = [];
+    for (const report of reports) {
+      edgePairs.push([`report-${report.id}`, 'gemma-brain']);
+      edgePairs.push([`report-${report.id}`, `incident-${report.parsed_into}`]);
+    }
+    for (const incident of incidents) edgePairs.push(['gemma-brain', `incident-${incident.id}`]);
+    for (const dispatch of dispatches) {
+      edgePairs.push([`incident-${dispatch.incident_id}`, `dispatch-${dispatch.id}`]);
+      edgePairs.push([`dispatch-${dispatch.id}`, `resource-${dispatch.resource_id}`]);
+    }
+    for (const person of persons) {
+      if (person.incident_id) edgePairs.push([`person-${person.id}`, `incident-${person.incident_id}`]);
+      if (person.report_id) edgePairs.push([`person-${person.id}`, `report-${person.report_id}`]);
+    }
+
+    // Warm start: order every column by incident so the crossing search
+    // begins near a banded layout instead of a random shuffle.
+    const groupedByIncident = (items, incidentOf, prefix) => [
+      ...incidents.flatMap((incident) =>
+        items.filter((item) => incidentOf(item) === incident.id).map((item) => `${prefix}-${item.id}`),
+      ),
+      ...items
+        .filter((item) => !incidentIdSet.has(incidentOf(item)))
+        .map((item) => `${prefix}-${item.id}`),
+    ];
+    const resourceIdSet = new Set(resources.map((resource) => resource.id));
+    const seenResources = new Set();
+    const resourceOrder = [];
+    for (const incident of incidents) {
+      for (const dispatch of dispatches) {
+        if (dispatch.incident_id !== incident.id) continue;
+        if (!resourceIdSet.has(dispatch.resource_id) || seenResources.has(dispatch.resource_id)) continue;
+        seenResources.add(dispatch.resource_id);
+        resourceOrder.push(`resource-${dispatch.resource_id}`);
+      }
+    }
+    for (const resource of resources) {
+      if (!seenResources.has(resource.id)) resourceOrder.push(`resource-${resource.id}`);
+    }
+
+    const { positions, columnX } = computeOrganisedLayout({
+      columns: [
+        { key: 'person', ids: groupedByIncident(persons, (person) => person.incident_id, 'person') },
+        { key: 'report', ids: groupedByIncident(reports, (report) => report.parsed_into, 'report') },
+        { key: 'gemma', ids: ['gemma-brain'] },
+        { key: 'incident', ids: incidents.map((incident) => `incident-${incident.id}`) },
+        { key: 'dispatch', ids: groupedByIncident(dispatches, (dispatch) => dispatch.incident_id, 'dispatch') },
+        { key: 'resource', ids: resourceOrder },
+      ],
+      edgePairs,
+      heightOf,
+      widthOf,
+      gapY: ORGANISE_GAP_Y,
+      gutterX: ORGANISE_GUTTER_X,
+    });
+    const overrides = { ...positions };
+
+    // Alert row above the incident column.
+    const alertIds = alerts.map((alert) => `alert-${alert.id}`);
+    if (alertIds.length > 0) {
+      const alertHeight = Math.max(...alertIds.map(heightOf));
+      let alertX = columnX.incident ?? columnX.gemma ?? 0;
+      for (const id of alertIds) {
+        overrides[id] = { x: alertX, y: -alertHeight - ORGANISE_ALERT_CLEARANCE };
+        alertX += widthOf(id) + ORGANISE_GAP_X;
+      }
+    }
+
+    // Column headings pinned above the graph.
+    const labelAt = (labelId, key) => {
+      if (columnX[key] == null) return;
+      overrides[labelId] = { x: columnX[key], y: -SECTION_LABEL_OFFSET };
+    };
+    labelAt('label-reports', 'report');
+    labelAt('label-people', 'person');
+    labelAt('label-gemma', 'gemma');
+    labelAt('label-situations', 'incident');
+    labelAt('label-dispatches', 'dispatch');
+    labelAt('label-resources', 'resource');
+
+    setNodeOverrides(overrides);
+    setOrganiseTick((tick) => tick + 1);
+  }, [visibleGraph]);
+
+  // Refit only after React has committed the organised positions — calling
+  // fitView synchronously would frame the *old* node spread.
+  useEffect(() => {
+    if (organiseTick === 0) return undefined;
+    const frame = requestAnimationFrame(() => {
+      flowRef.current?.fitView({ padding: 0.12, duration: 350 });
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [organiseTick]);
+
   const edges = useMemo(() => {
     const {
       incidents: graphIncidents,
@@ -953,7 +1145,6 @@ function CommandGraph() {
       alerts: visibleAlerts,
     } = visibleGraph;
     const nodeIds = new Set([
-      'field-intake',
       'gemma-brain',
       ...graphIncidents.map((incident) => `incident-${incident.id}`),
       ...visibleReports.map((report) => `report-${report.id}`),
@@ -966,21 +1157,13 @@ function CommandGraph() {
     const addEdge = (list, edge) => {
       if (!nodeIds.has(edge.source) || !nodeIds.has(edge.target)) return;
       list.push({
-        type: 'smoothstep',
+        // Bezier curves that route around cards they would otherwise cross.
+        type: 'smart',
         ...edge,
       });
     };
 
-    const graphEdges = [
-      {
-        id: 'field-to-gemma',
-        source: 'field-intake',
-        target: 'gemma-brain',
-        animated: true,
-        type: 'smoothstep',
-        className: 'cmd-graph-edge cmd-graph-edge--brain',
-      },
-    ];
+    const graphEdges = [];
 
     for (const report of visibleReports) {
       addEdge(graphEdges, {
@@ -1113,8 +1296,13 @@ function CommandGraph() {
     return [];
   }, [activeAlerts, selectedAlert, selectedIncident]);
 
+  const changeDensity = (next) => {
+    setDensity(next);
+    saveCommandDensity(next);
+  };
+
   return (
-    <div className="bru-app cmd-root cmd-graph-root">
+    <div className={`bru-app cmd-root cmd-graph-root${density === 'compact' ? ' cmd-root--compact' : ''}`}>
       <header className="cmd-topbar cmd-graph-topbar">
         <div className="cmd-topbar__brand">
           <img
@@ -1151,12 +1339,29 @@ function CommandGraph() {
             <Icon name="sitrep" />
             SITREP
           </Button>
-          <Button variant="ghost" onClick={refresh} disabled={loading}>
-            <Icon name="refresh" />
-            Refresh
-          </Button>
+          <CommandSettings
+            density={density}
+            onDensityChange={changeDensity}
+            onConnectPhone={() => setConnectOpen(true)}
+            onOfflineMaps={() => setOfflineMapsOpen(true)}
+            onRefresh={refresh}
+            refreshing={loading}
+          />
         </div>
       </header>
+
+      <ApprovalQueue
+        proposals={proposals}
+        incidentById={incidentById}
+        resourceById={resourceById}
+        busy={dispatchBusy}
+        onApprove={handleConfirm}
+        onReview={(dispatch) => selectGraphItem({
+          type: 'dispatch',
+          dispatchId: dispatch.id,
+          incidentId: dispatch.incident_id,
+        })}
+      />
 
       <main className="cmd-graph-main" aria-label="Node command graph">
         {loading && incidents.length === 0 ? (
@@ -1169,6 +1374,7 @@ function CommandGraph() {
               nodes={positionedNodes}
               edges={edges}
               nodeTypes={nodeTypes}
+              edgeTypes={edgeTypes}
               onNodesChange={handleNodesChange}
               fitView
               fitViewOptions={{ padding: 0.18 }}
@@ -1202,6 +1408,14 @@ function CommandGraph() {
                     {filter.label}
                   </button>
                 ))}
+                <button
+                  type="button"
+                  className="cmd-graph-filters__chip cmd-graph-filters__chip--organise"
+                  onClick={organiseLayout}
+                  title="Restack every column using real card heights"
+                >
+                  Organise
+                </button>
                 {hasCustomLayout && (
                   <button
                     type="button"
@@ -1342,6 +1556,10 @@ function CommandGraph() {
           setAlertComposerOpen(false);
         }}
       />
+
+      <ConnectModal open={connectOpen} onClose={() => setConnectOpen(false)} />
+
+      <OfflineMapsModal open={offlineMapsOpen} onClose={() => setOfflineMapsOpen(false)} />
     </div>
   );
 }

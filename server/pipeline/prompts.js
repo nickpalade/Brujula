@@ -33,7 +33,11 @@ Rules:
     status = information only.
   For a resource, the category is what it provides. People trapped in a collapse
   are rescue (even if they ask for machinery).
-- "location": the place named in the report, exactly as written. null if none.
+- "location": the place named in the report. Keep proper place names (streets,
+  avenues, neighborhoods, landmarks, towns) EXACTLY as written, but write the
+  connecting/descriptive words in ${languageName} — e.g. in English,
+  "la esquina de Av. Bolivar con Calle 5" becomes
+  "corner of Av. Bolivar and Calle 5". null if none.
 - "people_count": the integer number of people affected (needs) or capacity
   (resources). Use the stated number ("unas 20 personas" = 20, "una familia" ~ 4,
   "unas 40 familias" ~ 160). If truly no number is given, use null. NEVER output
@@ -46,24 +50,32 @@ Rules:
 - "summary": ONE short plain-text sentence in ${languageName} for the
   coordination board. No markdown, no asterisks.
 - "persons": an array of named individuals mentioned in the report. For each
-  person: extract {name, status, detail}. name = the person's name as written.
-  status = "missing" (person is missing/trapped/in danger), "found" (located/
-  alive/safe), or "safe" (confirmed safe). detail = one short clause about them
-  (e.g., "under rubble", "hospitalized", "returned home"). Return [] when no
-  named individuals are mentioned — do NOT count unnamed groups ("20 trapped").
+  person: extract {name, status, detail}. name = the person's PROPER name as
+  written (e.g. "Maria Lopez"). Generic group or role words are NEVER names —
+  "personas", "niños", "una vecina", "una familia", "gente", "children",
+  "neighbors" must NOT appear as persons. status = "missing" (person is
+  missing/trapped/in danger), "found" (located/alive/safe), or "safe"
+  (confirmed safe). detail = one short clause about them, written in
+  ${languageName} (e.g., "under rubble", "hospitalized", "returned home").
+  Return [] when no named individuals are mentioned — do NOT count unnamed
+  groups ("20 trapped").
+
+Write ALL free-text output — summary, location wording, resource_label, and
+persons detail — in ${languageName}. Keep proper nouns (place names, personal
+names) exactly as written in the report.
 
 If a photo is attached, read it: visible damage, hazards, trapped or injured
 people, standing water, collapsed structures. Combine it with the text — a
 photo can raise urgency or fill in missing fields. If there is no text, parse
 the photo alone.
 
-Examples:
-Report: "Se derrumbó una casa en La Guaira, hay como 3 personas adentro, ayuda!"
-JSON: {"kind":"need","category":"rescue","location":"La Guaira","people_count":3,"urgency":"critical","resource_label":null,"summary":"House collapsed in La Guaira, ~3 people trapped inside."}
+Examples (shown with ${languageName} = English; always use ${languageName}):
+Report: "Se derrumbó una casa en La Guaira, mi tía Rosa Perez está adentro con 2 más, ayuda!"
+JSON: {"kind":"need","category":"rescue","location":"La Guaira","people_count":3,"urgency":"critical","resource_label":null,"summary":"House collapsed in La Guaira, ~3 people trapped inside.","persons":[{"name":"Rosa Perez","status":"missing","detail":"trapped inside the collapsed house"}]}
 Report: "El refugio de la escuela no tiene agua potable desde ayer, somos como 200 personas."
-JSON: {"kind":"need","category":"water","location":"el refugio de la escuela","people_count":200,"urgency":"high","resource_label":null,"summary":"School shelter has had no drinking water since yesterday, ~200 people affected."}
+JSON: {"kind":"need","category":"water","location":"the school shelter","people_count":200,"urgency":"high","resource_label":null,"summary":"School shelter has had no drinking water since yesterday, ~200 people affected.","persons":[]}
 Report: "Tenemos un camión cisterna con agua disponible en el puerto."
-JSON: {"kind":"resource","category":"water","location":"el puerto","people_count":null,"urgency":"low","resource_label":"camión cisterna con agua","summary":"Water tanker available at the port."}
+JSON: {"kind":"resource","category":"water","location":"the port","people_count":null,"urgency":"low","resource_label":"water tanker","summary":"Water tanker available at the port.","persons":[]}
 
 Output JSON only.`;
 }

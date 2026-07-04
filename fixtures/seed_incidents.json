@@ -6,30 +6,14 @@
     "location": "Refugio Escuela Básica Simón Bolívar, Catia La Mar",
     "lat": 10.6019,
     "lon": -67.0269,
-    "people_count": 180,
+    "people_count": 60,
     "urgency": "high",
     "status": "open",
-    "summary": "Shelter housing ~180 people has had no drinking water since yesterday; families are rationing bottled water.",
+    "summary": "Shelter housing ~60 people has had no drinking water since yesterday; families are rationing bottled water.",
     "merged_report_ids": [],
     "proposed_dispatch_id": null,
     "created_at": "2026-07-04T09:30:00.000Z",
     "updated_at": "2026-07-04T09:30:00.000Z"
-  },
-  {
-    "id": "inc-seed-displaced-los-corales",
-    "kind": "need",
-    "category": "shelter",
-    "location": "Caraballeda, sector Los Corales",
-    "lat": 10.6142,
-    "lon": -66.8433,
-    "people_count": 45,
-    "urgency": "medium",
-    "status": "open",
-    "summary": "About 45 people sleeping outdoors after their building was declared unsafe; need tarps and a covered space.",
-    "merged_report_ids": [],
-    "proposed_dispatch_id": null,
-    "created_at": "2026-07-04T10:05:00.000Z",
-    "updated_at": "2026-07-04T10:05:00.000Z"
   },
   {
     "id": "inc-seed-medical-refugio-san-jose",
@@ -46,21 +30,5 @@
     "proposed_dispatch_id": null,
     "created_at": "2026-07-04T10:20:00.000Z",
     "updated_at": "2026-07-04T10:20:00.000Z"
-  },
-  {
-    "id": "inc-seed-road-blocked-maiquetia",
-    "kind": "status",
-    "category": "hazard",
-    "location": "Carretera Vieja Caracas–La Guaira, cerca de Maiquetía",
-    "lat": 10.5817,
-    "lon": -66.9531,
-    "people_count": null,
-    "urgency": "medium",
-    "status": "open",
-    "summary": "Landslide blocking the coastal road near Maiquetía; a residential sector is cut off from vehicle access.",
-    "merged_report_ids": [],
-    "proposed_dispatch_id": null,
-    "created_at": "2026-07-04T08:50:00.000Z",
-    "updated_at": "2026-07-04T08:50:00.000Z"
   }
 ]
