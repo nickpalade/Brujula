@@ -11,7 +11,8 @@
     "start": "node server/main.js",
     "serve": "node server/main.js",
     "dev": "node --watch server/main.js",
-    "verify": "node verify.js"
+    "verify": "node verify.js",
+    "verify:agent": "node verify-agent.js"
   },
   "dependencies": {
     "express": "^5.1.0",

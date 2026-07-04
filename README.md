@@ -116,7 +116,39 @@ is set on the machine (it force-disables GPU discovery).
 | `GET /models/pull-status` | progress per model, 0–100 |
 | `DELETE /models/{name}` | remove a model |
 | `GET`/`POST /model-config` | read / persist the active model |
-| `POST /parse-report` | `{"text": "..."}` → `{type, location, people_estimate, severity, summary}` |
+| `POST /parse-report` | `{"text": "..."}` → `{type, location, people_estimate, severity, summary}` (stateless, kept for the test console) |
+
+### Agent pipeline (the coordinator's brain)
+
+Every report POSTed to `/reports` runs the full agent pipeline —
+**parse → dedup → prioritize → match → advise → emit** — against a persistent
+incident board (`brujula_board.json`):
+
+1. **Parse**: Gemma extracts `{kind: need|resource|status, category, location, people_estimate, urgency, summary}`.
+2. **Dedup**: Gemma compares the new report against open incidents and merges duplicates (`duplicate_of` is schema-constrained to real board ids — the model cannot hallucinate one).
+3. **Prioritize**: deterministic ranking — urgency, then people affected, then longest waiting. Explainable on purpose.
+4. **Match**: Gemma proposes the best available resource for a need (or, when a resource report arrives, the best waiting need for it).
+5. **Advise**: protocol steps per incident type from a local KB (USAR, START triage, Sphere WASH, PAHO shelter disease control). Set `PROTOCOL_KB_URL` to use the remote protocol-kb service; falls back to local.
+6. **Emit**: an action card. Nothing is auto-executed — the coordinator confirms or rejects every proposed dispatch.
+
+| Endpoint | What it does |
+|---|---|
+| `POST /reports` | `{"text": "...", "source_device"?} ` → full pipeline → action card |
+| `GET /board` | prioritized incidents + resources + dispatches + stats |
+| `GET /incidents/{id}` | incident detail + merged reports + protocol advisory |
+| `POST /incidents/{id}/resolve` | close an incident |
+| `POST /dispatches/{id}/confirm` | coordinator approves an AI-proposed dispatch (commits the resource) |
+| `POST /dispatches/{id}/reject` | coordinator overrides the proposal |
+| `GET /sitrep` | generated plain-language situation report (in the summary language) |
+| `POST /board/seed` | load the demo board from `fixtures/seed_board.json` (or POST your own) |
+| `POST /board/reset` | wipe the board |
+
+Verify the whole pipeline end-to-end (seed → collapse report → duplicate
+merge → dispatch proposal → confirm → sitrep):
+
+```bash
+npm run verify:agent        # or: make verify-agent
+```
 
 All responses use the envelope `{"success": bool, "data": ..., "error": ...}`.
 JSON output is enforced with Ollama structured outputs (the zod schema is
@@ -165,8 +197,11 @@ bootstrap.ps1 / bootstrap.sh   # install + pull + start + verify Ollama
 server/config.js               # model, port, env vars   ← tweak here
 server/schemas.js              # report JSON shape       ← tweak here
 server/main.js                 # endpoints + parse prompt ← tweak here
+server/agent/                  # the agent core: pipeline, board store,
+                               #   prompts, advisory KB, routes
 server/ollama-manager.js       # tags/pull/retry/CLI-fallback
 server/ollama-lifecycle.js     # embedded `ollama serve` child process
 server/providers/              # ollama (default) | cloud (env-keyed)
 verify.js + fixtures/          # end-to-end check with Spanish samples
+verify-agent.js                # full pipeline acceptance test (demo replay)
 ```

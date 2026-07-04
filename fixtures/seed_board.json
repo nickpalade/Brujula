@@ -1,0 +1,38 @@
+{
+  "incidents": [
+    {
+      "category": "water",
+      "location": "Refugio Colegio San José, Macuto",
+      "people_estimate": 300,
+      "urgency": "high",
+      "summary": "Shelter with ~300 people has had no drinking water for two days."
+    },
+    {
+      "category": "shelter",
+      "location": "Caraballeda, sector Los Corales",
+      "people_estimate": 45,
+      "urgency": "medium",
+      "summary": "About 45 people sleeping outdoors after their building was declared unsafe."
+    }
+  ],
+  "resources": [
+    {
+      "category": "machinery",
+      "label": "Excavator + operator crew, idle",
+      "location": "Caraballeda",
+      "capacity": null
+    },
+    {
+      "category": "medical",
+      "label": "Mobile clinic with spare capacity (~20 patients/day)",
+      "location": "Maiquetía",
+      "capacity": 20
+    },
+    {
+      "category": "water",
+      "label": "Water truck, 10,000 L, with driver",
+      "location": "Catia La Mar",
+      "capacity": null
+    }
+  ]
+}

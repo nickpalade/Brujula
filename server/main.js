@@ -23,6 +23,7 @@ import { OllamaError, deleteModel, listModels } from "./ollama-manager.js";
 import { getProvider } from "./providers/index.js";
 import { CloudError } from "./providers/cloud-provider.js";
 import { ParsedReport, ReportRequest, parsedReportJsonSchema } from "./schemas.js";
+import { agentRouter } from "./agent/routes.js";
 
 function buildParsePrompt(summaryLanguage) {
   return `You turn raw disaster field reports into structured JSON for a coordination
@@ -311,6 +312,9 @@ app.post("/parse-report", async (req, res) => {
     status: 502,
   });
 });
+
+// Agent pipeline: parse → dedup → prioritize → match → advise → emit.
+app.use(agentRouter);
 
 app.use((err, req, res, next) => {
   if (err.type === "entity.parse.failed") {
