@@ -48,7 +48,7 @@ export const translations = {
     'ob.people': 'Personas',
     'ob.where': 'Dónde están',
     'ob.wherePh': 'Ej: Caraballeda',
-    'ob.start': 'Comenzar',
+    'ob.start': 'Entrar al terreno',
 
     // Categories / skills
     'cat.rescue': 'Rescate',
@@ -263,7 +263,7 @@ export const translations = {
     'ob.people': 'People',
     'ob.where': 'Where you are',
     'ob.wherePh': 'e.g. Caraballeda',
-    'ob.start': 'Start',
+    'ob.start': 'Enter the field',
 
     'cat.rescue': 'Rescue',
     'cat.medical': 'Medical',

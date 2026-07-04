@@ -1445,7 +1445,7 @@
   height: 8px;
   background: var(--bru-bg-2);
   border: 1px solid var(--bru-border);
-  border-radius: 999px;
+  border-radius: 2px;
   overflow: hidden;
 }
 .cmd-offline__progress-fill {

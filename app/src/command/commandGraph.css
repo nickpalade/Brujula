@@ -1,9 +1,10 @@
 .cmd-graph-root {
+  /* Flat field material only — no center glow; the canvas should read as a
+     plotting table, not a hero backdrop. */
   background:
-    radial-gradient(circle at 50% 50%, rgba(176, 58, 70, 0.14), transparent 34%),
     linear-gradient(135deg, rgba(140, 170, 150, 0.06) 0 1px, transparent 1px 100%),
     var(--bru-bg-0);
-  background-size: auto, 32px 32px, auto;
+  background-size: 32px 32px, auto;
 }
 
 .cmd-graph-topbar {
@@ -53,9 +54,7 @@
   min-height: 132px;
   padding: 14px;
   color: var(--bru-text);
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.035), transparent),
-    rgba(17, 21, 18, 0.96);
+  background: rgba(17, 21, 18, 0.96);
   border: 1px solid var(--bru-border-strong);
   border-left: 3px solid var(--bru-text-mute);
   border-radius: 8px;
@@ -108,14 +107,11 @@
   text-align: center;
   padding: 22px;
   border: 1px solid rgba(176, 58, 70, 0.7);
-  border-radius: 18px;
-  background:
-    radial-gradient(circle at 50% 28%, rgba(176, 58, 70, 0.28), transparent 42%),
-    rgba(17, 21, 18, 0.98);
-  box-shadow:
-    0 28px 70px rgba(0, 0, 0, 0.44),
-    0 0 0 1px rgba(176, 58, 70, 0.18),
-    0 0 62px rgba(176, 58, 70, 0.22);
+  border-radius: var(--bru-r-lg);
+  /* Flat plate, hard shadow only — the design system forbids orb glows
+     ("rugged equipment, not a poster"). */
+  background: rgba(17, 21, 18, 0.98);
+  box-shadow: 0 28px 70px rgba(0, 0, 0, 0.44);
 }
 
 .cmd-graph-brain__orb {
@@ -273,7 +269,7 @@
   color: var(--bru-text-dim);
   background: transparent;
   border: 1px solid var(--bru-border);
-  border-radius: 999px;
+  border-radius: var(--bru-r-sm);
   font-size: 12px;
   font-weight: 600;
   cursor: pointer;

@@ -13,7 +13,6 @@ import { useI18n } from '../shared/i18n.jsx'
 import { LANGUAGES } from '../shared/languages.js'
 import { useAgentBusy } from '../shared/useAgentBusy.js'
 import BrujulaMark from '../shared/BrujulaMark.jsx'
-import ContextChat from '../shared/ContextChat.jsx'
 import DotGrid from '../vendor/DotGrid.jsx'
 import { useOutbox } from './useOutbox.js'
 import { useAssignments } from './useAssignments.js'
@@ -365,7 +364,6 @@ function FieldClient() {
                 onClearSynced={clearSynced}
               />
             </div>
-            <ContextChat station="field" />
           </>
         )}
       </main>

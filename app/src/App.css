@@ -310,7 +310,8 @@
   color: var(--c);
   background: var(--c-bg);
   border: 1px solid var(--bru-border-strong);
-  border-radius: 999px;
+  /* Stencil tag, not a pill — matches .bru-badge's equipment-label edges. */
+  border-radius: 2px;
   padding: 4px 10px;
 }
 

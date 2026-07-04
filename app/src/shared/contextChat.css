@@ -65,7 +65,7 @@
   text-transform: uppercase;
   color: var(--bru-text-mute, var(--f-text-dim, #9cb3a5));
   border: 1px solid var(--bru-border, var(--f-border, rgba(255, 255, 255, 0.16)));
-  border-radius: 999px;
+  border-radius: 2px;
   padding: 3px 7px;
 }
 
@@ -175,7 +175,7 @@
   text-transform: uppercase;
   color: var(--bru-ok, #4c9a6f);
   border: 1px solid currentColor;
-  border-radius: 999px;
+  border-radius: 2px;
   padding: 2px 7px;
 }
 
@@ -235,7 +235,7 @@
   flex: 0 0 auto;
   min-height: 44px;
   border: 1px solid var(--bru-border, var(--f-border, rgba(255, 255, 255, 0.16)));
-  border-radius: 999px;
+  border-radius: 6px;
   background: transparent;
   color: var(--bru-text-dim, var(--f-text-dim, #9cb3a5));
   padding: 10px 12px;
