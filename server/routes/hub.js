@@ -168,6 +168,7 @@ hubRouter.post("/api/reports", async (req, res) => {
     lang = null,
     client_ref = null,
     reported_by = null,
+    date = null,
   } = parsed.data;
 
   // Idempotent replay: the field outbox resends with the same client_ref until

@@ -44,6 +44,12 @@ export const HubReportRequest = z
     client_ref: z.string().max(120).nullish(),
     // Who reported (from the device profile): "Name · rol". Stored on the report.
     reported_by: z.string().max(200).nullish(),
+    // When the report was actually composed/sent on the phone (ISO string) —
+    // distinct from the hub's own receipt time, since a queued report can sit
+    // offline for a while before this request ever reaches the server.
+    // Accepted loosely (no .datetime() enum) and re-validated server-side —
+    // an unparseable value just falls back to the hub's receipt time.
+    date: z.string().max(40).nullish(),
   })
   .refine((v) => (v.text ?? "").trim().length > 0 || !!v.image_base64, {
     message: "text or image_base64 is required",
