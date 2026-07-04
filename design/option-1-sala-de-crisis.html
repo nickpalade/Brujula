@@ -1,0 +1,126 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Brújula — Opción 1 · Sala de Crisis</title>
+<style>
+  :root {
+    /* ---- tokens: SALA DE CRISIS ---- */
+    --bg:        #120b0d;   /* near-black with a warm red undertone */
+    --surface:   #1d1216;   /* cards */
+    --surface-2: #271820;   /* raised / hover */
+    --line:      #3a2229;   /* hairlines */
+    --ink:       #f4ecec;   /* primary text */
+    --ink-dim:   #b9a6aa;   /* secondary text */
+    --brand:     #a93844;   /* granate — brand actions, headers, focus */
+    --brand-deep:#6e1423;   /* granate profundo — bars, emphasis fills */
+    --critical:  #ff5d5d;   /* alarm ≠ brand: brighter, glows */
+    --high:      #ffa94d;
+    --medium:    #ffd43b;
+    --low:       #74808b;
+    --ok:        #63c78a;   /* confirmations, "resource available" */
+    --radius: 10px;
+  }
+  * { box-sizing: border-box; margin: 0; }
+  body {
+    background: var(--bg); color: var(--ink);
+    font: 15px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    padding: 32px 20px 80px; max-width: 880px; margin: 0 auto;
+  }
+  h1 { font-size: 26px; letter-spacing: .5px; }
+  h1 .compass { color: var(--brand); }
+  .tagline { color: var(--ink-dim); margin: 4px 0 28px; }
+  h2 { font-size: 13px; text-transform: uppercase; letter-spacing: 2px;
+       color: var(--brand); margin: 36px 0 14px; border-bottom: 1px solid var(--line);
+       padding-bottom: 8px; }
+  .swatches { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px,1fr)); gap: 10px; }
+  .sw { border-radius: var(--radius); padding: 14px 12px 10px; border: 1px solid var(--line); }
+  .sw b { display: block; font-size: 12px; }
+  .sw code { font-size: 11px; color: var(--ink-dim); }
+  .type-demo p { margin: 6px 0; }
+  .badges { display: flex; gap: 10px; flex-wrap: wrap; }
+  .badge { font-size: 12px; font-weight: 700; letter-spacing: 1px; padding: 5px 12px;
+           border-radius: 999px; text-transform: uppercase; }
+  .b-critical { background: rgba(255,93,93,.14); color: var(--critical);
+                border: 1px solid var(--critical); box-shadow: 0 0 12px rgba(255,93,93,.35); }
+  .b-high   { background: rgba(255,169,77,.12); color: var(--high); border: 1px solid var(--high); }
+  .b-medium { background: rgba(255,212,59,.10); color: var(--medium); border: 1px solid var(--medium); }
+  .b-low    { background: rgba(116,128,139,.12); color: var(--low); border: 1px solid var(--low); }
+  .card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius);
+          padding: 18px; margin: 14px 0; }
+  .card.critical { border-left: 4px solid var(--critical); }
+  .card .meta { color: var(--ink-dim); font-size: 13px; margin: 2px 0 10px; }
+  .reason { background: var(--surface-2); border-left: 3px solid var(--brand);
+            padding: 10px 14px; border-radius: 0 8px 8px 0; font-size: 14px;
+            color: var(--ink-dim); margin: 12px 0; }
+  .reason b { color: var(--ink); }
+  .actions { display: flex; gap: 10px; margin-top: 14px; }
+  button { font: inherit; font-weight: 700; border-radius: 8px; padding: 10px 22px;
+           border: 1px solid transparent; cursor: pointer; }
+  .confirm { background: var(--brand); color: #fff; }
+  .confirm:hover { background: var(--brand-deep); }
+  .override { background: transparent; color: var(--ink-dim); border-color: var(--line); }
+  .feedrow { display: flex; align-items: center; gap: 12px; padding: 10px 6px;
+             border-bottom: 1px solid var(--line); font-size: 14px; }
+  .feedrow .pri { font-weight: 800; color: var(--brand); width: 26px; }
+  .note { color: var(--ink-dim); font-size: 13px; margin-top: 10px; }
+</style>
+</head>
+<body>
+  <h1><span class="compass">◈</span> BRÚJULA <span style="color:var(--ink-dim); font-weight:400">· Puesto de Mando</span></h1>
+  <p class="tagline">Opción 1 — <b>Sala de Crisis</b>: oscuro, sereno, la información brilla. Pensado para turnos nocturnos de 12 horas.</p>
+
+  <h2>Filosofía</h2>
+  <p>La pantalla es una sala a oscuras; solo importa lo que emite luz. El granate es el hilo de marca —
+  cabeceras, acciones, foco— y <b>nunca</b> compite con la alarma: lo crítico usa un rojo más claro y con halo,
+  imposible de confundir a dos metros. Fondo casi negro con subtono rojo para que el granate se sienta en casa.</p>
+
+  <h2>Paleta</h2>
+  <div class="swatches">
+    <div class="sw" style="background:#120b0d"><b>Fondo</b><code>#120B0D</code></div>
+    <div class="sw" style="background:#1d1216"><b>Superficie</b><code>#1D1216</code></div>
+    <div class="sw" style="background:#6e1423"><b>Granate profundo</b><code>#6E1423</code></div>
+    <div class="sw" style="background:#a93844"><b>Granate (marca)</b><code>#A93844</code></div>
+    <div class="sw" style="background:#ff5d5d; color:#120b0d"><b>Crítico</b><code>#FF5D5D</code></div>
+    <div class="sw" style="background:#ffa94d; color:#120b0d"><b>Alto</b><code>#FFA94D</code></div>
+    <div class="sw" style="background:#ffd43b; color:#120b0d"><b>Medio</b><code>#FFD43B</code></div>
+    <div class="sw" style="background:#63c78a; color:#120b0d"><b>OK / recurso</b><code>#63C78A</code></div>
+  </div>
+
+  <h2>Tipografía</h2>
+  <div class="type-demo">
+    <p style="font-size:24px; font-weight:800">Titular 24 · Incidente Playa Grande</p>
+    <p style="font-size:15px">Cuerpo 15 · Sistema (system-ui) — cero fuentes externas, cero red.</p>
+    <p style="font-size:13px; color:var(--ink-dim)">Secundario 13 · metadatos, horas, dispositivos de origen.</p>
+    <p style="font-family:ui-monospace, Consolas, monospace; font-size:13px; color:var(--ink-dim)">Mono 13 · IDs: INC-003 · RES-001 · DSP-001</p>
+  </div>
+
+  <h2>Escalera de urgencia</h2>
+  <div class="badges">
+    <span class="badge b-critical">Crítico</span>
+    <span class="badge b-high">Alto</span>
+    <span class="badge b-medium">Medio</span>
+    <span class="badge b-low">Bajo</span>
+  </div>
+  <p class="note">Solo lo crítico tiene halo. La jerarquía se lee por luminosidad, no solo por tono (funciona para daltónicos).</p>
+
+  <h2>Tarjeta de acción (el héroe)</h2>
+  <div class="card critical">
+    <span class="badge b-critical">Crítico</span>
+    <h3 style="margin-top:10px">Edificio colapsado — se oyen voces, ~20 atrapados</h3>
+    <p class="meta">RESCATE + MAQUINARIA · Playa Grande, Catia La Mar · hace 4 min · 2 reportes fusionados</p>
+    <div class="reason"><b>El agente propone:</b> despachar excavadora + cuadrilla (Caraballeda, ~3 km).
+    Rechazó el camión cisterna más cercano: la capacidad debe corresponder a la necesidad.</div>
+    <div class="actions">
+      <button class="confirm">Confirmar despacho</button>
+      <button class="override">Anular</button>
+    </div>
+  </div>
+
+  <h2>Feed priorizado</h2>
+  <div class="feedrow"><span class="pri">1</span><span class="badge b-critical">Crítico</span> Colapso Playa Grande · 20 personas <span style="margin-left:auto; color:var(--ok)">excavadora propuesta</span></div>
+  <div class="feedrow"><span class="pri">2</span><span class="badge b-high">Alto</span> Refugio San José sin agua · 300 personas</div>
+  <div class="feedrow"><span class="pri">3</span><span class="badge b-medium">Medio</span> 45 personas a la intemperie · Los Corales</div>
+</body>
+</html>

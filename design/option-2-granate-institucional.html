@@ -1,0 +1,128 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Brújula — Opción 2 · Granate Institucional</title>
+<style>
+  :root {
+    /* ---- tokens: GRANATE INSTITUCIONAL ---- */
+    --bg:        #faf7f5;   /* warm paper */
+    --surface:   #ffffff;
+    --surface-2: #f3ecea;   /* tinted panels */
+    --line:      #e3d7d5;
+    --ink:       #2b2024;   /* warm near-black */
+    --ink-dim:   #7c6d71;
+    --brand:     #7a1f2b;   /* granate — headers, primary actions */
+    --brand-deep:#5c1520;   /* hover, top bar */
+    --critical:  #c81e1e;   /* alarm: saturated signal red on white */
+    --high:      #c2620a;
+    --medium:    #a08207;
+    --low:       #6b7a86;
+    --ok:        #1e7d4b;
+    --radius: 8px;
+  }
+  * { box-sizing: border-box; margin: 0; }
+  body { background: var(--bg); color: var(--ink);
+    font: 15px/1.55 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    max-width: 880px; margin: 0 auto; padding: 0 20px 80px; }
+  .topbar { background: var(--brand-deep); color: #fff; margin: 0 -20px;
+    padding: 16px 24px; display:flex; align-items:center; gap:10px; }
+  .topbar b { letter-spacing: 1px; }
+  .topbar span { opacity: .75; font-size: 13px; }
+  .tagline { color: var(--ink-dim); margin: 20px 0 8px; }
+  h2 { font-size: 13px; text-transform: uppercase; letter-spacing: 2px;
+    color: var(--brand); margin: 36px 0 14px; border-bottom: 2px solid var(--brand);
+    padding-bottom: 6px; display: inline-block; }
+  .h2wrap { display: block; }
+  .swatches { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px,1fr)); gap: 10px; }
+  .sw { border-radius: var(--radius); padding: 14px 12px 10px; border: 1px solid var(--line); }
+  .sw b { display: block; font-size: 12px; }
+  .sw code { font-size: 11px; opacity:.75 }
+  .badges { display: flex; gap: 10px; flex-wrap: wrap; }
+  .badge { font-size: 12px; font-weight: 700; letter-spacing: .6px; padding: 4px 12px;
+    border-radius: 4px; text-transform: uppercase; color: #fff; }
+  .b-critical { background: var(--critical); }
+  .b-high { background: var(--high); }
+  .b-medium { background: var(--medium); }
+  .b-low { background: var(--low); }
+  .card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius);
+    padding: 20px; margin: 14px 0; box-shadow: 0 1px 3px rgba(43,32,36,.08); }
+  .card.critical { border-top: 4px solid var(--critical); }
+  .card .meta { color: var(--ink-dim); font-size: 13px; margin: 2px 0 10px; }
+  .reason { background: var(--surface-2); border-left: 4px solid var(--brand);
+    padding: 12px 16px; font-size: 14px; margin: 12px 0; }
+  .actions { display: flex; gap: 10px; margin-top: 14px; }
+  button { font: inherit; font-weight: 700; border-radius: 6px; padding: 10px 24px;
+    border: 1px solid transparent; cursor: pointer; }
+  .confirm { background: var(--brand); color: #fff; }
+  .confirm:hover { background: var(--brand-deep); }
+  .override { background: #fff; color: var(--brand); border-color: var(--brand); }
+  .feedrow { display: flex; align-items: center; gap: 12px; padding: 12px 6px;
+    border-bottom: 1px solid var(--line); font-size: 14px; background: var(--surface); }
+  .feedrow .pri { font-weight: 800; color: var(--brand); width: 26px; text-align:center; }
+  .note { color: var(--ink-dim); font-size: 13px; margin-top: 10px; }
+  .seal { border: 2px solid var(--brand); color: var(--brand); border-radius: 4px;
+    display:inline-block; padding: 6px 14px; font-size: 12px; font-weight:700;
+    letter-spacing:1.5px; text-transform: uppercase; margin-top: 6px;}
+</style>
+</head>
+<body>
+  <div class="topbar"><b>◈ BRÚJULA</b> <span>· Coordinación de respuesta · La Guaira</span>
+    <span style="margin-left:auto; font-size:12px; border:1px solid rgba(255,255,255,.4); border-radius:4px; padding:2px 8px">SIN CONEXIÓN · LOCAL</span></div>
+
+  <p class="tagline">Opción 2 — <b>Granate Institucional</b>: papel, orden y autoridad. La estética de un organismo
+  humanitario serio: se parece más a un acta oficial que a una app.</p>
+  <span class="seal">Operational guidance · trained responders only</span>
+
+  <span class="h2wrap"><h2>Filosofía</h2></span>
+  <p>Fondo claro y cálido como papel; el granate profundo manda como color de institución — barras, sellos,
+  botones de decisión. La urgencia usa rojos/ámbares <b>saturados sobre blanco</b>, claramente distintos del
+  granate de marca. Legible en una sala iluminada y al proyectarla; imprime bien un sitrep.</p>
+
+  <span class="h2wrap"><h2>Paleta</h2></span>
+  <div class="swatches">
+    <div class="sw" style="background:#faf7f5"><b>Fondo papel</b><code>#FAF7F5</code></div>
+    <div class="sw" style="background:#f3ecea"><b>Panel</b><code>#F3ECEA</code></div>
+    <div class="sw" style="background:#7a1f2b; color:#fff"><b>Granate (marca)</b><code>#7A1F2B</code></div>
+    <div class="sw" style="background:#5c1520; color:#fff"><b>Granate profundo</b><code>#5C1520</code></div>
+    <div class="sw" style="background:#c81e1e; color:#fff"><b>Crítico</b><code>#C81E1E</code></div>
+    <div class="sw" style="background:#c2620a; color:#fff"><b>Alto</b><code>#C2620A</code></div>
+    <div class="sw" style="background:#a08207; color:#fff"><b>Medio</b><code>#A08207</code></div>
+    <div class="sw" style="background:#1e7d4b; color:#fff"><b>OK / recurso</b><code>#1E7D4B</code></div>
+  </div>
+
+  <span class="h2wrap"><h2>Tipografía</h2></span>
+  <p style="font-size:24px; font-weight:800">Titular 24 · Incidente Playa Grande</p>
+  <p style="font-size:15px">Cuerpo 15 · Sistema (system-ui) — cero fuentes externas, cero red.</p>
+  <p style="font-size:13px; color:var(--ink-dim)">Secundario 13 · metadatos, horas, dispositivos de origen.</p>
+  <p style="font-family:ui-monospace, Consolas, monospace; font-size:13px; color:var(--ink-dim)">Mono 13 · IDs: INC-003 · RES-001 · DSP-001</p>
+
+  <span class="h2wrap"><h2>Escalera de urgencia</h2></span>
+  <div class="badges">
+    <span class="badge b-critical">Crítico</span>
+    <span class="badge b-high">Alto</span>
+    <span class="badge b-medium">Medio</span>
+    <span class="badge b-low">Bajo</span>
+  </div>
+  <p class="note">Bloques sólidos, texto blanco: leíbles proyectados y en papel. El granate nunca aparece en la escalera.</p>
+
+  <span class="h2wrap"><h2>Tarjeta de acción (el héroe)</h2></span>
+  <div class="card critical">
+    <span class="badge b-critical">Crítico</span>
+    <h3 style="margin-top:10px">Edificio colapsado — se oyen voces, ~20 atrapados</h3>
+    <p class="meta">RESCATE + MAQUINARIA · Playa Grande, Catia La Mar · hace 4 min · 2 reportes fusionados</p>
+    <div class="reason"><b>El agente propone:</b> despachar excavadora + cuadrilla (Caraballeda, ~3 km).
+    Rechazó el camión cisterna más cercano: la capacidad debe corresponder a la necesidad.</div>
+    <div class="actions">
+      <button class="confirm">Confirmar despacho</button>
+      <button class="override">Anular</button>
+    </div>
+  </div>
+
+  <span class="h2wrap"><h2>Feed priorizado</h2></span>
+  <div class="feedrow"><span class="pri">1</span><span class="badge b-critical">Crítico</span> Colapso Playa Grande · 20 personas <span style="margin-left:auto; color:var(--ok); font-weight:700">excavadora propuesta</span></div>
+  <div class="feedrow"><span class="pri">2</span><span class="badge b-high">Alto</span> Refugio San José sin agua · 300 personas</div>
+  <div class="feedrow"><span class="pri">3</span><span class="badge b-medium">Medio</span> 45 personas a la intemperie · Los Corales</div>
+</body>
+</html>
