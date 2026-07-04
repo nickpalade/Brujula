@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Brujula — field report test</title>
+<style>
+  :root { --bg:#111827; --card:#1f2937; --text:#f9fafb; --dim:#9ca3af;
+          --accent:#f59e0b; --ok:#34d399; --bad:#f87171; }
+  * { box-sizing: border-box; }
+  body { margin:0; padding:16px; background:var(--bg); color:var(--text);
+         font-family: system-ui, sans-serif; max-width:640px; margin-inline:auto; }
+  h1 { font-size:1.2rem; margin:8px 0; }
+  h1 span { color:var(--accent); }
+  .card { background:var(--card); border-radius:10px; padding:12px; margin:10px 0; }
+  #status { font-size:.85rem; color:var(--dim); }
+  #status b.ok { color:var(--ok); } #status b.bad { color:var(--bad); }
+  textarea { width:100%; min-height:110px; border-radius:8px; border:1px solid #374151;
+             background:#111827; color:var(--text); padding:10px; font-size:1rem; }
+  button { border:0; border-radius:8px; padding:10px 14px; font-size:.95rem;
+           cursor:pointer; margin:6px 6px 0 0; }
+  #send { background:var(--accent); color:#111827; font-weight:700; }
+  .sample { background:#374151; color:var(--text); }
+  pre { white-space:pre-wrap; word-break:break-word; font-size:.85rem;
+        background:#111827; border-radius:8px; padding:10px; min-height:40px; }
+  .sev-critical { color:var(--bad); font-weight:700; }
+  .sev-high { color:var(--accent); font-weight:700; }
+  #latency { color:var(--dim); font-size:.8rem; }
+  h2 { font-size:1rem; margin:0 0 8px; } h3 { font-size:.85rem; color:var(--dim); margin:12px 0 6px; }
+  .mrow { display:flex; align-items:center; gap:8px; padding:6px 0;
+          border-bottom:1px solid #374151; font-size:.9rem; flex-wrap:wrap; }
+  .mrow:last-child { border-bottom:0; }
+  .mname { font-weight:600; } .msize, .mnote { color:var(--dim); font-size:.8rem; }
+  .grow { flex:1; }
+  .mini { padding:6px 10px; font-size:.8rem; margin:0; }
+  .use { background:#374151; color:var(--text); }
+  .active-badge { color:var(--ok); font-size:.8rem; font-weight:700; }
+  .del { background:transparent; color:var(--bad); }
+  #computeToggle .mini.on { background:var(--accent); color:#111827; font-weight:700; }
+  .bar { width:100%; height:6px; background:#374151; border-radius:3px; overflow:hidden; }
+  .bar > div { height:100%; background:var(--accent); transition:width .4s; }
+  .row { display:flex; gap:8px; }
+  input { flex:1; border-radius:8px; border:1px solid #374151; background:#111827;
+          color:var(--text); padding:8px 10px; font-size:.9rem; }
+  select { border-radius:8px; border:1px solid #374151; background:#111827;
+           color:var(--text); padding:6px 8px; font-size:.85rem; }
+  .err { color:var(--bad); font-size:.8rem; }
+</style>
+</head>
+<body>
+  <h1>🧭 Brujula <span>field report test</span></h1>
+
+  <div class="card">
+    <div id="status">checking backend…</div>
+    <div style="margin-top:8px; display:flex; align-items:center; gap:8px;">
+      <span class="mnote">compute:</span>
+      <div id="computeToggle">
+        <button class="mini use" data-mode="gpu">GPU</button>
+        <button class="mini use" data-mode="cpu">CPU</button>
+      </div>
+      <span id="gpuBadge" class="mnote"></span>
+    </div>
+    <div style="margin-top:8px; display:flex; align-items:center; gap:8px;">
+      <span class="mnote">summary language:</span>
+      <select id="langSelect"></select>
+    </div>
+  </div>
+
+  <div class="card">
+    <textarea id="report" placeholder="Write the field report here… (any language)"></textarea>
+    <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap; margin-top:6px;">
+      <button id="send">Parse report</button>
+      <select id="sampleSelect">
+        <option value="">Load a sample…</option>
+      </select>
+    </div>
+  </div>
+
+  <div class="card">
+    <div id="latency"></div>
+    <pre id="out">—</pre>
+  </div>
+
+  <div class="card">
+    <h2>Models</h2>
+    <div id="installed" class="mlist">loading…</div>
+    <h3>Get more</h3>
+    <div id="recommended" class="mlist"></div>
+    <div class="row" style="margin-top:8px">
+      <input id="customModel" placeholder="any ollama model, e.g. qwen2.5:3b">
+      <button id="pullCustom" class="sample">Download</button>
+    </div>
+  </div>
+
+<script>
+const SAMPLES = [
+  { label: "Spanish — derrumbe (rescue)", text: "urgente!! edificio colapsado en la esquina de Av. Bolivar con Calle 5, hay como 12 personas atrapadas bajo los escombros, se escuchan gritos, necesitamos rescate YA" },
+  { label: "Spanish — insulina (medical)", text: "senora diabetica en el refugio San Jose necesita insulina, se le acabo hace 2 dias, esta mareada y debil. tambien hay un nino con fiebre alta" },
+  { label: "Spanish — agua (supply)", text: "en el barrio La Esperanza no ha llegado agua potable desde el martes, somos unas 40 familias, la gente esta empezando a tomar agua del rio" },
+  { label: "English — collapse (rescue)", text: "urgent!! building collapsed at the corner of Bolivar Ave and 5th Street, about 12 people trapped under the rubble, we can hear screams, we need rescue NOW" },
+  { label: "French — eau (supply)", text: "il n'y a plus d'eau potable dans le quartier Delmas depuis lundi, environ 30 familles, les enfants commencent à tomber malades" },
+  { label: "Portuguese — deslizamento (rescue)", text: "deslizamento de terra na comunidade do Morro Azul, tem gente soterrada, uns 8 desaparecidos, precisamos de resgate urgente" },
+  { label: "Haitian Creole — dekonb (rescue)", text: "gen yon fanmi ki kwense anba dekonb yo nan Kafou, nou tande vwa yo, nou bezwen èd kounye a" },
+  { label: "Arabic — أنقاض (rescue)", text: "عائلة عالقة تحت الأنقاض في حي الزيتون، نسمع أصواتهم، نحتاج فريق إنقاذ فوراً" },
+  { label: "Hindi — बाढ़ (shelter)", text: "गांव रामपुर में बाढ़ का पानी घरों में घुस गया है, करीब 50 लोग छत पर फंसे हैं, खाना और पानी नहीं है" },
+  { label: "Ukrainian — порятунок (rescue)", text: "у підвалі зруйнованого будинку на вулиці Шевченка перебувають люди, приблизно 6 осіб, потрібен порятунок" },
+  { label: "Chinese — 倒塌 (rescue)", text: "青山路一栋居民楼倒塌，大约有十人被困在废墟下，急需救援队" },
+  { label: "Indonesian — banjir (shelter)", text: "banjir di desa Sukamaju sejak kemarin, sekitar 20 keluarga mengungsi di masjid, butuh makanan dan air bersih" },
+  { label: "Swahili — mafuriko (rescue)", text: "mafuriko yamefunika nyumba katika kijiji cha Mwanza, watu wapatao 15 wamekwama juu ya paa, tunahitaji msaada haraka" },
+  { label: "Turkish — deprem (rescue)", text: "depremde çöken binanın altında yaklaşık 5 kişi mahsur kaldı, sesleri duyuluyor, acil kurtarma ekibi lazım" }
+];
+
+async function refreshHealth() {
+  const el = document.getElementById("status");
+  try {
+    const r = await (await fetch("/health")).json();
+    const d = r.data || {};
+    const okBadge = d.ollama_reachable ? '<b class="ok">backend OK</b>' : '<b class="bad">backend DOWN</b>';
+    el.innerHTML = `${okBadge} &nbsp; provider: <b>${d.provider}</b> &nbsp; model: <b>${d.model || "none"}</b>`;
+    document.querySelectorAll("#computeToggle .mini").forEach(b =>
+      b.classList.toggle("on", b.dataset.mode === d.compute_mode));
+    document.getElementById("gpuBadge").textContent =
+      d.gpu_in_use ? "⚡ running on GPU" : "running on CPU (loads on next parse)";
+  } catch { el.innerHTML = '<b class="bad">API not reachable</b>'; }
+}
+
+document.querySelectorAll("#computeToggle .mini").forEach(b =>
+  b.addEventListener("click", async () => {
+    await post("/compute-config", { mode: b.dataset.mode });
+    refreshHealth();
+  }));
+
+async function send() {
+  const text = document.getElementById("report").value.trim();
+  const out = document.getElementById("out");
+  const lat = document.getElementById("latency");
+  if (!text) { out.textContent = "Type or pick a sample report first."; return; }
+  out.textContent = "parsing… (first run loads the model, can take ~a minute)";
+  lat.textContent = "";
+  const t0 = performance.now();
+  try {
+    const resp = await fetch("/parse-report", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ text })
+    });
+    const body = await resp.json();
+    lat.textContent = `${((performance.now() - t0) / 1000).toFixed(1)}s`;
+    if (!body.success) { out.textContent = "ERROR: " + body.error; return; }
+    const d = body.data;
+    out.innerHTML = JSON.stringify(d, null, 2)
+      .replace(`"critical"`, `<span class="sev-critical">"critical"</span>`)
+      .replace(`"high"`, `<span class="sev-high">"high"</span>`);
+  } catch (e) { out.textContent = "Request failed: " + e; }
+}
+
+document.getElementById("send").addEventListener("click", send);
+
+const sampleSelect = document.getElementById("sampleSelect");
+SAMPLES.forEach((s, i) => {
+  const opt = document.createElement("option");
+  opt.value = String(i);
+  opt.textContent = s.label;
+  sampleSelect.appendChild(opt);
+});
+sampleSelect.addEventListener("change", () => {
+  if (sampleSelect.value === "") return;
+  document.getElementById("report").value = SAMPLES[+sampleSelect.value].text;
+});
+
+const langSelect = document.getElementById("langSelect");
+async function loadLanguages() {
+  try {
+    const r = await api("/language-config");
+    const d = r.data || {};
+    langSelect.innerHTML = "";
+    for (const l of d.languages || []) {
+      const opt = document.createElement("option");
+      opt.value = l.code;
+      opt.textContent = l.name;
+      if (l.code === d.language) opt.selected = true;
+      langSelect.appendChild(opt);
+    }
+  } catch { langSelect.innerHTML = "<option>unavailable</option>"; }
+}
+langSelect.addEventListener("change", async () => {
+  await post("/language-config", { language: langSelect.value });
+});
+
+const api = async (path, opts) => (await fetch(path, opts)).json();
+const post = (path, body) => api(path, { method: "POST",
+  headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
+
+let pollTimer = null;
+
+async function loadModels() {
+  const [inst, rec, cfg, pulls] = await Promise.all([
+    api("/models"), api("/models/recommended"), api("/model-config"), api("/models/pull-status")
+  ]);
+  const downloads = (pulls.data || {}).downloads || {};
+  const active = (cfg.data || {}).active;
+
+  const instEl = document.getElementById("installed");
+  const models = (inst.data || {}).models || [];
+  instEl.innerHTML = models.length ? "" : `<div class="mnote">${inst.error || "no models installed yet"}</div>`;
+  for (const m of models) {
+    const row = document.createElement("div");
+    row.className = "mrow";
+    row.innerHTML = `<span class="mname">${m.name}</span><span class="msize">${m.size}</span><span class="grow"></span>`;
+    if (m.name === active) {
+      row.insertAdjacentHTML("beforeend", `<span class="active-badge">✓ active</span>`);
+    } else {
+      const use = document.createElement("button");
+      use.className = "mini use"; use.textContent = "Use";
+      use.onclick = async () => { await post("/model-config", { name: m.name }); loadModels(); refreshHealth(); };
+      row.appendChild(use);
+    }
+    const del = document.createElement("button");
+    del.className = "mini del"; del.textContent = "🗑";
+    del.onclick = async () => {
+      if (!confirm(`Delete ${m.name}?`)) return;
+      const r = await fetch(`/models/${m.name}`, { method: "DELETE" });
+      if (!(await r.json()).success) alert("delete failed");
+      loadModels();
+    };
+    row.appendChild(del);
+    instEl.appendChild(row);
+  }
+
+  const recEl = document.getElementById("recommended");
+  recEl.innerHTML = "";
+  for (const m of ((rec.data || {}).models || [])) {
+    const row = document.createElement("div");
+    row.className = "mrow";
+    row.innerHTML = `<span class="mname">${m.name}</span><span class="msize">${m.size}</span>
+                     <span class="mnote">${m.note}</span><span class="grow"></span>`;
+    const dl = downloads[m.name];
+    if (m.installed) {
+      row.insertAdjacentHTML("beforeend", `<span class="active-badge">installed</span>`);
+    } else if (dl && dl.status === "downloading") {
+      row.insertAdjacentHTML("beforeend",
+        `<div class="bar" style="flex-basis:100%"><div style="width:${dl.progress}%"></div></div>
+         <span class="msize">${dl.progress}%</span>`);
+    } else if (dl && dl.status === "error") {
+      row.insertAdjacentHTML("beforeend", `<span class="err">${dl.error}</span>`);
+      addPullButton(row, m.name, "Retry");
+    } else {
+      addPullButton(row, m.name, "Download");
+    }
+    recEl.appendChild(row);
+  }
+
+  const recNames = new Set((((rec.data || {}).models) || []).map(m => m.name));
+  for (const [name, d] of Object.entries(downloads)) {
+    if (recNames.has(name) || d.status === "complete") continue;
+    const row = document.createElement("div");
+    row.className = "mrow";
+    row.innerHTML = `<span class="mname">${name}</span><span class="grow"></span>` +
+      (d.status === "downloading"
+        ? `<div class="bar" style="flex-basis:100%"><div style="width:${d.progress}%"></div></div>
+           <span class="msize">${d.progress}%</span>`
+        : `<span class="err">${d.error}</span>`);
+    recEl.appendChild(row);
+  }
+
+  const downloading = Object.values(downloads).some(d => d.status === "downloading");
+  if (downloading && !pollTimer) pollTimer = setInterval(loadModels, 1500);
+  if (!downloading && pollTimer) {
+    clearInterval(pollTimer); pollTimer = null;
+    for (const [name, d] of Object.entries(downloads))
+      if (d.status === "complete") await post("/models/pull-status/clear", { name });
+  }
+}
+
+function addPullButton(row, name, label) {
+  const btn = document.createElement("button");
+  btn.className = "mini"; btn.style.background = "var(--accent)"; btn.textContent = label;
+  btn.onclick = async () => { await post("/models/pull", { name }); loadModels(); };
+  row.appendChild(btn);
+}
+
+document.getElementById("pullCustom").addEventListener("click", async () => {
+  const name = document.getElementById("customModel").value.trim();
+  if (!name) return;
+  await post("/models/pull", { name });
+  loadModels();
+});
+
+refreshHealth();
+loadModels();
+loadLanguages();
+setInterval(refreshHealth, 10000);
+</script>
+</body>
+</html>

@@ -1,0 +1,20 @@
+{
+  "name": "brujula",
+  "version": "1.0.0",
+  "description": "Brujula model-serving layer — local LLM serving for an offline disaster-coordination hub",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=18.17"
+  },
+  "scripts": {
+    "start": "node server/main.js",
+    "serve": "node server/main.js",
+    "dev": "node --watch server/main.js",
+    "verify": "node verify.js"
+  },
+  "dependencies": {
+    "express": "^5.1.0",
+    "zod": "^4.0.0"
+  }
+}
