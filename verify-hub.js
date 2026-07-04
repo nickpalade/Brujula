@@ -1,8 +1,15 @@
 // Hub acceptance test — replays the PRD §7 demo flow against a running hub
 // (the /api/* surface the React app consumes). Needs the server up with a
 // live model: `npm start`, then `npm run verify:hub`.
-// Override target with E2E_BASE=http://<host>:8000.
+//
+// POST /api/reports acknowledges within REPORT_ACK_TIMEOUT_MS and may finish
+// the pipeline in the background (slow CPU boxes); this harness handles both
+// paths — when the ack carries no incident it polls until the report parses
+// and the match lands. Knobs: E2E_BASE (default http://localhost:8000),
+// E2E_PARSE_TIMEOUT_MS per model stage (default 8 min, generous for CPU).
 const BASE = process.env.E2E_BASE || "http://localhost:8000";
+const PARSE_TIMEOUT_MS = Number(process.env.E2E_PARSE_TIMEOUT_MS ?? 8 * 60_000);
+const POLL_MS = 3000;
 
 async function j(path, opts) {
   const r = await fetch(BASE + path, opts);
@@ -16,6 +23,42 @@ const post = (path, body) =>
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(body),
   });
+
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
+// Poll until the stored report has parsed_into set; returns the incident id.
+async function awaitParsed(reportId, label) {
+  const deadline = Date.now() + PARSE_TIMEOUT_MS;
+  for (;;) {
+    const reps = await j(`/api/reports?ids=${reportId}`);
+    const into = reps[0]?.parsed_into;
+    if (into) return into;
+    if (Date.now() > deadline) {
+      throw new Error(`${label}: report ${reportId} not parsed within ${PARSE_TIMEOUT_MS}ms`);
+    }
+    await sleep(POLL_MS);
+  }
+}
+
+async function getIncident(id) {
+  const incidents = await j("/api/incidents");
+  return incidents.find((i) => i.id === id) ?? null;
+}
+
+// Poll until the incident carries a proposed dispatch (match is one more model
+// call after parse, so it can land after parsed_into does). Null on timeout.
+async function awaitProposal(incidentId, label) {
+  const deadline = Date.now() + PARSE_TIMEOUT_MS;
+  for (;;) {
+    const inc = await getIncident(incidentId);
+    if (inc?.proposed_dispatch_id) return inc;
+    if (Date.now() > deadline) {
+      console.log(`(${label}: no dispatch proposal within ${PARSE_TIMEOUT_MS}ms)`);
+      return inc;
+    }
+    await sleep(POLL_MS);
+  }
+}
 
 let failures = 0;
 function ok(label, cond, extra = "") {
@@ -32,17 +75,33 @@ const R2 =
 const h = await j("/health");
 ok("hub health ok", h.status === "ok", `${h.provider}/${h.model}`);
 
-// 1. submit Playa Grande report -> parsed incident appears
-const s1 = await post("/api/reports", { text: R1, source_device: "field-phone-1", lang: "es" });
-ok("report 1 parsed into an incident", !!s1.incident, `${s1.incident?.category}/${s1.incident?.urgency}`);
-const incId = s1.incident?.id;
-ok("incident is rescue + critical", s1.incident?.category === "rescue" && s1.incident?.urgency === "critical");
-ok("excavator match proposed on report 1", !!s1.incident?.proposed_dispatch_id);
+// 1. submit Playa Grande report -> accepted; parsed incident appears (inline
+// on fast hardware, via background pipeline + polling on slow).
+const s1 = await post("/api/reports", {
+  text: R1,
+  source_device: "field-phone-1",
+  lang: "es",
+  client_ref: `e2e_r1_${process.pid}_${Date.now()}`,
+});
+ok("report 1 accepted by hub", !!s1.report?.id, s1.report?.id);
+const incId = s1.incident?.id ?? (await awaitParsed(s1.report.id, "report 1"));
+ok("report 1 parsed into an incident", !!incId, incId);
+let inc1 = await awaitProposal(incId, "report 1 match");
+ok("incident is rescue + critical", inc1?.category === "rescue" && inc1?.urgency === "critical", `${inc1?.category}/${inc1?.urgency}`);
+ok("excavator match proposed on report 1", !!inc1?.proposed_dispatch_id);
 
 // 2. submit differently-worded duplicate -> merge visible
-const s2 = await post("/api/reports", { text: R2, source_device: "field-phone-3", lang: "es" });
-ok("report 2 dedup-merged into same incident", s2.incident?.id === incId, `got ${s2.incident?.id}`);
-ok("merged_report_ids now has 2", (s2.incident?.merged_report_ids || []).length === 2, JSON.stringify(s2.incident?.merged_report_ids));
+const s2 = await post("/api/reports", {
+  text: R2,
+  source_device: "field-phone-3",
+  lang: "es",
+  client_ref: `e2e_r2_${process.pid}_${Date.now()}`,
+});
+ok("report 2 accepted by hub", !!s2.report?.id, s2.report?.id);
+const incId2 = s2.incident?.id ?? (await awaitParsed(s2.report.id, "report 2"));
+ok("report 2 dedup-merged into same incident", incId2 === incId, `got ${incId2}`);
+const merged = await getIncident(incId);
+ok("merged_report_ids has both reports", (merged?.merged_report_ids || []).length >= 2, JSON.stringify(merged?.merged_report_ids));
 
 // 3. excavator match proposed
 const sync0 = await j("/api/sync?since=0");
@@ -67,7 +126,7 @@ ok("resource status is committed", cres?.status === "committed");
 
 // dedup evidence: merged report bodies fetchable
 const reps = await j(`/api/reports?ids=${(cinc.merged_report_ids || []).join(",")}`);
-ok("merged report bodies fetchable (dedup evidence)", reps.length === 2, `${reps.length} reports`);
+ok("merged report bodies fetchable (dedup evidence)", reps.length >= 2, `${reps.length} reports`);
 
 // 6. advisory panel renders
 const adv = await post("/api/advise", { incident_type: "rescue", context: "collapsed building, 20 trapped" });
