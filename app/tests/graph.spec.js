@@ -180,8 +180,10 @@ test.describe('graph command interface', () => {
     await chat.getByRole('button', { name: 'Close Gemma chat' }).click();
     await expect(chat).toBeHidden();
 
-    // Refresh keeps the sync indicator healthy
-    await topbar.getByRole('button', { name: 'Refresh' }).click();
+    // Sync now (inside command settings) keeps the sync indicator healthy
+    await topbar.getByRole('button', { name: 'Command post settings' }).click();
+    const settings = page.getByRole('dialog', { name: 'Command post settings' });
+    await settings.getByRole('button', { name: 'Sync now' }).click();
     await expect(page.locator('.cmd-sync')).toContainText(/synced \d+s ago/);
   });
 
