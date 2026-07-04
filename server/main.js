@@ -87,7 +87,8 @@ async function ollamaReachable() {
 }
 
 const app = express();
-app.use(express.json({ limit: "1mb" }));
+// 25mb: field reports may attach a photo as base64 (see POST /reports).
+app.use(express.json({ limit: "25mb" }));
 
 app.get("/", (req, res) => {
   res.sendFile("index.html", { root: STATIC_DIR });

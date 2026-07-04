@@ -43,7 +43,9 @@ agentRouter.post("/reports", async (req, res) => {
   const parsed = IngestRequest.safeParse(req.body);
   if (!parsed.success) {
     return envelope(res, {
-      error: "body must be {\"text\": \"<1-8000 chars>\", \"source_device\"?: \"...\"}",
+      error:
+        "body must be {\"text\"?: \"<1-8000 chars>\", \"image_base64\"?: \"...\", " +
+        "\"image_mime\"?: \"...\", \"source_device\"?: \"...\"} with text or image",
       status: 422,
     });
   }
@@ -51,6 +53,8 @@ agentRouter.post("/reports", async (req, res) => {
     const card = await ingestReport({
       text: parsed.data.text,
       sourceDevice: parsed.data.source_device,
+      imageBase64: parsed.data.image_base64,
+      imageMime: parsed.data.image_mime,
     });
     envelope(res, { data: card });
   } catch (err) {

@@ -14,6 +14,10 @@ const REPORT_B =
   "vecinos dicen que hay gente viva adentro, quizas 15 o mas. no hay equipos " +
   "trabajando en el sitio todavia";
 
+const REPORT_C =
+  "aqui en el puerto de La Guaira tenemos un camion cisterna de 8000 litros " +
+  "con chofer, disponible ahora mismo, diganos donde hace falta";
+
 let failures = 0;
 
 function check(label, ok, detail = "") {
@@ -106,6 +110,20 @@ async function main() {
     "board has exactly 3 incidents (2 seeded + 1 merged collapse)",
     board.incidents.length === 3,
     `${board.incidents.length} incidents`,
+  );
+
+  console.log("\n--- report C: a water truck becomes available ---");
+  const waterIncident = board.incidents.find((i) => i.category === "water");
+  const cardC = await call(base, "POST", "/reports", {
+    text: REPORT_C,
+    source_device: "phone-field-3",
+  });
+  check("parsed as resource", cardC.parsed.kind === "resource", `kind=${cardC.parsed.kind}`);
+  check("resource registered", Boolean(cardC.resource), cardC.resource?.id);
+  check(
+    "matched to the waiting water incident",
+    Boolean(cardC.dispatch) && cardC.dispatch.incident_id === waterIncident?.id,
+    cardC.dispatch ? `${cardC.dispatch.incident_id}: ${cardC.dispatch.reason}` : "no dispatch",
   );
 
   if (cardA.dispatch) {

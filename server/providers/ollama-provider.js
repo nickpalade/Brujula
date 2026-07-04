@@ -27,16 +27,15 @@ export class OllamaProvider {
     return names[0];
   }
 
-  async generateStructured({ systemPrompt, userText, jsonSchema }) {
+  async generateStructured({ systemPrompt, userText, jsonSchema, images }) {
     const model = await this.resolveModel();
     const options = { temperature: 0 };
     if (modelConfig.getComputeMode() === "cpu") options.num_gpu = 0;
+    const userMessage = { role: "user", content: userText };
+    if (images?.length) userMessage.images = images.map((i) => i.base64);
     const payload = {
       model,
-      messages: [
-        { role: "system", content: systemPrompt },
-        { role: "user", content: userText },
-      ],
+      messages: [{ role: "system", content: systemPrompt }, userMessage],
       stream: false,
       format: jsonSchema,
       options,
