@@ -6,7 +6,56 @@
 **Repo:** [github.com/nickpalade/Brujula](https://github.com/nickpalade/Brujula) (public, built during the event)  
 **Team (remote, 4):** Pepe / José María (AI agent + integration), Ceco (hub backend + offline sync), Nick (shared React frontend — laptop + mobile), Rares (offline protocol knowledge base)
 
-Grounded in the June 2026 Venezuela earthquakes (M7.2 + M7.5, La Guaira / Caracas corridor). When the network is down, cloud AI is unreachable — Brújula is the **coordinator's brain on local hardware**: messy field reports in, structured incidents and dispatch proposals out, with a human confirming every action.
+---
+
+## The problem
+
+On June 24, 2026, twin earthquakes (M7.2 + M7.5) struck northwestern Venezuela — the La Guaira / Caracas corridor. Comms and power failed. Dozens of agencies, volunteer crews, and survivors were all reporting at once — by voice, text, and photo — in Spanish, often messy and contradictory.
+
+The coordination failure is not that needs and resources don't exist. It's that they **don't get matched**: duplicate teams sent to one collapse while another site waits, water trucks idle near shelters with no drinking water, missing-person names scattered across radios and chat threads. Responders fall back to whiteboards because the digital tools need connectivity they don't have.
+
+## Why offline-first
+
+In the disaster zone the network is down or oversubscribed. Cloud AI is unreachable **exactly when the tool matters most**. Brújula is built on the assumption that **there is no internet in the field** — only a laptop hotspot and phones on local Wi‑Fi. After a one-time bootstrap (model pull, npm install, map tiles), **nothing touches the public internet** during operation.
+
+That is not a preference. It is the only architecture that works in the scenario we built for.
+
+## How we solve it
+
+Brújula is an **offline coordination agent**, not a form and not a dashboard.
+
+1. **Field phones** submit reports — voice, text, photo, GPS when available — through a store-and-forward outbox that survives radio drops.
+2. **Gemma on the command-post laptop** runs a multi-step agent workflow: parse → dedup → prioritize → match. Retrieval (protocol KB, open incidents, resource inventory) is one tool inside that workflow — not the product.
+3. **The coordinator confirms** every dispatch. Gemma proposes; humans decide. Override, edit, rematch, and broadcast alerts stay in human hands.
+4. **Assignments sync back** to field phones over the LAN. Crews update mission status; late-registering volunteers trigger new match proposals for open needs.
+
+The **command graph** makes this visible: field reports flow into a central **Gemma brain** node, structured incidents and dispatches connect out. The agent's reasoning is the product; feed, map, and graph are windows onto it.
+
+## Privacy by design
+
+Reports contain missing-person identities, medical status, and locations of vulnerable people — in a politically charged setting. Routing that through a foreign cloud is unacceptable.
+
+| What | Stays local |
+|---|---|
+| Gemma inference | `localhost:11434` (Ollama on the hub laptop) |
+| Reports, incidents, persons | SQLite on the hub — not sent to Google/OpenAI in field config |
+| Voice audio | Transcribed on hub; not stored |
+| Photos | Parsed by Gemma once; only a `has_image` flag persisted |
+| Protocol guidance | Local KB or Rares' service on `localhost:8100` |
+
+`CLOUD_API_KEY` exists for dev convenience only — **leave unset in the field.**
+
+## Scalable & deployable
+
+Brújula is designed to run **anywhere one laptop can host a hotspot**:
+
+- **One server, many phones** — Express hub at `:8000` serves the React app, API, tiles, and model. Phones install the field PWA from a QR code; no app store, no cloud account.
+- **Hub-and-spoke topology** — the laptop is the edge device running Gemma; phones are spokes that sync over LAN with delta polling and idempotent `client_ref`.
+- **Graceful degradation** — model hiccups store reports as pending; the board keeps working. Protocol KB falls back locally if the knowledge service is down.
+- **Hardware-flexible** — `gemma3n:e4b` runs on a laptop GPU or CPU; GPU/CPU toggle and model manager built in. Size up or down without re-architecting.
+- **Same codebase, two surfaces** — one React app renders Command Post (laptop) and Field client (mobile) from the same design system and API contracts.
+
+Bootstrap once with internet, deploy offline indefinitely.
 
 ---
 
@@ -18,7 +67,7 @@ Grounded in the June 2026 Venezuela earthquakes (M7.2 + M7.5, La Guaira / Caraca
 | **Open source** | Public repo, Apache-2.0 Gemma models. |
 | **New work only** | Built Sat 11:30 → Sun 12:00. No pre-existing product repackaged. |
 | **Not a banned category** | Not basic RAG, Streamlit, medical-advice bot, or "dashboard as the product." A **multi-step Gemma agent** plans, retrieves context, calls tools, and proposes outcomes; views (feed, graph, map) are **windows onto agent output**. |
-| **Demo video** | ≤1 min total for judges. Structure below. |
+| **Demo video** | ≤1 min — see [VIDEO_GUIDE.md](VIDEO_GUIDE.md) and [DEMO.md](DEMO.md) |
 | **What judges should see as ours** | Gemma pipeline (parse → dedup → prioritize → match → advise → emit), offline LAN sync, field store-and-forward, human confirm/override, protocol KB integration, command graph with Gemma as the central brain node, contextual chat that proposes board changes. |
 
 **Submit:** [Cerebral Valley submission form](https://cerebralvalley.ai/e/raise-summit-hackathon/hackathon/submit) — demo video (YouTube/Loom) + this repo + short description.
