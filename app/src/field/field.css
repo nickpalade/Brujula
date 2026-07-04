@@ -108,7 +108,9 @@
 .field-tabs {
   display: flex;
   border-top: 1px solid var(--f-border);
-  background: var(--f-surface);
+  /* Page-dark, not surface: the bottom edge reads as one uniform region
+     under the iOS home indicator instead of a distinct lighter slab. */
+  background: var(--f-bg);
   /* Clear the iOS home indicator without a fat empty band: swallow most of
      the inset so the labels sit just above the indicator, native-tab-bar
      style. Browsers (inset 0) get a slim 6px. */
