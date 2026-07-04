@@ -1,9 +1,10 @@
 # Brújula — Demo Runbook
 
-The PRD §7 script mapped to exact commands. Target: 3 minutes, one take.
-Everything below works with **zero internet** after setup. The demo runs
-through the React app: **Command Post** on the laptop, **field client
-installed on the phone** like a native app.
+The PRD §7 flow cut to the slot: **1 minute, one take.** Everything below
+works with **zero internet** after setup. The demo runs through the React
+app: **Command Post** on the laptop, **field client installed on the phone**
+like a native app. One report, start to finish — everything else stays
+loaded as Q&A ammunition (see "Cut beats" below).
 
 ## Before the demo (T-30 min, do in this order)
 
@@ -62,62 +63,59 @@ installed on the phone** like a native app.
 
 8. **Dry-run once end-to-end**, then reset + reseed (step 5 again).
 
-## The script (3:00)
+## The script (1:00)
 
-**0:00–0:15 — Offline proof.** Show the phone: no internet, only the hotspot.
-"The network in La Guaira is down. Cloud AI is dead. Everything you'll see
-runs on this laptop."
+One continuous arc: messy voice report → structured incident → AI proposal →
+human confirm → assignment on the phone. Submit EARLY — Gemma needs ~10-15 s
+on the GPU for parse + dedup + match, and the narration covers it.
 
-**0:15–0:45 — Field report arrives.** On the phone app, dictate or type, then
-ENVIAR REPORTE:
+**0:00–0:10 — Offline proof + report.** Phone in frame: no internet, hotspot
+only. "The network in La Guaira is down. Cloud AI is dead. Everything runs on
+this laptop." While saying it, dictate on the phone and hit ENVIAR REPORTE:
 
 > *urgente, edificio de 4 pisos colapsado en Playa Grande, Catia La Mar.
 > escuchamos voces bajo los escombros, calculamos unas 20 personas atrapadas.
 > necesitamos maquinaria pesada YA*
 
-The outbox chip flips QUEUED → SYNCED the moment the hub accepts it.
+**0:10–0:25 — Cover the parse.** Outbox chip flips QUEUED → SYNCED — "saved
+on the phone first; radio can die and nothing is lost." Pan the Command Post
+seeded board: "every card here started as messy Spanish voice like that one."
 
-> **Optional photo beat** (feature landed Sat 4 Jul — only include if
-> rehearsed): tap **📷 Añadir foto** and attach a rubble photo before sending.
-> Multimodal Gemma reads damage/hazards/people from the image — a photo can
-> raise urgency or fill fields the text missed. Photos are compressed on the
-> phone and ride the same offline outbox.
+**0:25–0:40 — The incident lands.** Card appears: `rescue · Playa Grande ·
+~20 people · CRITICAL`, ranked **priority 1** above the whole board. "Messy
+speech in, structured triage out — Gemma, on this laptop."
 
-**0:45–1:05 — Gemma parses it live.** On the Command Post, the incident card
-appears: `rescue · Playa Grande, Catia La Mar · ~20 people · CRITICAL` —
-messy Spanish speech → structured incident, ranked **priority 1** above the
-whole seeded board.
+**0:40–0:52 — Proposal → human confirm.** The agent proposes the **idle
+excavator crew from Caraballeda** — point at the rationale: *it rejected the
+closer water truck; capability beats distance*. Click **Confirm**; the
+assignment pops on the phone's Asignaciones tab. "The agent proposes; the
+human decides. Always."
 
-**1:05–1:25 — The proposal.** AI Dispatch Proposals panel: the agent proposes
-the **idle excavator crew from Caraballeda** — point at the rationale line: it
-*rejected the closer water truck because capability beats distance*.
+**0:52–1:00 — Close.** "No connectivity. Nothing left this laptop. Brújula
+works when everything else has failed."
 
-**1:25–1:45 — Dedup.** Second report from the phone (different words, same
-event):
+If the card hasn't landed by 0:25, stretch the board tour — the beats tolerate
+±10 s; the close line does not. Never wait in silence.
 
-> *confirmado derrumbe total de un edificio residencial en playa grande.
-> vecinos dicen que hay gente viva adentro, quizas 15 o mas. no hay equipos
-> trabajando en el sitio todavia*
+## Cut beats — keep loaded for Q&A
 
-The board still shows **ONE** collapse — open the incident drawer and show the
-two merged reports as evidence. "This is the duplicate-dispatch failure that
-costs lives — solved."
+Each of these is one action, pre-rehearsed, ready when a judge asks:
 
-**1:45–2:10 — Human in command.** Coordinator clicks **Confirm** on the
-proposal. Resource flips to committed; the assignment lands on the phone's
-Asignaciones tab a few seconds later. "The agent proposes; the human decides.
-Always."
-
-**2:10–2:30 — Protocol advisory.** In the incident drawer, the advisory panel
-shows INSARAG steps — silence periods to locate live victims, shore before
-entry — served by the local knowledge service, offline, with sources.
-
-**2:30–2:45 — Sitrep.** Click **SITREP** → plain-language situation report for
-the next shift, generated on the spot.
-
-**2:45–3:00 — Close.** "Messy reports in, coordinated action out. No
-connectivity. Nothing left this laptop. Brújula is the tool that works when
-everything else has failed."
+- **Dedup** ("what about duplicate reports?"): send the second collapse report
+  (different words, same event) — board still shows ONE incident; open the
+  drawer, show both merged reports as evidence:
+  > *confirmado derrumbe total de un edificio residencial en playa grande.
+  > vecinos dicen que hay gente viva adentro, quizas 15 o mas.*
+- **Photo triage** ("multimodal?"): 📷 Añadir foto on a rubble photo —
+  compressed on-device, rides the offline outbox, Gemma reads
+  damage/hazards/people from it. Only if rehearsed once with a real photo.
+- **Protocol advisory** ("is the guidance safe?"): incident drawer → INSARAG
+  steps (silence periods, shore before entry) from the local knowledge
+  service, offline, with sources.
+- **Sitrep** ("handoff?"): one click → plain-language situation report.
+- **Roles/crew status** ("who are the resources?"): volunteers and crews
+  register from their phones and become dispatchable; engaged crews are
+  excluded from matching in code.
 
 ## Fallbacks
 
@@ -134,7 +132,9 @@ everything else has failed."
 
 ## Rehearsal checklist
 
-- [ ] Full run under 3:00, timed
+- [ ] Full run under 1:00, timed (including the Gemma wait — rehearse on the
+      demo GPU, not a CPU laptop)
+- [ ] Q&A cut-beats each tried once (dedup, advisory, sitrep at minimum)
 - [ ] `npm run verify:hub` green on the GPU laptop (15 checks)
 - [ ] Warmup done < 60 min before going live
 - [ ] Board reseeded + pages refreshed after every rehearsal
