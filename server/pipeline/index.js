@@ -60,19 +60,22 @@ function resourceDigest(resource) {
 }
 
 // ============================================================= 1. PARSE
-// parseReport(text, lang) → {kind, category, location, people_count, urgency,
-//   summary, resource_label}
+// parseReport(text, lang, images?) → {kind, category, location, people_count,
+//   urgency, summary, resource_label}
+// images: [{base64, mime}] — photo triage; only this step sees the photo,
+// downstream steps work on the structured record (base64 never persisted).
 // May throw PipelineModelError — HUB catches and stores the report as pending.
-export async function parseReport(text, lang) {
+export async function parseReport(text, lang, images) {
   const languageName = summaryLanguageName();
   const parsed = await generateValidated({
     step: "parse",
     systemPrompt: buildParsePrompt(languageName),
     userText: text?.trim()
       ? (lang ? `[reported language: ${lang}]\n${text}` : text)
-      : "(no text provided)",
+      : "(no text — photo-only report)",
     jsonSchema: parsePipelineJsonSchema(),
     validator: ParsePipeline,
+    images,
   });
   // Deterministic normalization: a label only makes sense for offered resources.
   if (parsed.kind !== "resource") parsed.resource_label = null;

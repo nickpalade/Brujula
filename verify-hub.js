@@ -1,5 +1,7 @@
-// Temp INTEGRATION E2E — PRD §7 demo flow against a running hub on :8000.
-// Run: node server/_integration-e2e.mjs   (delete after use)
+// Hub acceptance test — replays the PRD §7 demo flow against a running hub
+// (the /api/* surface the React app consumes). Needs the server up with a
+// live model: `npm start`, then `npm run verify:hub`.
+// Override target with E2E_BASE=http://<host>:8000.
 const BASE = process.env.E2E_BASE || "http://localhost:8000";
 
 async function j(path, opts) {

@@ -46,6 +46,11 @@ Rules:
 - "summary": ONE short plain-text sentence in ${languageName} for the
   coordination board. No markdown, no asterisks.
 
+If a photo is attached, read it: visible damage, hazards, trapped or injured
+people, standing water, collapsed structures. Combine it with the text — a
+photo can raise urgency or fill in missing fields. If there is no text, parse
+the photo alone.
+
 Examples:
 Report: "Se derrumbó una casa en La Guaira, hay como 3 personas adentro, ayuda!"
 JSON: {"kind":"need","category":"rescue","location":"La Guaira","people_count":3,"urgency":"critical","resource_label":null,"summary":"House collapsed in La Guaira, ~3 people trapped inside."}

@@ -77,13 +77,25 @@ hubRouter.post("/api/reports", async (req, res) => {
   const parsed = HubReportRequest.safeParse(req.body);
   if (!parsed.success) {
     return envelope(res, {
-      error: "body must be {\"text\": \"<1-8000 chars>\", \"source_device\"?, \"lang\"?}",
+      error:
+        "body must be {\"text\"?: \"<1-8000 chars>\", \"image_base64\"?, \"image_mime\"?, " +
+        "\"source_device\"?, \"lang\"?} with text or image",
       status: 400,
     });
   }
-  const { text, source_device = null, lang = null } = parsed.data;
+  const { text = null, image_base64 = null, image_mime = null, source_device = null, lang = null } =
+    parsed.data;
 
-  let report = store.addReport({ raw_text: text, source_device, lang });
+  // Photo triage: the image goes to the parse step only; the base64 is never
+  // persisted — the stored report just records that a photo informed it.
+  const images = image_base64 ? [{ base64: image_base64, mime: image_mime }] : undefined;
+
+  let report = store.addReport({
+    raw_text: text ?? "",
+    source_device,
+    lang,
+    has_image: Boolean(image_base64),
+  });
 
   let incident = null;
   try {
@@ -93,7 +105,7 @@ hubRouter.post("/api/reports", async (req, res) => {
     }
 
     // 1. PARSE (only this step is allowed to throw — CONTRACTS §4).
-    const fields = await pipeline.parseReport(text, lang);
+    const fields = await pipeline.parseReport(text, lang, images);
 
     // 2. DEDUP — merge into an existing open incident when the model says so.
     let dedup = { is_duplicate: false };

@@ -29,12 +29,21 @@ export function parsedReportJsonSchema() {
 
 // ---- Hub API request schemas (agent HUB, CONTRACTS §3) ---------------------
 
-// POST /api/reports — only `text` is required.
-export const HubReportRequest = z.object({
-  text: z.string().min(1).max(8000),
-  source_device: z.string().max(200).nullish(),
-  lang: z.string().max(20).nullish(),
-});
+// POST /api/reports — text and/or photo; at least one of the two.
+// Photo triage: image goes to the parse step only (multimodal Gemma), the
+// base64 is never persisted to the store.
+export const HubReportRequest = z
+  .object({
+    text: z.string().max(8000).nullish(),
+    image_base64: z.string().nullish(),
+    image_mime: z.string().max(100).nullish(),
+    source_device: z.string().max(200).nullish(),
+    lang: z.string().max(20).nullish(),
+  })
+  .refine((v) => (v.text ?? "").trim().length > 0 || !!v.image_base64, {
+    message: "text or image_base64 is required",
+    path: ["text"],
+  });
 
 // POST /api/incidents/:id/dispatch — confirm or override a proposed dispatch.
 // `resource_id` is required iff action === "override".

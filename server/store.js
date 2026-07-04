@@ -230,7 +230,7 @@ export function board() {
 
 // ---- writes ----------------------------------------------------------------
 
-export function addReport({ raw_text, source_device = null, lang = null, parsed_into = null }) {
+export function addReport({ raw_text, source_device = null, lang = null, parsed_into = null, has_image = false }) {
   const report = {
     id: newId("rep"),
     raw_text,
@@ -238,6 +238,7 @@ export function addReport({ raw_text, source_device = null, lang = null, parsed_
     lang,
     created_at: now(),
     parsed_into,
+    has_image,
     _seq: bump(),
   };
   db.prepare("INSERT INTO reports (id, seq, data) VALUES (?, ?, ?)").run(
