@@ -101,6 +101,7 @@ export function useOutbox(sourceDevice) {
             text,
             source_device: it.source_device,
             lang: it.lang,
+            client_ref: it.localId,
           })
           sawSuccess = true
           const incidentId =

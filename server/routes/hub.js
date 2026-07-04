@@ -73,30 +73,19 @@ export const hubRouter = express.Router();
 // POST /api/reports — store the raw report, then run the pipeline
 // (parse → dedup → match). On any pipeline failure the report is kept as
 // pending (parsed_into: null) and we return 200 with incident: null.
-hubRouter.post("/api/reports", async (req, res) => {
-  const parsed = HubReportRequest.safeParse(req.body);
-  if (!parsed.success) {
-    return envelope(res, {
-      error:
-        "body must be {\"text\"?: \"<1-8000 chars>\", \"image_base64\"?, \"image_mime\"?, " +
-        "\"source_device\"?, \"lang\"?} with text or image",
-      status: 400,
-    });
-  }
-  const { text = null, image_base64 = null, image_mime = null, source_device = null, lang = null } =
-    parsed.data;
+// How long POST /api/reports waits for the pipeline before acknowledging
+// anyway. Phone browsers abort requests after ~60s; on a CPU-only laptop one
+// Gemma parse can take minutes, so past this deadline we return 200 with
+// incident:null and let the pipeline finish in the background — the incident
+// then reaches every client through /api/sync. On GPU the pipeline finishes
+// well inside the deadline and the response carries the incident inline.
+const REPORT_ACK_TIMEOUT_MS = Number(process.env.REPORT_ACK_TIMEOUT_MS ?? 20_000);
+const ACK_TIMEOUT = Symbol("ack-timeout");
 
-  // Photo triage: the image goes to the parse step only; the base64 is never
-  // persisted — the stored report just records that a photo informed it.
-  const images = image_base64 ? [{ base64: image_base64, mime: image_mime }] : undefined;
-
-  let report = store.addReport({
-    raw_text: text ?? "",
-    source_device,
-    lang,
-    has_image: Boolean(image_base64),
-  });
-
+// Full pipeline for one stored report: parse → dedup → merge/add incident →
+// match. Returns the incident, or null when the report stays pending. Never
+// throws — this also runs detached (post-ack), where a throw would be fatal.
+async function runReportPipeline(reportId, { text, lang, images }) {
   let incident = null;
   try {
     const pipeline = await loadPipeline();
@@ -120,14 +109,14 @@ hubRouter.post("/api/reports", async (req, res) => {
     if (dedup?.is_duplicate && dedup.matching_incident_id) {
       const existing = store.getIncident(dedup.matching_incident_id);
       if (existing) {
-        incident = mergeReportIntoIncident(existing, report.id, fields);
+        incident = mergeReportIntoIncident(existing, reportId, fields);
       }
     }
     if (!incident) {
-      incident = store.addIncident({ ...fields, merged_report_ids: [report.id] });
+      incident = store.addIncident({ ...fields, merged_report_ids: [reportId] });
     }
 
-    report = store.updateReport(report.id, { parsed_into: incident.id });
+    store.updateReport(reportId, { parsed_into: incident.id });
 
     // 3. MATCH — for a need, propose the best available resource (proposal
     // only; the coordinator confirms via POST /api/incidents/:id/dispatch).
@@ -153,11 +142,73 @@ hubRouter.post("/api/reports", async (req, res) => {
     }
   } catch (err) {
     // Pipeline unavailable or parse threw — degrade gracefully, keep pending.
-    logger.warn(`[hub] report ${report.id} stored pending (unparsed): ${err.message}`);
+    logger.warn(`[hub] report ${reportId} stored pending (unparsed): ${err.message}`);
     incident = null;
   }
+  return incident;
+}
 
-  envelope(res, { data: { report, incident } });
+hubRouter.post("/api/reports", async (req, res) => {
+  const parsed = HubReportRequest.safeParse(req.body);
+  if (!parsed.success) {
+    return envelope(res, {
+      error:
+        "body must be {\"text\"?: \"<1-8000 chars>\", \"image_base64\"?, \"image_mime\"?, " +
+        "\"source_device\"?, \"lang\"?, \"client_ref\"?} with text or image",
+      status: 400,
+    });
+  }
+  const {
+    text = null,
+    image_base64 = null,
+    image_mime = null,
+    source_device = null,
+    lang = null,
+    client_ref = null,
+  } = parsed.data;
+
+  // Idempotent replay: the field outbox resends with the same client_ref until
+  // it hears a 200, so a retry must return the already-stored report instead
+  // of creating a duplicate.
+  if (client_ref) {
+    const existing = store.listReports().find((r) => r.client_ref === client_ref);
+    if (existing) {
+      const incident = existing.parsed_into ? store.getIncident(existing.parsed_into) : null;
+      logger.info(`[hub] report replay (client_ref ${client_ref}) → ${existing.id}`);
+      return envelope(res, { data: { report: existing, incident } });
+    }
+  }
+
+  // Photo triage: the image goes to the parse step only; the base64 is never
+  // persisted — the stored report just records that a photo informed it.
+  const images = image_base64 ? [{ base64: image_base64, mime: image_mime }] : undefined;
+
+  const report = store.addReport({
+    raw_text: text ?? "",
+    source_device,
+    lang,
+    has_image: Boolean(image_base64),
+    client_ref,
+  });
+
+  const work = runReportPipeline(report.id, { text, lang, images });
+  const outcome = await Promise.race([
+    work,
+    new Promise((resolve) => {
+      const t = setTimeout(() => resolve(ACK_TIMEOUT), REPORT_ACK_TIMEOUT_MS);
+      if (typeof t.unref === "function") t.unref();
+    }),
+  ]);
+
+  if (outcome === ACK_TIMEOUT) {
+    logger.info(
+      `[hub] report ${report.id} acknowledged before the pipeline finished ` +
+        `(> ${REPORT_ACK_TIMEOUT_MS}ms); incident will surface via /api/sync`,
+    );
+    return envelope(res, { data: { report: store.getReport(report.id), incident: null } });
+  }
+
+  envelope(res, { data: { report: store.getReport(report.id), incident: outcome } });
 });
 
 // Merge a new report's parsed fields into an existing incident. Raises what we

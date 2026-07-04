@@ -39,6 +39,9 @@ export const HubReportRequest = z
     image_mime: z.string().max(100).nullish(),
     source_device: z.string().max(200).nullish(),
     lang: z.string().max(20).nullish(),
+    // Idempotency key from the field outbox: retries carry the same client_ref
+    // so a slow pipeline + client timeout can never duplicate a report.
+    client_ref: z.string().max(120).nullish(),
   })
   .refine((v) => (v.text ?? "").trim().length > 0 || !!v.image_base64, {
     message: "text or image_base64 is required",

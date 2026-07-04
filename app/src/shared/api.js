@@ -80,11 +80,13 @@ export const api = {
   },
 
   // POST /api/reports  → { report, incident|null }
-  async submitReport({ text, source_device = null, lang = 'es' }) {
+  // client_ref: idempotency key (the outbox localId) — retries with the same
+  // ref replay the stored report instead of duplicating it on the hub.
+  async submitReport({ text, source_device = null, lang = 'es', client_ref = null }) {
     if (USE_MOCKS) return mock.submitReport({ text, source_device, lang })
     return request('/api/reports', {
       method: 'POST',
-      body: { text, source_device, lang },
+      body: { text, source_device, lang, ...(client_ref ? { client_ref } : {}) },
     })
   },
 
