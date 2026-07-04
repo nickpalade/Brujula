@@ -26,7 +26,7 @@ test('every command pane can open fullscreen and close with Escape', async ({ pa
   await page.goto('/command')
 
   const panels = page.locator('.cmd-main .bru-panel')
-  await expect(panels).toHaveCount(5)
+  await expect(panels).toHaveCount(6)
 
   for (const panel of await panels.all()) {
     const title = (await panel.getAttribute('aria-label')) || 'panel'

@@ -150,8 +150,8 @@ test('shows a QR code and link to connect a phone', async ({ page }) => {
   const modal = page.getByRole('dialog', { name: 'Connect a phone' });
   await expect(modal).toBeVisible();
 
-  // A QR code renders (qrcode.react draws an <svg>).
-  await expect(modal.getByRole('img')).toBeVisible();
+  // A QR code renders (qrcode.react draws an <svg>, not role=img).
+  await expect(modal.locator('.cmd-connect__qr svg')).toBeVisible();
 
   // The link points at /field on the current origin.
   const link = modal.locator('.cmd-connect__link');
