@@ -1,7 +1,0 @@
-# Protocol content lives here (loaded at startup by the real matcher).
-# To author next (see CLAUDE.md "Knowledge content to author"):
-#   usar.json     - structural_collapse  (INSARAG)
-#   triage.json   - casualty_triage      (START / SALT)
-#   wash.json     - water_sanitation     (Sphere Handbook)
-#   disease.json  - shelter_disease      (WHO/PAHO, Sphere)
-# This placeholder just keeps the empty folder under version control.

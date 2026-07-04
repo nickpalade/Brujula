@@ -46,6 +46,11 @@ Rules:
 - "summary": ONE short plain-text sentence in ${languageName} for the
   coordination board. No markdown, no asterisks.
 
+If a photo is attached, read it: visible damage, hazards, trapped or injured
+people, standing water, collapsed structures. Combine it with the text — a
+photo can raise urgency or fill in missing fields. If there is no text, parse
+the photo alone.
+
 Examples:
 Report: "Se derrumbó una casa en La Guaira, hay como 3 personas adentro, ayuda!"
 JSON: {"kind":"need","category":"rescue","location":"La Guaira","people_count":3,"urgency":"critical","resource_label":null,"summary":"House collapsed in La Guaira, ~3 people trapped inside."}
@@ -87,6 +92,21 @@ incident and a list of AVAILABLE resources, pick the single best resource to
 dispatch:
 - the capability must actually serve the need: machinery for people trapped
   under rubble, medical capacity for casualties, water supply for water needs.
+- resources with type "volunteer" are registered volunteer teams: general
+  labor only — shelter setup, food/water distribution, welfare checks, light
+  debris clearing. NEVER send volunteers to technical rescue, medical care, or
+  machinery work; prefer a specialized team when one fits the need.
+- specialized field crews appear with their capability as the type (rescue,
+  medical, water, shelter, food, machinery) — treat them like any other
+  resource of that type.
+- each resource has a "field_status": "idle" = at base and ready;
+  "returning" = a crew heading back from a finished assignment, still
+  re-taskable, whose location is the site they are leaving. Crews that are
+  traveling to or working a site are engaged and never appear in your list.
+- when both an idle resource and a returning crew fit the need, send whichever
+  is CLOSEST to the incident by the locations given: a returning crew already
+  near the new incident beats dispatching a fresh crew from farther away — and
+  a fresh crew that is closer beats re-tasking a distant returning crew.
 - among those that fit, prefer the nearest by the locations given.
 - if NO available resource genuinely fits, return null — never force a bad match.
 

@@ -1,0 +1,71 @@
+{
+  "_comment": "Urban Search & Rescue protocol for incident_type=structural_collapse. Operational guidance for trained responders, paraphrased from the INSARAG methodology (no verbatim handbook text). Sorting/extrication procedure only - no patient diagnosis or treatment. Loaded by matcher.py at startup; keywords drive the forgiving fallback match on needs/notes.",
+  "incident_type": "structural_collapse",
+  "title": "Urban Search & Rescue - structural collapse",
+  "source_standards": ["INSARAG"],
+  "keywords": [
+    "collapse", "collapsed", "collapsing", "colapso", "colapsado",
+    "rubble", "debris", "escombros", "derrumbe",
+    "trapped", "buried", "pinned", "atrapado", "atrapada", "atrapados",
+    "void", "voids", "knocking", "tapping",
+    "extrication", "extricate", "shoring", "rescue",
+    "lifting", "crane"
+  ],
+  "guidance": [
+    {
+      "step": 1,
+      "action": "Complete a scene size-up before anyone approaches: building type, damage pattern, visible voids, and active hazards (gas, electricity, unstable walls, aftershock risk).",
+      "priority": "critical",
+      "rationale": "Every entry decision flows from the size-up; skipping it is the main cause of secondary responder casualties.",
+      "source": "INSARAG USAR"
+    },
+    {
+      "step": 2,
+      "action": "Isolate utilities before any search or powered-tool work: shut off gas at the main and de-energize electrical feeds to the structure.",
+      "priority": "critical",
+      "rationale": "Ignition of leaking gas and contact with live wiring are the two fastest ways a rescue site kills its rescuers.",
+      "source": "INSARAG USAR"
+    },
+    {
+      "step": 3,
+      "action": "Interview bystanders, family, and neighbours for how many occupants were inside and their last known locations within the structure.",
+      "priority": "high",
+      "rationale": "Occupant intelligence focuses the void search where live victims are most likely to be.",
+      "source": "INSARAG USAR"
+    },
+    {
+      "step": 4,
+      "action": "Run a surface search, then hail: call out, order total silence on site, and listen for knocking or voices; repeat from several points around the structure.",
+      "priority": "high",
+      "rationale": "Locating survivors by sound narrows the dig site before rescuers are committed to slow, risky breaching.",
+      "source": "INSARAG USAR"
+    },
+    {
+      "step": 5,
+      "action": "Shore or crib every void before entry, and never place any part of the body under a load that is not supported.",
+      "priority": "critical",
+      "rationale": "Unshored voids fail when disturbed; shoring is what keeps a rescue from becoming a second collapse.",
+      "source": "INSARAG USAR"
+    },
+    {
+      "step": 6,
+      "action": "Prioritize extrication by signs of life and accessibility: reachable victims with confirmed signs of life first, and assign heavy-lifting resources to them.",
+      "priority": "high",
+      "rationale": "Ordering work by survivability and access maximizes lives saved per hour of scarce rescue capacity.",
+      "source": "INSARAG USAR"
+    },
+    {
+      "step": 7,
+      "action": "Apply the standard INSARAG worksite marking to every searched structure, recording team, time, hazards, and victims found.",
+      "priority": "routine",
+      "rationale": "Consistent marking stops different teams and shifts from re-searching the same site.",
+      "source": "INSARAG"
+    }
+  ],
+  "safety_flags": [
+    "Do not enter unshored voids",
+    "Isolate gas and electricity before using powered tools",
+    "Post an aftershock lookout and agree an evacuation signal before entry",
+    "Never work under an unsupported load"
+  ]
+}

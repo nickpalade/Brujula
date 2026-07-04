@@ -12,7 +12,8 @@
     "serve": "node server/main.js",
     "dev": "node --watch server/main.js",
     "seed": "node scripts/seed.js",
-    "verify": "node verify.js"
+    "verify": "node verify.js",
+    "verify:hub": "node verify-hub.js"
   },
   "dependencies": {
     "express": "^5.1.0",

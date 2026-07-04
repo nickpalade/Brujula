@@ -6,7 +6,7 @@ import express from "express";
 
 import { logger } from "../logger.js";
 import * as store from "../store.js";
-import { DispatchActionRequest, HubReportRequest } from "../schemas.js";
+import { CrewStatusRequest, DispatchActionRequest, HubReportRequest, RegisterRequest } from "../schemas.js";
 
 // Agent HUB — the hub data layer's REST API (CONTRACTS §3, PRD §5B/§6).
 // Mounted once by server/main.js (`app.use(hubRouter)`); routes carry their
@@ -73,18 +73,19 @@ export const hubRouter = express.Router();
 // POST /api/reports — store the raw report, then run the pipeline
 // (parse → dedup → match). On any pipeline failure the report is kept as
 // pending (parsed_into: null) and we return 200 with incident: null.
-hubRouter.post("/api/reports", async (req, res) => {
-  const parsed = HubReportRequest.safeParse(req.body);
-  if (!parsed.success) {
-    return envelope(res, {
-      error: "body must be {\"text\": \"<1-8000 chars>\", \"source_device\"?, \"lang\"?}",
-      status: 400,
-    });
-  }
-  const { text, source_device = null, lang = null } = parsed.data;
+// How long POST /api/reports waits for the pipeline before acknowledging
+// anyway. Phone browsers abort requests after ~60s; on a CPU-only laptop one
+// Gemma parse can take minutes, so past this deadline we return 200 with
+// incident:null and let the pipeline finish in the background — the incident
+// then reaches every client through /api/sync. On GPU the pipeline finishes
+// well inside the deadline and the response carries the incident inline.
+const REPORT_ACK_TIMEOUT_MS = Number(process.env.REPORT_ACK_TIMEOUT_MS ?? 20_000);
+const ACK_TIMEOUT = Symbol("ack-timeout");
 
-  let report = store.addReport({ raw_text: text, source_device, lang });
-
+// Full pipeline for one stored report: parse → dedup → merge/add incident →
+// match. Returns the incident, or null when the report stays pending. Never
+// throws — this also runs detached (post-ack), where a throw would be fatal.
+async function runReportPipeline(reportId, { text, lang, images }) {
   let incident = null;
   try {
     const pipeline = await loadPipeline();
@@ -93,7 +94,7 @@ hubRouter.post("/api/reports", async (req, res) => {
     }
 
     // 1. PARSE (only this step is allowed to throw — CONTRACTS §4).
-    const fields = await pipeline.parseReport(text, lang);
+    const fields = await pipeline.parseReport(text, lang, images);
 
     // 2. DEDUP — merge into an existing open incident when the model says so.
     let dedup = { is_duplicate: false };
@@ -108,21 +109,23 @@ hubRouter.post("/api/reports", async (req, res) => {
     if (dedup?.is_duplicate && dedup.matching_incident_id) {
       const existing = store.getIncident(dedup.matching_incident_id);
       if (existing) {
-        incident = mergeReportIntoIncident(existing, report.id, fields);
+        incident = mergeReportIntoIncident(existing, reportId, fields);
       }
     }
     if (!incident) {
-      incident = store.addIncident({ ...fields, merged_report_ids: [report.id] });
+      incident = store.addIncident({ ...fields, merged_report_ids: [reportId] });
     }
 
-    report = store.updateReport(report.id, { parsed_into: incident.id });
+    store.updateReport(reportId, { parsed_into: incident.id });
 
     // 3. MATCH — for a need, propose the best available resource (proposal
     // only; the coordinator confirms via POST /api/incidents/:id/dispatch).
     if (incident.kind === "need" && !incident.proposed_dispatch_id) {
       try {
         if (typeof pipeline.proposeMatch === "function") {
-          const match = await pipeline.proposeMatch(incident, store.availableResources());
+          // matchable = available + returning crews (re-taskable); engaged
+          // crews (traveling / on_site) are excluded before Gemma ever looks.
+          const match = await pipeline.proposeMatch(incident, store.matchableResources());
           if (match && match.resource_id && store.getResource(match.resource_id)) {
             const dispatch = store.addDispatch({
               incident_id: incident.id,
@@ -141,11 +144,75 @@ hubRouter.post("/api/reports", async (req, res) => {
     }
   } catch (err) {
     // Pipeline unavailable or parse threw — degrade gracefully, keep pending.
-    logger.warn(`[hub] report ${report.id} stored pending (unparsed): ${err.message}`);
+    logger.warn(`[hub] report ${reportId} stored pending (unparsed): ${err.message}`);
     incident = null;
   }
+  return incident;
+}
 
-  envelope(res, { data: { report, incident } });
+hubRouter.post("/api/reports", async (req, res) => {
+  const parsed = HubReportRequest.safeParse(req.body);
+  if (!parsed.success) {
+    return envelope(res, {
+      error:
+        "body must be {\"text\"?: \"<1-8000 chars>\", \"image_base64\"?, \"image_mime\"?, " +
+        "\"source_device\"?, \"lang\"?, \"client_ref\"?} with text or image",
+      status: 400,
+    });
+  }
+  const {
+    text = null,
+    image_base64 = null,
+    image_mime = null,
+    source_device = null,
+    lang = null,
+    client_ref = null,
+    reported_by = null,
+  } = parsed.data;
+
+  // Idempotent replay: the field outbox resends with the same client_ref until
+  // it hears a 200, so a retry must return the already-stored report instead
+  // of creating a duplicate.
+  if (client_ref) {
+    const existing = store.listReports().find((r) => r.client_ref === client_ref);
+    if (existing) {
+      const incident = existing.parsed_into ? store.getIncident(existing.parsed_into) : null;
+      logger.info(`[hub] report replay (client_ref ${client_ref}) → ${existing.id}`);
+      return envelope(res, { data: { report: existing, incident } });
+    }
+  }
+
+  // Photo triage: the image goes to the parse step only; the base64 is never
+  // persisted — the stored report just records that a photo informed it.
+  const images = image_base64 ? [{ base64: image_base64, mime: image_mime }] : undefined;
+
+  const report = store.addReport({
+    raw_text: text ?? "",
+    source_device,
+    lang,
+    has_image: Boolean(image_base64),
+    client_ref,
+    reported_by,
+  });
+
+  const work = runReportPipeline(report.id, { text, lang, images });
+  const outcome = await Promise.race([
+    work,
+    new Promise((resolve) => {
+      const t = setTimeout(() => resolve(ACK_TIMEOUT), REPORT_ACK_TIMEOUT_MS);
+      if (typeof t.unref === "function") t.unref();
+    }),
+  ]);
+
+  if (outcome === ACK_TIMEOUT) {
+    logger.info(
+      `[hub] report ${report.id} acknowledged before the pipeline finished ` +
+        `(> ${REPORT_ACK_TIMEOUT_MS}ms); incident will surface via /api/sync`,
+    );
+    return envelope(res, { data: { report: store.getReport(report.id), incident: null } });
+  }
+
+  envelope(res, { data: { report: store.getReport(report.id), incident: outcome } });
 });
 
 // Merge a new report's parsed fields into an existing incident. Raises what we
@@ -169,6 +236,90 @@ function mergeReportIntoIncident(incident, reportId, fields) {
   }
   return store.updateIncident(incident.id, patch);
 }
+
+// ---- personnel registration -------------------------------------------------
+
+const SKILL_LABEL = {
+  rescue: "rescate",
+  medical: "médico",
+  water: "agua",
+  shelter: "refugio",
+  food: "comida",
+  machinery: "maquinaria",
+};
+
+function resourceFieldsFor(person) {
+  if (person.role === "volunteer") {
+    return {
+      type: "volunteer",
+      label: `${person.name} — equipo voluntario${person.team_size ? ` ×${person.team_size}` : ""}`,
+      location: person.location ?? null,
+      capacity: person.team_size ?? null,
+    };
+  }
+  // crew: the resource carries the actual capability so the matcher can use it.
+  const skill = person.skill ?? "rescue";
+  return {
+    type: skill,
+    label: `${person.name} — equipo ${SKILL_LABEL[skill] ?? skill}${person.team_size ? ` ×${person.team_size}` : ""}`,
+    location: person.location ?? null,
+    capacity: person.team_size ?? null,
+  };
+}
+
+// POST /api/register — field device signs up as reporter / volunteer / crew.
+// Upsert by device_id (safe to call on every app launch). Volunteers and crews
+// also get (or refresh) a linked resource on the board, which the pipeline's
+// match step reads — Gemma proposes dispatching them like any other resource.
+hubRouter.post("/api/register", (req, res) => {
+  const parsed = RegisterRequest.safeParse(req.body);
+  if (!parsed.success) {
+    return envelope(res, {
+      error:
+        "body must be {\"role\": \"reporter\"|\"volunteer\"|\"crew\", \"name\", \"device_id\", " +
+        "\"skill\"? (crew), \"location\"?, \"team_size\"?}",
+      status: 400,
+    });
+  }
+  const { role, name, skill = null, location = null, team_size = null, device_id } = parsed.data;
+
+  let person = store.getPersonnelByDevice(device_id);
+  const fields = { role, name, skill, location, team_size, device_id };
+  person = person
+    ? store.updatePersonnel(person.id, fields)
+    : store.addPersonnel(fields);
+
+  let resource = null;
+  if (role === "volunteer" || role === "crew") {
+    const rf = resourceFieldsFor(person);
+    const existing = person.resource_id ? store.getResource(person.resource_id) : null;
+    if (existing) {
+      // Refresh profile fields; keep dispatch status (committed stays committed).
+      resource = store.updateResource(existing.id, rf);
+    } else {
+      resource = store.addResource({ ...rf, status: "available", field_status: "idle" });
+      person = store.updatePersonnel(person.id, { resource_id: resource.id });
+    }
+    logger.info(`[hub] registered ${role} '${name}' (${device_id}) → resource ${resource.id}`);
+  } else {
+    // Role switched to reporter: their old resource is no longer offerable.
+    if (person.resource_id) {
+      const old = store.getResource(person.resource_id);
+      if (old && old.status === "available") {
+        store.updateResource(old.id, { status: "unavailable" });
+      }
+      person = store.updatePersonnel(person.id, { resource_id: null });
+    }
+    logger.info(`[hub] registered reporter '${name}' (${device_id})`);
+  }
+
+  envelope(res, { data: { personnel: person, resource } });
+});
+
+// GET /api/personnel — the roster (registered devices), for the command side.
+hubRouter.get("/api/personnel", (req, res) => {
+  envelope(res, { data: store.listPersonnel() });
+});
 
 // GET /api/incidents — priority-ordered board.
 hubRouter.get("/api/incidents", async (req, res) => {
@@ -254,10 +405,64 @@ hubRouter.post("/api/incidents/:id/dispatch", (req, res) => {
   }
 
   const updated = store.updateDispatch(dispatch.id, patch);
-  store.updateResource(updated.resource_id, { status: "committed" });
+  // Confirmed = the crew is now en route; engaged crews leave the match pool.
+  store.updateResource(updated.resource_id, { status: "committed", field_status: "traveling" });
   store.updateIncident(incident.id, { status: "dispatched" });
 
   envelope(res, { data: updated });
+});
+
+// POST /api/crew-status — a volunteer/crew phone updates its mission state.
+// Deterministic lifecycle glue around the matcher:
+//   idle       → back at base: resource available again, location = home base
+//   traveling  → engaged (excluded from matching)
+//   on_site    → engaged; location = the dispatched incident's site
+//   returning  → re-taskable; location stays at the site they're leaving, so
+//                "closest to the new incident" is meaningful for Gemma
+// (Phone GPS will replace this honor-system location once the map lands.)
+hubRouter.post("/api/crew-status", (req, res) => {
+  const parsed = CrewStatusRequest.safeParse(req.body);
+  if (!parsed.success) {
+    return envelope(res, {
+      error:
+        "body must be {\"device_id\", \"field_status\": \"idle\"|\"traveling\"|\"on_site\"|\"returning\"}",
+      status: 400,
+    });
+  }
+  const { device_id, field_status } = parsed.data;
+
+  const person = store.getPersonnelByDevice(device_id);
+  if (!person) {
+    return envelope(res, { error: `no registration for device ${device_id}`, status: 404 });
+  }
+  if (!person.resource_id) {
+    return envelope(res, { error: "device is registered as a reporter (no crew resource)", status: 409 });
+  }
+  const resource = store.getResource(person.resource_id);
+  if (!resource) {
+    return envelope(res, { error: `resource ${person.resource_id} not found (board reseeded? re-register)`, status: 404 });
+  }
+
+  const patch = { field_status };
+
+  // Where is the crew? on_site/returning → at/near their dispatched incident;
+  // idle → back at their registered base.
+  if (field_status === "on_site" || field_status === "returning") {
+    const lastConfirmed = store
+      .listDispatches()
+      .filter((d) => d.resource_id === resource.id && (d.state === "confirmed" || d.state === "done"))
+      .sort((a, b) => (a.confirmed_by_human_at ?? "") < (b.confirmed_by_human_at ?? "") ? -1 : 1)
+      .pop();
+    const site = lastConfirmed ? store.getIncident(lastConfirmed.incident_id)?.location : null;
+    if (site) patch.location = site;
+  } else if (field_status === "idle") {
+    patch.location = person.location ?? resource.location;
+    patch.status = "available"; // mission over — fully back in the pool
+  }
+
+  const updated = store.updateResource(resource.id, patch);
+  logger.info(`[hub] crew-status ${person.name} (${device_id}) → ${field_status}${patch.location ? ` @ ${patch.location}` : ""}`);
+  envelope(res, { data: { personnel: person, resource: updated } });
 });
 
 // GET /api/sync?since=<seq> — deltas since a monotonic seq (default full board).

@@ -1,0 +1,62 @@
+{
+  "_comment": "Casualty triage protocol for incident_type=casualty_triage. SORTING ONLY - this file directs how trained responders categorize casualties under START/SALT; it contains no diagnosis and no treatment steps, by design (CLAUDE.md hard rule 3). Paraphrased from the public START and SALT mass-casualty triage schemes. Loaded by matcher.py at startup; keywords drive the forgiving fallback match on needs/notes.",
+  "incident_type": "casualty_triage",
+  "title": "Mass-casualty triage - START / SALT sorting",
+  "source_standards": ["START", "SALT"],
+  "keywords": [
+    "triage", "triaje",
+    "casualty", "casualties", "victims",
+    "injured", "injuries", "injury", "wounded",
+    "heridos", "heridas",
+    "unconscious", "bleeding", "medical"
+  ],
+  "guidance": [
+    {
+      "step": 1,
+      "action": "Announce that everyone who can walk should move to the marked MINOR (green) collection area.",
+      "priority": "high",
+      "rationale": "The global sort instantly separates the least urgent group and shrinks the pool needing individual assessment.",
+      "source": "START"
+    },
+    {
+      "step": 2,
+      "action": "Ask those remaining to wave or make a purposeful movement; assess the still, silent casualties first.",
+      "priority": "high",
+      "rationale": "Non-responders are statistically the most urgent, so they go to the front of the assessment line when responders are few.",
+      "source": "SALT"
+    },
+    {
+      "step": 3,
+      "action": "Assess each remaining casualty on respirations, perfusion, and mental status (RPM): breathing present and rate, radial pulse or capillary refill, and ability to follow simple commands.",
+      "priority": "critical",
+      "rationale": "Three fast, objective checks let different responders sort the same casualty to the same category.",
+      "source": "START"
+    },
+    {
+      "step": 4,
+      "action": "Tag every casualty with a category: IMMEDIATE (red) for life-threatening findings, DELAYED (yellow) for serious but able to wait, MINOR (green) for the walking wounded.",
+      "priority": "critical",
+      "rationale": "Visible category tags let transport and care be allocated by survival benefit instead of arrival order.",
+      "source": "START / SALT"
+    },
+    {
+      "step": 5,
+      "action": "Assign EXPECTANT for casualties whose injuries are not survivable with the resources actually on hand, and revisit that assignment whenever capacity changes.",
+      "priority": "high",
+      "rationale": "An explicit expectant category preserves scarce capacity for salvageable casualties and is deliberately reversible.",
+      "source": "SALT"
+    },
+    {
+      "step": 6,
+      "action": "Re-triage continuously and report the running category counts (red / yellow / green / expectant) to the command post.",
+      "priority": "routine",
+      "rationale": "Casualties deteriorate and resources arrive; a single triage pass under-serves a changing scene, and counts drive transport priority.",
+      "source": "START / SALT"
+    }
+  ],
+  "safety_flags": [
+    "Sorting only - this service does not direct any treatment",
+    "Re-triage as conditions or resources change; categories are not final",
+    "Do not enter an unsecured scene to reach casualties"
+  ]
+}

@@ -56,23 +56,37 @@ function resourceDigest(resource) {
     location: resource.location ?? null,
     capacity: resource.capacity ?? null,
     status: resource.status,
+    // Mission state for crews: idle (at base) or returning (re-taskable,
+    // location = the site they're leaving). Engaged crews are filtered out
+    // before the digest is built.
+    field_status: resource.field_status ?? "idle",
   };
 }
 
+// A resource the matcher may propose: available, or a returning crew
+// (re-taskable). Engaged crews (traveling / on_site) never reach the model.
+function isMatchable(r) {
+  if (r.field_status === "traveling" || r.field_status === "on_site") return false;
+  return r.status === "available" || r.field_status === "returning";
+}
+
 // ============================================================= 1. PARSE
-// parseReport(text, lang) → {kind, category, location, people_count, urgency,
-//   summary, resource_label}
+// parseReport(text, lang, images?) → {kind, category, location, people_count,
+//   urgency, summary, resource_label}
+// images: [{base64, mime}] — photo triage; only this step sees the photo,
+// downstream steps work on the structured record (base64 never persisted).
 // May throw PipelineModelError — HUB catches and stores the report as pending.
-export async function parseReport(text, lang) {
+export async function parseReport(text, lang, images) {
   const languageName = summaryLanguageName();
   const parsed = await generateValidated({
     step: "parse",
     systemPrompt: buildParsePrompt(languageName),
     userText: text?.trim()
       ? (lang ? `[reported language: ${lang}]\n${text}` : text)
-      : "(no text provided)",
+      : "(no text — photo-only report)",
     jsonSchema: parsePipelineJsonSchema(),
     validator: ParsePipeline,
+    images,
   });
   // Deterministic normalization: a label only makes sense for offered resources.
   if (parsed.kind !== "resource") parsed.resource_label = null;
@@ -210,7 +224,7 @@ export function prioritize(incidents) {
 // Fallback (any failure or no fit): null.
 export async function proposeMatch(incident, availableResources) {
   const available = Array.isArray(availableResources)
-    ? availableResources.filter((r) => r.status === "available")
+    ? availableResources.filter(isMatchable)
     : [];
   if (available.length === 0) return null;
 

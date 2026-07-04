@@ -1,0 +1,65 @@
+{
+  "_comment": "Shelter & disease-control protocol for incident_type=shelter_disease. Population-level operational guidance for trained responders, paraphrased from WHO/PAHO emergency guidance and Sphere shelter standards. No individual diagnosis or treatment - case identification here is shelter-level surveillance and cohorting only. Loaded by matcher.py at startup; keywords drive the forgiving fallback match on needs/notes.",
+  "incident_type": "shelter_disease",
+  "title": "Shelter crowding and communicable-disease control",
+  "source_standards": ["WHO/PAHO", "Sphere Handbook"],
+  "keywords": [
+    "measles", "sarampion", "rash", "fever", "fiebre",
+    "outbreak", "epidemic", "brote", "epidemia",
+    "cholera", "colera", "diarrhoea", "diarrhea",
+    "vaccine", "vaccination", "vaccinate", "vacuna",
+    "isolation", "quarantine",
+    "crowding", "crowded", "overcrowded", "overcrowding",
+    "shelter", "shelters", "albergue",
+    "disease", "diseases", "infection", "infectious", "surveillance"
+  ],
+  "guidance": [
+    {
+      "step": 1,
+      "action": "Make measles vaccination of children (typically 6 months to 15 years) a first-line priority at shelter intake, run jointly with the responsible health authority.",
+      "priority": "critical",
+      "rationale": "Measles spreads explosively in crowded, low-coverage shelters and is a leading cause of preventable outbreak deaths after disasters.",
+      "source": "WHO/PAHO"
+    },
+    {
+      "step": 2,
+      "action": "Reduce crowding toward at least about 3.5 m2 of covered living space per person, keep sleeping areas grouped by family, and ventilate enclosed spaces.",
+      "priority": "high",
+      "rationale": "Crowding is the main amplifier of measles and other airborne transmission inside shelters.",
+      "source": "Sphere Handbook"
+    },
+    {
+      "step": 3,
+      "action": "Set up a separated cohort area for suspected fever-and-rash or acute watery diarrhoea cases, away from communal sleeping, pending referral to health services.",
+      "priority": "high",
+      "rationale": "Early shelter-level separation slows transmission before health authorities confirm what is circulating.",
+      "source": "WHO/PAHO"
+    },
+    {
+      "step": 4,
+      "action": "Cut faecal-oral spread inside the shelter: safe drinking water, soap and handwashing points, rapid safe management of excreta, and clean food-preparation surfaces.",
+      "priority": "high",
+      "rationale": "Diarrhoeal disease and cholera are the shelter's second major outbreak threat after measles.",
+      "source": "WHO/PAHO / Sphere"
+    },
+    {
+      "step": 5,
+      "action": "Run a simple daily surveillance tally - counts of fever-and-rash and of acute watery diarrhoea - and escalate to the health authority on any suspected measles case or a sudden rise in diarrhoea counts.",
+      "priority": "routine",
+      "rationale": "A paper tally is enough to detect an outbreak days earlier, while it is still containable.",
+      "source": "WHO/PAHO"
+    },
+    {
+      "step": 6,
+      "action": "Manage the dead with dignity through the responsible authority; bodies of disaster trauma victims are not in themselves an epidemic source, so do not divert outbreak resources to rushed mass burials.",
+      "priority": "routine",
+      "rationale": "The corpse-epidemic belief is a documented post-disaster myth that wastes control resources and harms families.",
+      "source": "WHO/PAHO"
+    }
+  ],
+  "safety_flags": [
+    "Coordinate vaccination and outbreak response with the responsible health authority",
+    "Population-level disease control only - refer individual care to health services",
+    "Escalate any suspected measles case to the health authority immediately"
+  ]
+}

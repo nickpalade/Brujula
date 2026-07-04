@@ -1,0 +1,63 @@
+{
+  "_comment": "Water & sanitation protocol for incident_type=water_sanitation. Operational guidance for trained responders, paraphrased from the Sphere Handbook WASH minimum standards (indicator values are the public Sphere/WHO figures, stated in our own words). No patient diagnosis or treatment. Loaded by matcher.py at startup; keywords drive the forgiving fallback match on needs/notes.",
+  "incident_type": "water_sanitation",
+  "title": "Water, sanitation and hygiene (WASH)",
+  "source_standards": ["Sphere Handbook", "WHO/PAHO"],
+  "keywords": [
+    "water", "drinking", "potable", "thirst", "agua",
+    "chlorine", "chlorination", "cloro", "boil", "boiling",
+    "latrine", "latrines", "letrina", "letrinas",
+    "sanitation", "saneamiento", "sewage", "wash",
+    "faeces", "feces", "faecal", "fecal",
+    "hygiene", "soap", "contamination", "contaminated"
+  ],
+  "guidance": [
+    {
+      "step": 1,
+      "action": "Plan for at least about 15 litres of safe water per person per day for drinking, cooking, and hygiene, and keep water points within roughly 500 m of shelters.",
+      "priority": "critical",
+      "rationale": "This is the Sphere basic survival quantity; below it, dehydration and hygiene-related disease climb sharply.",
+      "source": "Sphere Handbook"
+    },
+    {
+      "step": 2,
+      "action": "Make water potable before distribution: bring it to a rolling boil for about one minute, or chlorinate to a free chlorine residual of about 0.2-0.5 mg/L at the point of use; let cloudy water settle or filter it first.",
+      "priority": "critical",
+      "rationale": "Untreated water in a contaminated zone is the main driver of diarrhoeal disease, and chlorine works poorly in turbid water.",
+      "source": "Sphere Handbook / WHO"
+    },
+    {
+      "step": 3,
+      "action": "Site latrines at least 30 m from any water source, with the pit bottom about 1.5 m above the water table, and downhill of wells.",
+      "priority": "high",
+      "rationale": "Physical separation is what prevents faecal contamination of the drinking-water supply.",
+      "source": "Sphere Handbook"
+    },
+    {
+      "step": 4,
+      "action": "Provide at least one latrine per 20 people, separated by sex, lockable from inside, and lit at night.",
+      "priority": "high",
+      "rationale": "Adequate, safe sanitation coverage curbs open defecation and keeps latrines usable by women and children.",
+      "source": "Sphere Handbook"
+    },
+    {
+      "step": 5,
+      "action": "Set up handwashing points with soap (or ash if soap is unavailable) at every latrine, water point, and food area.",
+      "priority": "high",
+      "rationale": "Handwashing is the single highest-leverage barrier to faecal-oral transmission.",
+      "source": "Sphere Handbook / WHO"
+    },
+    {
+      "step": 6,
+      "action": "Protect stored water: distribute in covered, narrow-necked containers, keep collection vessels clean, and pour rather than dip.",
+      "priority": "routine",
+      "rationale": "Safely treated water is commonly re-contaminated in the home; storage discipline preserves the treatment effort.",
+      "source": "Sphere Handbook"
+    }
+  ],
+  "safety_flags": [
+    "Verify free chlorine residual before distributing treated water",
+    "Keep latrines at least 30 m from, and downhill of, water sources",
+    "Treat all post-earthquake piped water as suspect until tested"
+  ]
+}

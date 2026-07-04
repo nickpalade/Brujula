@@ -49,7 +49,9 @@
   align-items: center;
   justify-content: space-between;
   gap: 8px;
-  padding: 12px 16px;
+  /* Installed PWA runs edge-to-edge under the iOS status bar (viewport-fit=cover):
+     keep the header content below the clock/battery. Browsers report 0 → unchanged. */
+  padding: calc(12px + env(safe-area-inset-top, 0px)) 16px 12px;
   background: var(--f-surface);
   border-bottom: 1px solid var(--f-border);
 }
@@ -99,15 +101,22 @@
   flex: 1;
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
-  padding: 16px 16px 24px;
+  /* Reporters have no bottom tab bar, so the body itself must clear the
+     iOS home indicator. */
+  padding: 16px 16px calc(24px + env(safe-area-inset-bottom, 0px));
 }
 
 /* Tabs (bottom, thumb-reachable) ------------------------------------------ */
 .field-tabs {
   display: flex;
   border-top: 1px solid var(--f-border);
-  background: var(--f-surface);
-  padding-bottom: env(safe-area-inset-bottom, 0);
+  /* Page-dark, not surface: the bottom edge reads as one uniform region
+     under the iOS home indicator instead of a distinct lighter slab. */
+  background: var(--f-bg);
+  /* Clear the iOS home indicator without a fat empty band: swallow most of
+     the inset so the labels sit just above the indicator, native-tab-bar
+     style. Browsers (inset 0) get a slim 6px. */
+  padding-bottom: max(calc(env(safe-area-inset-bottom, 0px) - 16px), 6px);
 }
 .field-tab {
   flex: 1;
@@ -117,7 +126,7 @@
   color: var(--f-text-dim);
   font-size: 13px;
   font-weight: 600;
-  padding: 14px 8px;
+  padding: 12px 8px;
   cursor: pointer;
   position: relative;
 }
@@ -145,6 +154,89 @@
   border-radius: 999px;
   background: var(--f-critical);
   color: #fff;
+}
+
+/* Onboarding (first-open role signup) -------------------------------------- */
+.onboard-title {
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--f-text);
+  margin: 4px 0 6px;
+}
+.onboard-sub {
+  font-size: 14px;
+  color: var(--f-text-dim);
+  margin: 0 0 18px;
+  line-height: 1.45;
+}
+.role-cards {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 6px;
+}
+.role-card {
+  appearance: none;
+  text-align: left;
+  background: var(--f-surface);
+  border: 1px solid var(--f-border);
+  border-radius: 14px;
+  padding: 14px 16px;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.role-card.selected {
+  border-color: var(--f-accent);
+  background: var(--f-surface-2);
+}
+.role-card-title {
+  font-size: 17px;
+  font-weight: 700;
+  color: var(--f-text);
+}
+.role-card.selected .role-card-title {
+  color: var(--f-accent);
+}
+.role-card-desc {
+  font-size: 13px;
+  color: var(--f-text-dim);
+  line-height: 1.4;
+}
+
+/* Crew status bar ---------------------------------------------------------- */
+.status-bar {
+  margin-bottom: 20px;
+  padding: 12px 14px;
+  background: var(--f-surface);
+  border: 1px solid var(--f-border);
+  border-radius: 14px;
+}
+.status-bar-label {
+  display: block;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--f-text-dim);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 8px;
+}
+.chip-small {
+  padding: 8px 12px;
+  font-size: 13px;
+  min-height: 38px;
+}
+
+.link-btn {
+  appearance: none;
+  background: none;
+  border: none;
+  padding: 0;
+  font-size: 12px;
+  color: var(--f-accent);
+  cursor: pointer;
+  text-decoration: underline;
 }
 
 /* Report form ------------------------------------------------------------- */

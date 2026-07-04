@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" role="img" aria-label="Brújula compass needle">
+  <!-- Compass layer only (needle + pivot), split out of logo-brujula.svg.
+       Transparent background; same 256 viewBox as logo-rings.svg so the two
+       layers overlay pixel-perfectly. -->
+  <g id="compass">
+    <g id="needle">
+      <polygon points="128,50.5 144.5,128 111.5,128" fill="#b03a46"/>
+      <polygon points="111.5,128 144.5,128 128,205.5" fill="#eff4f1"/>
+    </g>
+    <circle cx="128" cy="128" r="9" fill="#b03a46" stroke="#8e2e39" stroke-width="2"/>
+  </g>
+</svg>
