@@ -103,32 +103,6 @@
   flex: none;
 }
 
-/* Urgency glyph — a 2x2 sprite (design/assets/urgency-glyphs.png), one
-   quadrant cropped per level via background-position. Replaces the plain
-   dot only on urgency badges, so the action feed reads at a glance even
-   with color vision deficiency (shape carries the signal, not just hue). */
-.bru-badge__glyph {
-  width: 13px;
-  height: 13px;
-  flex: none;
-  border-radius: 3px;
-  background-image: url("/urgency-glyphs.png");
-  background-size: 200% 200%;
-  background-repeat: no-repeat;
-}
-.bru-badge__glyph[data-urgency="critical"] {
-  background-position: 0% 0%;
-}
-.bru-badge__glyph[data-urgency="high"] {
-  background-position: 100% 0%;
-}
-.bru-badge__glyph[data-urgency="medium"] {
-  background-position: 0% 100%;
-}
-.bru-badge__glyph[data-urgency="low"] {
-  background-position: 100% 100%;
-}
-
 /* Urgency variants read from --u-* set by [data-urgency]. */
 .bru-badge--urgency {
   color: var(--u-color);

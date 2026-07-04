@@ -57,10 +57,10 @@
   --bru-low-border: rgba(135, 152, 142, 0.45);
 
   /* --- Status semantics --- */
-  --bru-ok: #3ddc84; /* available / confirmed / synced — brighter than the bg family so it reads as signal */
-  --bru-ok-bg: rgba(61, 220, 132, 0.13);
-  --bru-warn: #ffcc00; /* queued / pending */
-  --bru-warn-bg: rgba(255, 204, 0, 0.12);
+  --bru-ok: #2a7d56; /* available / confirmed / synced — muted, deeper green: still clearly brighter than the bg family, without reading as neon */
+  --bru-ok-bg: rgba(42, 125, 86, 0.14);
+  --bru-warn: #cc9a1f; /* queued / pending / offline — muted amber, not bright yellow */
+  --bru-warn-bg: rgba(204, 154, 31, 0.13);
   --bru-committed: #9cb3a5; /* resource committed / muted state */
 
   /* --- Typography --- */

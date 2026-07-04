@@ -32,12 +32,7 @@ function Badge({
       data-urgency={isUrgency ? urgency : undefined}
       {...rest}
     >
-      {dot &&
-        (isUrgency ? (
-          <span className="bru-badge__glyph" data-urgency={urgency} aria-hidden="true" />
-        ) : (
-          <span className="bru-badge__dot" aria-hidden="true" />
-        ))}
+      {dot && <span className="bru-badge__dot" aria-hidden="true" />}
       {children ?? (isUrgency ? URGENCY_LABEL[urgency] ?? urgency : null)}
     </span>
   );
