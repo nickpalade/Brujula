@@ -20,6 +20,7 @@ temperatures to pick from:
 | `option-3a-field-grafito.html` | **Grafito** | Pure neutral graphite. The background disappears; only granate + signal colors speak. Military-radio sobriety. Doesn't tint field photos. |
 | `option-3b-field-tierra.html` | **Tierra** | Warm umber/earth. The context of the work — dust, rubble, dusk. Granate harmonizes naturally; easier on eyes at night. |
 | `option-3c-field-vino.html` | **Vino** | Granate itself, desaturated and sunk to near-black. Full brand commitment, maximum personality on a demo screen. |
+| `option-3d-field-bosque.html` | **Bosque** | Tactical forest green — rescue-gear, civil-protection energy. Granate pops hardest here (exact complement); green kept gray-leaning so it never reads festive. |
 
 ## Shared principles (whichever option wins)
 
