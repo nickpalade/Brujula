@@ -1,7 +1,11 @@
 # Dependencies
 node_modules/
 
+# Private multi-agent coordination layer (Nick's local planning — never committed)
+context/
+
 # Runtime state & logs
+data/
 brujula_config.json
 brujula_board.json
 ollama_serve.log
