@@ -231,6 +231,11 @@
   line-height: 1.45;
   margin: 0 0 var(--bru-s-3);
 }
+/* Not-yet-decoded characters while an incoming summary reveals. */
+.cmd-incident__encrypted {
+  color: var(--bru-text-mute);
+  opacity: 0.55;
+}
 .cmd-incident__foot {
   display: flex;
   align-items: center;
