@@ -65,8 +65,9 @@ function QueueList({ items, onClearSynced }) {
               {STATUS_LABEL[it.status] || it.status}
             </span>
           </div>
-          <div className="card-text">{it.text}</div>
+          <div className="card-text">{it.text || (it.has_image ? 'Reporte con foto (sin texto)' : '')}</div>
           <div className="card-meta">
+            {it.has_image && <span>📷 foto</span>}
             {it.people_count != null && <span>{it.people_count} personas</span>}
             {it.location && <span>{it.location}</span>}
             <span>{timeAgo(it.created_at)}</span>

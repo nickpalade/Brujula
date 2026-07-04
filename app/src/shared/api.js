@@ -105,8 +105,18 @@ export const api = {
   // client_ref: idempotency key (the outbox localId) — retries with the same
   // ref replay the stored report instead of duplicating it on the hub.
   // reported_by: "Name · rol" from the device profile, stored on the report.
-  async submitReport({ text, source_device = null, lang = 'es', client_ref = null, reported_by = null }) {
-    if (USE_MOCKS) return mock.submitReport({ text, source_device, lang })
+  // image_base64/image_mime: optional photo (pre-compressed by the field app);
+  // the hub's parse step reads it multimodally, text may be null when present.
+  async submitReport({
+    text,
+    source_device = null,
+    lang = 'es',
+    client_ref = null,
+    reported_by = null,
+    image_base64 = null,
+    image_mime = null,
+  }) {
+    if (USE_MOCKS) return mock.submitReport({ text: text || '(foto)', source_device, lang })
     return request('/api/reports', {
       method: 'POST',
       body: {
@@ -115,6 +125,7 @@ export const api = {
         lang,
         ...(client_ref ? { client_ref } : {}),
         ...(reported_by ? { reported_by } : {}),
+        ...(image_base64 ? { image_base64, image_mime: image_mime || 'image/jpeg' } : {}),
       },
     })
   },
