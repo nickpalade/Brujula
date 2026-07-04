@@ -106,7 +106,15 @@ const VARIANTS = {
     noFocus: false
   },
   // Brújula: garnet shimmer on the Bosque dark — used for incoming taskings.
+  // ("garnet" is an alias — both names are in use across the app.)
   granate: {
+    activeColor: '#b03a46',
+    gap: 6,
+    speed: 30,
+    colors: '#3a2026,#7d2530,#b03a46',
+    noFocus: true
+  },
+  garnet: {
     activeColor: '#b03a46',
     gap: 6,
     speed: 30,
