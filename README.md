@@ -108,8 +108,11 @@ Everything is served from the one Express server; phones need ONE LAN URL.
   when the hub is reachable (SYNCED), and show PARSED when the pipeline
   lands. Retries are idempotent (`client_ref`), so flaky radio can't
   duplicate reports.
-- **Voice input** (es-VE speech recognition) and **photo triage** — a report
-  may attach a photo; multimodal Gemma reads damage/hazards/people from it.
+- **Voice input** (es-VE speech recognition) and **photo triage** — 📷 Añadir
+  foto attaches a camera/gallery photo (compressed on-device to ~100-250 KB so
+  it fits the offline outbox; photo-only reports allowed). Multimodal Gemma
+  reads damage/hazards/people from it — a photo can raise urgency or fill
+  fields the text missed.
 
 ### The agent pipeline (the coordinator's brain)
 
@@ -258,7 +261,7 @@ local Ollama. **Leave unset in the field.**
 
 ```
 bootstrap.ps1 / bootstrap.sh   # install + pull + verify Ollama (+ Node check)
-DEMO.md                        # the 3-minute demo runbook
+DEMO.md                        # the 1-minute demo runbook (+ Q&A cut beats)
 CONSOLIDATION.md               # why there were two stacks; agent/ now deleted
 app/                           # React app: /command + /field (Vite → app/dist)
 server/main.js                 # Express entry: model mgmt + routers + static
