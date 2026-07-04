@@ -4,23 +4,36 @@
    fights the scaffold's index.css (#root fixed width / centered text). */
 
 .field-app {
-  /* Urgency tokens — kept in sync with the intended shared design system. */
-  --f-critical: #ef4444;
-  --f-high: #f97316;
-  --f-medium: #eab308;
-  --f-low: #38bdf8;
+  /* Locked "Field · Bosque" palette (design/tokens.css,
+     option-3d-field-bosque.html) — same tokens as Command Post, so both
+     stations are unmistakably the same product. */
+  --f-critical: #ff453a;
+  --f-high: #ff9500;
+  --f-medium: #ffcc00;
+  --f-low: #87988e;
 
-  --f-queued: #f59e0b; /* amber */
-  --f-synced: #22c55e; /* green */
-  --f-parsed: #38bdf8; /* teal/blue */
+  /* Outbox status — reused from the same palette rather than introducing a
+     blue that doesn't exist anywhere else in the system: queued (waiting,
+     needs attention) reuses high-orange, synced (accepted, mid-flight)
+     reuses medium-yellow, parsed (done) reuses ok-green — a traffic-light
+     progression using only colors already in the system. */
+  --f-queued: #ff9500;
+  --f-synced: #ffcc00;
+  --f-parsed: #3ddc84;
 
-  --f-bg: #0d0f14;
-  --f-surface: #161922;
-  --f-surface-2: #1e222d;
-  --f-border: #2a2f3c;
-  --f-text: #e7eaf0;
-  --f-text-dim: #98a0b0;
-  --f-accent: #f97316;
+  --f-bg: #0e1411;
+  --f-surface: #17211b;
+  --f-surface-2: #1f2d25;
+  --f-border: #2e4436;
+  --f-text: #eff4f1;
+  --f-text-dim: #9cb3a5;
+  --f-accent: #b03a46;
+  --f-accent-dim: #7d2530; /* deep garnet — pressed/active state */
+
+  /* Brand mark (bosque garnet) — matches Command Post's logo/wordmark
+     treatment so the field app reads as the same product, not a separate
+     one. Same hue as --f-accent now: one identity, not two. */
+  --f-brand: #b03a46;
 
   position: fixed;
   inset: 0;
@@ -55,16 +68,28 @@
   background: var(--f-surface);
   border-bottom: 1px solid var(--f-border);
 }
+.field-brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.field-logo {
+  width: 34px;
+  height: 34px;
+  flex: none;
+  border-radius: 50%;
+}
 .field-header h1 {
-  font-size: 18px;
-  font-weight: 600;
-  color: var(--f-text);
+  font-size: 19px;
+  font-weight: 800;
+  letter-spacing: 1.2px;
+  color: var(--f-brand);
   margin: 0;
-  letter-spacing: 0.2px;
 }
 .field-header .field-sub {
   font-size: 12px;
   color: var(--f-text-dim);
+  margin-top: 1px;
 }
 
 .conn-pill {
@@ -301,7 +326,7 @@
 .chip.selected {
   background: var(--f-accent);
   border-color: var(--f-accent);
-  color: #0d0f14;
+  color: #fff;
 }
 
 /* Inline number/text fields ---------------------------------------------- */
@@ -335,7 +360,7 @@
   font-size: 20px;
   font-weight: 800;
   letter-spacing: 0.5px;
-  color: #0d0f14;
+  color: #fff;
   background: var(--f-accent);
   border: none;
   border-radius: 16px;
@@ -348,6 +373,7 @@
   cursor: not-allowed;
 }
 .send-btn:active:not(:disabled) {
+  background: var(--f-accent-dim);
   transform: translateY(1px);
 }
 

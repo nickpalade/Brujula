@@ -150,9 +150,14 @@ function FieldClient() {
     return (
       <div className="field-app">
         <header className="field-header">
-          <div>
-            <h1>Brújula · Campo</h1>
-            <div className="field-sub">{USE_MOCKS ? 'modo demo' : 'sin registrar'}</div>
+          <div className="field-brand">
+            <img src="/logo-animated.svg" alt="" className="field-logo" />
+            <div>
+              <h1>Brújula</h1>
+              <div className="field-sub">
+                Campo{USE_MOCKS ? ' · modo demo' : ' · sin registrar'}
+              </div>
+            </div>
           </div>
         </header>
         <main className="field-body">
@@ -182,14 +187,17 @@ function FieldClient() {
   return (
     <div className="field-app">
       <header className="field-header">
-        <div>
-          <h1>Brújula · Campo</h1>
-          <div className="field-sub">
-            {profile.name} · {ROLE_LABEL[profile.role]}
-            {USE_MOCKS ? ' · modo demo' : ''}{' '}
-            <button type="button" className="link-btn" onClick={resetProfile}>
-              cambiar
-            </button>
+        <div className="field-brand">
+          <img src="/logo-animated.svg" alt="" className="field-logo" />
+          <div>
+            <h1>Brújula</h1>
+            <div className="field-sub">
+              {profile.name} · {ROLE_LABEL[profile.role]}
+              {USE_MOCKS ? ' · modo demo' : ''}{' '}
+              <button type="button" className="link-btn" onClick={resetProfile}>
+                cambiar
+              </button>
+            </div>
           </div>
         </div>
         <ConnPill online={online} />

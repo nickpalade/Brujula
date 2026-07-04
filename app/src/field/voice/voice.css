@@ -4,8 +4,8 @@
 
 /* Recording state: red, pulsing halo so it's obvious the mic is live. */
 .mic-btn.recording {
-  background: var(--f-critical, #ef4444);
-  border-color: var(--f-critical, #ef4444);
+  background: var(--f-critical, #ff453a);
+  border-color: var(--f-critical, #ff453a);
   color: #fff;
   animation: voice-pulse 1.4s ease-out infinite;
 }
@@ -15,20 +15,20 @@
 
 @keyframes voice-pulse {
   0% {
-    box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.55);
+    box-shadow: 0 0 0 0 rgba(255, 69, 58, 0.55);
   }
   70% {
-    box-shadow: 0 0 0 12px rgba(239, 68, 68, 0);
+    box-shadow: 0 0 0 12px rgba(255, 69, 58, 0);
   }
   100% {
-    box-shadow: 0 0 0 0 rgba(239, 68, 68, 0);
+    box-shadow: 0 0 0 0 rgba(255, 69, 58, 0);
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
   .mic-btn.recording {
     animation: none;
-    box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.4);
+    box-shadow: 0 0 0 3px rgba(255, 69, 58, 0.4);
   }
 }
 
@@ -41,9 +41,9 @@
   max-width: min(280px, 78vw);
   padding: 10px 12px;
   border-radius: 12px;
-  background: var(--f-surface-2, #1e222d);
-  border: 1px solid var(--f-critical, #ef4444);
-  color: var(--f-text, #e7eaf0);
+  background: var(--f-surface-2, #1f2d25);
+  border: 1px solid var(--f-critical, #ff453a);
+  color: var(--f-text, #eff4f1);
   font-size: 14px;
   line-height: 1.35;
   text-align: left;
@@ -57,9 +57,9 @@
   bottom: -6px;
   width: 12px;
   height: 12px;
-  background: var(--f-surface-2, #1e222d);
-  border-right: 1px solid var(--f-critical, #ef4444);
-  border-bottom: 1px solid var(--f-critical, #ef4444);
+  background: var(--f-surface-2, #1f2d25);
+  border-right: 1px solid var(--f-critical, #ff453a);
+  border-bottom: 1px solid var(--f-critical, #ff453a);
   transform: rotate(45deg);
 }
 .voice-live-label {
@@ -70,14 +70,14 @@
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.5px;
-  color: var(--f-critical, #ef4444);
+  color: var(--f-critical, #ff453a);
   margin-bottom: 4px;
 }
 .voice-live-label .rec-dot {
   width: 8px;
   height: 8px;
   border-radius: 50%;
-  background: var(--f-critical, #ef4444);
+  background: var(--f-critical, #ff453a);
   animation: voice-blink 1s steps(2, start) infinite;
 }
 @keyframes voice-blink {
@@ -86,11 +86,11 @@
   }
 }
 .voice-live-text {
-  color: var(--f-text, #e7eaf0);
+  color: var(--f-text, #eff4f1);
   word-break: break-word;
 }
 .voice-live-text.placeholder {
-  color: var(--f-text-dim, #98a0b0);
+  color: var(--f-text-dim, #9cb3a5);
   font-style: italic;
 }
 
@@ -102,9 +102,9 @@
   max-width: min(260px, 74vw);
   padding: 8px 10px;
   border-radius: 10px;
-  background: var(--f-surface-2, #1e222d);
-  border: 1px solid var(--f-border, #2a2f3c);
-  color: var(--f-text-dim, #98a0b0);
+  background: var(--f-surface-2, #1f2d25);
+  border: 1px solid var(--f-border, #2e4436);
+  color: var(--f-text-dim, #9cb3a5);
   font-size: 12px;
   line-height: 1.35;
   text-align: left;

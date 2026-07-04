@@ -24,18 +24,26 @@
   gap: var(--bru-s-3);
 }
 .cmd-topbar__logo {
-  font-size: 22px;
-  color: var(--bru-accent);
-  filter: drop-shadow(0 0 6px var(--bru-accent-border));
+  width: 40px;
+  height: 40px;
+  flex: none;
+  border-radius: 50%;
+}
+.cmd-topbar__wordmark {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
 }
 .cmd-topbar__title {
   font-family: var(--bru-mono);
   font-weight: 800;
   letter-spacing: 3px;
-  font-size: 18px;
-  color: var(--bru-text);
+  font-size: 20px;
+  line-height: 1.1;
+  color: var(--bru-brand);
 }
 .cmd-topbar__sub {
+  margin-top: 1px;
   font-size: 11px;
   letter-spacing: 1px;
   color: var(--bru-text-mute);
@@ -99,6 +107,7 @@
 
 .cmd-feed {
   min-height: 0;
+  background: var(--bru-bg-0);
 }
 .cmd-feed__counts {
   display: flex;
@@ -126,6 +135,7 @@
 }
 .cmd-rail__panel {
   min-height: 0;
+  background: var(--bru-bg-0);
 }
 .cmd-rail__panel--resources {
   flex: 1;
@@ -137,6 +147,50 @@
 }
 
 /* ---------------- Incident card ---------------- */
+.cmd-incident__layout {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--bru-s-3);
+}
+.cmd-incident__body {
+  min-width: 0; /* let text truncate/wrap instead of pushing the glyph off-card */
+  flex: 1;
+}
+
+/* Big urgency glyph plate, leftmost element of every card — the icon from
+   urgency-glyphs.png cropped from its 2x2 sheet via background-position,
+   on a flat plate tinted by the same --u-* urgency tokens as the spine.
+   Reads at a glance even faster than the text badge next to it. Flat by
+   design — no border, no shadow, no glow. */
+.cmd-incident__glyph {
+  position: relative;
+  flex: none;
+  width: 46px;
+  height: 46px;
+  border-radius: var(--bru-r-md);
+  background-color: var(--u-bg);
+}
+.cmd-incident__glyph::after {
+  content: '';
+  position: absolute;
+  inset: 9px;
+  background-image: url('/urgency-glyphs.png');
+  background-size: 200% 200%;
+  background-repeat: no-repeat;
+}
+.cmd-incident__glyph[data-urgency='critical']::after {
+  background-position: 0% 0%;
+}
+.cmd-incident__glyph[data-urgency='high']::after {
+  background-position: 100% 0%;
+}
+.cmd-incident__glyph[data-urgency='medium']::after {
+  background-position: 0% 100%;
+}
+.cmd-incident__glyph[data-urgency='low']::after {
+  background-position: 100% 100%;
+}
+
 .cmd-incident__top {
   display: flex;
   align-items: flex-start;

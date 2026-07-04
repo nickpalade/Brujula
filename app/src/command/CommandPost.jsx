@@ -153,8 +153,8 @@ function CommandPost() {
     <div className="bru-app cmd-root">
       <header className="cmd-topbar">
         <div className="cmd-topbar__brand">
-          <span className="cmd-topbar__logo">◈</span>
-          <div>
+          <img src="/logo-animated.svg" alt="" className="cmd-topbar__logo" />
+          <div className="cmd-topbar__wordmark">
             <div className="cmd-topbar__title">BRÚJULA</div>
             <div className="cmd-topbar__sub">Command Post · La Guaira</div>
           </div>

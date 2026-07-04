@@ -6,53 +6,62 @@
  */
 
 :root {
-  /* --- Surfaces (deep, low-glare, so urgency colors pop) --- */
-  --bru-bg-0: #0a0e14; /* app backdrop */
-  --bru-bg-1: #0f141c; /* rails / panels */
-  --bru-bg-2: #151b26; /* cards */
-  --bru-bg-3: #1c2432; /* elevated / hover */
-  --bru-bg-scrim: rgba(4, 7, 11, 0.72); /* modal/drawer backdrop */
+  /* --- Surfaces: locked "Field · Bosque" palette (design/tokens.css,
+     option-3d-field-bosque.html) — deep, gray-leaning forest green, never
+     emerald, so the garnet brand and urgency reds/oranges pop against it. --- */
+  --bru-bg-0: #0e1411; /* app backdrop */
+  --bru-bg-1: #17211b; /* rails / panels */
+  --bru-bg-2: #1f2d25; /* cards */
+  --bru-bg-3: #28392f; /* elevated / hover */
+  --bru-bg-scrim: rgba(5, 9, 7, 0.72); /* modal/drawer backdrop */
 
   /* --- Lines --- */
-  --bru-border: #232c3b;
-  --bru-border-strong: #33405a;
-  --bru-grid: rgba(90, 120, 170, 0.06); /* faint tactical grid */
+  --bru-border: #2e4436;
+  --bru-border-strong: #3c5445;
+  --bru-grid: rgba(140, 170, 150, 0.05); /* faint tactical grid */
 
   /* --- Text --- */
-  --bru-text: #e6ecf5;
-  --bru-text-dim: #9aa7bd;
-  --bru-text-mute: #5f6b81;
+  --bru-text: #eff4f1;
+  --bru-text-dim: #9cb3a5;
+  --bru-text-mute: #62766a;
 
-  /* --- Command accent (cool cyan — "signal") --- */
-  --bru-accent: #38e1c9;
-  --bru-accent-dim: #1f9e8d;
-  --bru-accent-bg: rgba(56, 225, 201, 0.12);
-  --bru-accent-border: rgba(56, 225, 201, 0.45);
+  /* --- Command accent = the brand garnet (option-3d: the CONFIRM button,
+     the compass mark, and the accent are the same color — one identity,
+     not a separate "signal" hue). Lifted a step off pure --bru-brand so it
+     reads clearly as interactive against the same background. --- */
+  --bru-accent: #b03a46;
+  --bru-accent-dim: #7d2530;
+  --bru-accent-bg: rgba(176, 58, 70, 0.14);
+  --bru-accent-border: rgba(176, 58, 70, 0.5);
+
+  /* --- Brand mark (logo/wordmark) — same garnet as the accent above. --- */
+  --bru-brand: #b03a46;
+  --bru-brand-dim: #7d2530;
 
   /* --- Urgency scale (the core semantic tokens) --- */
-  --bru-critical: #ff3b47;
-  --bru-critical-bg: rgba(255, 59, 71, 0.14);
-  --bru-critical-border: rgba(255, 59, 71, 0.55);
-  --bru-critical-glow: rgba(255, 59, 71, 0.45);
+  --bru-critical: #ff453a;
+  --bru-critical-bg: rgba(255, 69, 58, 0.14);
+  --bru-critical-border: rgba(255, 69, 58, 0.55);
+  --bru-critical-glow: rgba(255, 69, 58, 0.45);
 
-  --bru-high: #ff8c26;
-  --bru-high-bg: rgba(255, 140, 38, 0.13);
-  --bru-high-border: rgba(255, 140, 38, 0.5);
+  --bru-high: #ff9500;
+  --bru-high-bg: rgba(255, 149, 0, 0.13);
+  --bru-high-border: rgba(255, 149, 0, 0.5);
 
-  --bru-medium: #f5c518;
-  --bru-medium-bg: rgba(245, 197, 24, 0.12);
-  --bru-medium-border: rgba(245, 197, 24, 0.45);
+  --bru-medium: #ffcc00;
+  --bru-medium-bg: rgba(255, 204, 0, 0.12);
+  --bru-medium-border: rgba(255, 204, 0, 0.45);
 
-  --bru-low: #4da3ff;
-  --bru-low-bg: rgba(77, 163, 255, 0.12);
-  --bru-low-border: rgba(77, 163, 255, 0.45);
+  --bru-low: #87988e;
+  --bru-low-bg: rgba(135, 152, 142, 0.16);
+  --bru-low-border: rgba(135, 152, 142, 0.45);
 
   /* --- Status semantics --- */
-  --bru-ok: #35d07f; /* available / confirmed / synced */
-  --bru-ok-bg: rgba(53, 208, 127, 0.13);
-  --bru-warn: #f5c518; /* queued / pending */
-  --bru-warn-bg: rgba(245, 197, 24, 0.12);
-  --bru-committed: #9aa7bd; /* resource committed / muted state */
+  --bru-ok: #3ddc84; /* available / confirmed / synced — brighter than the bg family so it reads as signal */
+  --bru-ok-bg: rgba(61, 220, 132, 0.13);
+  --bru-warn: #ffcc00; /* queued / pending */
+  --bru-warn-bg: rgba(255, 204, 0, 0.12);
+  --bru-committed: #9cb3a5; /* resource committed / muted state */
 
   /* --- Typography --- */
   --bru-sans: "Inter", system-ui, "Segoe UI", Roboto, sans-serif;
