@@ -5,10 +5,25 @@
 # Run:  powershell -ExecutionPolicy Bypass -File bootstrap.ps1
 
 # ── TWEAK: model + endpoint ─────────────────────────────────────────────
-$MODEL = "gemma3:4b"
+$MODEL = "gemma4:e4b"   # the model the demo + verify runs use (multimodal)
 $OLLAMA_URL = "http://localhost:11434"
 
 $ErrorActionPreference = "Stop"
+
+# Node >= 22.5 required (server uses the built-in node:sqlite).
+$nodeCmd = Get-Command node -ErrorAction SilentlyContinue
+if (-not $nodeCmd) {
+    Write-Host "FAILURE: Node.js not found. Install Node 22.5+ (https://nodejs.org) and re-run."
+    exit 1
+}
+$nodeVer = (node --version) -replace '^v', ''
+$nv = [Version]$nodeVer
+if ($nv -lt [Version]"22.5.0") {
+    Write-Host "FAILURE: Node $nodeVer found, but the server needs >= 22.5.0 (built-in node:sqlite)."
+    Write-Host "Upgrade Node, then re-run."
+    exit 1
+}
+Write-Host "Node $nodeVer OK."
 
 function Test-OllamaServer {
     try {

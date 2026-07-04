@@ -7,12 +7,27 @@
 set -u
 
 # ── TWEAK: model + endpoint ─────────────────────────────────────────────
-MODEL="gemma3:4b"
+MODEL="gemma4:e4b"   # the model the demo + verify runs use (multimodal)
 OLLAMA_URL="http://localhost:11434"
 
 server_up() {
     curl -s --max-time 3 "$OLLAMA_URL/api/version" > /dev/null 2>&1
 }
+
+# Node >= 22.5 required (server uses the built-in node:sqlite).
+if ! command -v node > /dev/null 2>&1; then
+    echo "FAILURE: Node.js not found. Install Node 22.5+ (https://nodejs.org) and re-run."
+    exit 1
+fi
+NODE_VER="$(node --version | sed 's/^v//')"
+NODE_MAJOR="${NODE_VER%%.*}"
+NODE_MINOR="$(echo "$NODE_VER" | cut -d. -f2)"
+if [ "$NODE_MAJOR" -lt 22 ] || { [ "$NODE_MAJOR" -eq 22 ] && [ "$NODE_MINOR" -lt 5 ]; }; then
+    echo "FAILURE: Node $NODE_VER found, but the server needs >= 22.5.0 (built-in node:sqlite)."
+    echo "Upgrade Node, then re-run."
+    exit 1
+fi
+echo "Node $NODE_VER OK."
 
 echo "[1/4] Checking Ollama installation..."
 if ! command -v ollama > /dev/null 2>&1; then
