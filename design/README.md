@@ -1,4 +1,12 @@
-# Brújula — Design Philosophy Options
+# Brújula — Design
+
+> **DECIDED (2026-07-04): Field · Bosque.** Tokens live in [`tokens.css`](tokens.css)
+> — Nick, that `:root` block is the design system. Logo starting point:
+> [`logo-brujula.svg`](logo-brujula.svg). Prompts for generated brand art:
+> [`brand-image-prompts.md`](brand-image-prompts.md). Everything below is the
+> exploration that led here (kept for the record / future revisits).
+
+## Design Philosophy Options (exploration)
 
 Three directions built around **granate** (dark red / garnet), the working
 brand color. Open each `option-*.html` in a browser — they're self-contained
