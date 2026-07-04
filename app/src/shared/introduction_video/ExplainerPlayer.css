@@ -1,0 +1,77 @@
+.bru-explainer {
+  border-radius: 14px;
+  overflow: hidden;
+  border: 1px solid #2e4436;
+  background: #0e1411;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.6);
+}
+
+.bru-explainer__stage {
+  position: relative;
+  cursor: pointer;
+  line-height: 0;
+}
+
+.bru-explainer__playhint {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 34px;
+  color: #eff4f1;
+  background: rgba(14, 20, 17, 0.35);
+  opacity: 0;
+  transition: opacity 160ms ease;
+  pointer-events: none;
+}
+.bru-explainer__stage:hover .bru-explainer__playhint,
+.bru-explainer__playhint[data-visible] {
+  opacity: 1;
+}
+
+.bru-explainer__chapters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px;
+  background: #17211b;
+  border-top: 1px solid #2e4436;
+}
+
+.bru-explainer__chip {
+  flex: 1 1 0;
+  min-width: 108px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  background: transparent;
+  border: none;
+  border-top: 2px solid transparent;
+  color: #9cb3a5;
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  cursor: pointer;
+  transition:
+    color 120ms ease,
+    border-color 120ms ease,
+    background 120ms ease;
+}
+.bru-explainer__chip:hover {
+  color: #eff4f1;
+  background: #1f2d25;
+}
+.bru-explainer__chip[data-active] {
+  color: #eff4f1;
+  border-top-color: #b03a46;
+  background: #1f2d25;
+}
+.bru-explainer__chip-index {
+  color: #62766a;
+  font-weight: 700;
+}
+.bru-explainer__chip[data-active] .bru-explainer__chip-index {
+  color: #b03a46;
+}
