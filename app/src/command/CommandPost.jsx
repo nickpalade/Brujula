@@ -4,18 +4,31 @@ import './command.css';
 import Panel from '../shared/Panel.jsx';
 import Badge from '../shared/Badge.jsx';
 import Button from '../shared/Button.jsx';
+import Icon from '../shared/Icon.jsx';
 import BrujulaMark from '../shared/BrujulaMark.jsx';
 import { sortByPriority } from '../shared/urgency.js';
 import IncidentCard from './IncidentCard.jsx';
 import DispatchProposal from './DispatchProposal.jsx';
 import IncidentDrawer from './IncidentDrawer.jsx';
 import SitrepModal from './SitrepModal.jsx';
+import MapPanel from './MapPanel.jsx';
+import ConnectModal from './ConnectModal.jsx';
+import LanguagePicker from './LanguagePicker.jsx';
 import {
   USE_MOCKS,
   getSync,
   getSitrep,
   confirmDispatch,
+  createAlert,
+  deactivateAlert,
+  getPersons,
+  getTrends,
 } from './dataSource.js';
+import AlertComposer from './AlertComposer.jsx';
+import AlertStrip from './AlertStrip.jsx';
+import PersonsPanel from './PersonsPanel.jsx';
+import TrendsPanel from './TrendsPanel.jsx';
+import { useWatchdog } from './useWatchdog.js';
 
 const POLL_MS = 4000; // CONTRACTS §5: poll /api/sync every 3–5 s
 
@@ -33,6 +46,8 @@ function CommandPost() {
   const [incidents, setIncidents] = useState([]);
   const [resources, setResources] = useState([]);
   const [dispatches, setDispatches] = useState([]);
+  const [alerts, setAlerts] = useState([]);
+  const [persons, setPersons] = useState([]);
 
   const [loading, setLoading] = useState(true);
 
@@ -44,6 +59,9 @@ function CommandPost() {
   const [sitrepLoading, setSitrepLoading] = useState(false);
   const [sitrepError, setSitrepError] = useState(null);
 
+  const [connectOpen, setConnectOpen] = useState(false);
+  const [alertComposerOpen, setAlertComposerOpen] = useState(false);
+
   const seqRef = useRef(0);
 
   const refresh = useCallback(async () => {
@@ -52,6 +70,8 @@ function CommandPost() {
       if (Array.isArray(data.incidents)) setIncidents((p) => mergeById(p, data.incidents));
       if (Array.isArray(data.resources)) setResources((p) => mergeById(p, data.resources));
       if (Array.isArray(data.dispatches)) setDispatches((p) => mergeById(p, data.dispatches));
+      if (Array.isArray(data.alerts)) setAlerts((p) => mergeById(p, data.alerts));
+      if (Array.isArray(data.persons)) setPersons((p) => mergeById(p, data.persons));
       if (typeof data.seq === 'number') {
         seqRef.current = data.seq;
       }
@@ -67,6 +87,9 @@ function CommandPost() {
     const id = setInterval(refresh, POLL_MS);
     return () => clearInterval(id);
   }, [refresh]);
+
+  // Escalation watchdog: tracks unattended incidents
+  const escalated = useWatchdog(incidents, dispatches);
 
   const ordered = useMemo(() => sortByPriority(incidents), [incidents]);
 
@@ -170,17 +193,36 @@ function CommandPost() {
               MOCK DATA
             </Badge>
           )}
+          <LanguagePicker />
+          <Button variant="default" onClick={() => setAlertComposerOpen(true)} title="Broadcast an alert to field" aria-label="Broadcast alert">
+            <Icon name="alert" />
+            Alert
+          </Button>
+          <Button variant="default" onClick={() => setConnectOpen(true)} title="Show a QR code to connect a phone">
+            <Icon name="phone" />
+            Connect phone
+          </Button>
           <Button variant="primary" onClick={openSitrep}>
-            ▤ SITREP
+            <Icon name="sitrep" />
+            SITREP
           </Button>
         </div>
       </header>
 
+      {/* --- Active alerts strip --- */}
+      {alerts.length > 0 && (
+        <AlertStrip alerts={alerts} onDeactivate={deactivateAlert} />
+      )}
+
       <main className="cmd-main">
+        {/* --- Left column: offline map + prioritized action feed --- */}
+        <div className="cmd-left">
+        <MapPanel incidents={ordered} onSelect={setSelectedId} />
+
         {/* --- Prioritized action feed --- */}
         <Panel
           title="Prioritized Action Feed"
-          icon={<span aria-hidden="true">◱</span>}
+          icon={<Icon name="feed" />}
           className="cmd-feed"
           actions={
             <div className="cmd-feed__counts">
@@ -212,18 +254,20 @@ function CommandPost() {
                   incident={inc}
                   selected={inc.id === selectedId}
                   hasProposal={dispatchByIncident[inc.id]?.state === 'proposed'}
+                  escalated={escalated[inc.id]}
                   onSelect={(i) => setSelectedId(i.id)}
                 />
               ))}
             </div>
           )}
         </Panel>
+        </div>
 
         {/* --- Right rail: AI proposals + resources --- */}
         <div className="cmd-rail">
           <Panel
             title="AI Dispatch Proposals"
-            icon={<span aria-hidden="true">⇄</span>}
+            icon={<Icon name="dispatch" />}
             className="cmd-rail__panel"
             actions={
               proposals.length > 0 ? (
@@ -259,7 +303,7 @@ function CommandPost() {
 
           <Panel
             title="Resource Inventory"
-            icon={<span aria-hidden="true">▣</span>}
+            icon={<Icon name="resource" />}
             className="cmd-rail__panel cmd-rail__panel--resources"
             actions={
               <Badge variant="muted">
@@ -278,7 +322,8 @@ function CommandPost() {
                     <div className="cmd-resource__main">
                       <span className="cmd-resource__label">{r.label}</span>
                       <span className="bru-meta">
-                        <span aria-hidden="true">◎</span> {r.location} · {r.capacity}
+                        <Icon name="location" /> {r.location} · {r.capacity}
+                        {r.quantity != null && <span> · {r.quantity} {r.unit || 'units'}</span>}
                       </span>
                     </div>
                     <Badge variant={r.status === 'available' ? 'ok' : 'muted'} dot>
@@ -289,6 +334,10 @@ function CommandPost() {
               </ul>
             )}
           </Panel>
+
+          <TrendsPanel getTrends={getTrends} />
+
+          <PersonsPanel persons={persons} />
         </div>
       </main>
 
@@ -303,6 +352,13 @@ function CommandPost() {
           onConfirm={(dsp) => handleConfirm(dsp)}
           onOverride={handleOverride}
           onOpenSitrep={openSitrep}
+          onPatchIncident={async (id, patch) => {
+            await refresh();
+          }}
+          onRematchIncident={async (id) => {
+            await refresh();
+          }}
+          escalated={escalated[selected.id]}
         />
       )}
 
@@ -311,9 +367,27 @@ function CommandPost() {
         loading={sitrepLoading}
         sitrep={sitrep}
         error={sitrepError}
+        incidents={incidents}
+        resources={resources}
+        dispatches={dispatches}
+        alerts={alerts}
+        persons={persons}
+        escalated={escalated}
         onClose={() => setSitrepOpen(false)}
         onRegenerate={openSitrep}
       />
+
+      <AlertComposer
+        open={alertComposerOpen}
+        onClose={() => setAlertComposerOpen(false)}
+        onSubmit={async (alert) => {
+          await createAlert(alert);
+          await refresh();
+          setAlertComposerOpen(false);
+        }}
+      />
+
+      <ConnectModal open={connectOpen} onClose={() => setConnectOpen(false)} />
     </div>
   );
 }

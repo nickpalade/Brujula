@@ -327,3 +327,25 @@ export async function getReports(ids = []) {
   await delay(120);
   return ids.map((id) => reports[id]).filter(Boolean).map(clone);
 }
+
+/* UI languages the app is translated into (see shared/languages.js). */
+const MOCK_LANGUAGES = [
+  { code: 'es', name: 'Español' },
+  { code: 'en', name: 'English' },
+];
+
+let mockLanguage = 'es';
+
+export async function getLanguageConfig() {
+  await delay(120);
+  return { language: mockLanguage, languages: clone(MOCK_LANGUAGES) };
+}
+
+export async function setLanguageConfig(language) {
+  await delay(120);
+  if (!MOCK_LANGUAGES.some((l) => l.code === language)) {
+    throw new Error(`unsupported language: ${language}`);
+  }
+  mockLanguage = language;
+  return { language };
+}

@@ -2,6 +2,7 @@ import { useState } from 'react';
 import Card from '../shared/Card.jsx';
 import Badge from '../shared/Badge.jsx';
 import Button from '../shared/Button.jsx';
+import Icon from '../shared/Icon.jsx';
 
 /*
  * DispatchProposal — the money shot (PRD §4.2 step 6, human-in-command).
@@ -78,7 +79,8 @@ function DispatchProposal({
             onClick={() => onConfirm?.(dispatch)}
             disabled={busy}
           >
-            {busy ? 'CONFIRMING…' : '✓ CONFIRM'}
+            {!busy && <Icon name="check" />}
+            {busy ? 'CONFIRMING…' : 'CONFIRM'}
           </Button>
           <Button
             variant="ghost"

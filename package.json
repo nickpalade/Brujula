@@ -7,16 +7,32 @@
   "engines": {
     "node": ">=22.5.0"
   },
+  "workspaces": [
+    "app"
+  ],
   "scripts": {
     "start": "node server/main.js",
     "serve": "node server/main.js",
     "dev": "node --watch server/main.js",
+    "dev:app": "npm run dev --workspace app",
+    "dev:all": "concurrently -n server,app -c blue,green \"npm:dev\" \"npm:dev:app\"",
+    "build": "npm run build --workspace app",
+    "preview": "npm run preview --workspace app",
+    "lint": "oxlint server scripts app/src verify.js verify-hub.js verify-kb.js",
+    "test:e2e": "npm run test:e2e --workspace app",
     "seed": "node scripts/seed.js",
+    "fetch:tiles": "node scripts/fetch-tiles.mjs",
+    "test": "node --test --test-concurrency=1 \"tests/*.test.mjs\"",
     "verify": "node verify.js",
-    "verify:hub": "node verify-hub.js"
+    "verify:hub": "node verify-hub.js",
+    "verify:kb": "node verify-kb.js"
   },
   "dependencies": {
     "express": "^5.1.0",
     "zod": "^4.0.0"
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.2",
+    "oxlint": "^1.71.0"
   }
 }

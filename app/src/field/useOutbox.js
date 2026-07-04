@@ -35,7 +35,7 @@ function makeLocalId() {
   return `local_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`
 }
 
-export function useOutbox(sourceDevice, reportedBy = null) {
+export function useOutbox(sourceDevice, reportedBy = null, lang = 'es') {
   const [items, setItems] = useState(load)
   const [online, setOnline] = useState(true)
   const flushing = useRef(false)
@@ -55,7 +55,7 @@ export function useOutbox(sourceDevice, reportedBy = null) {
   // Photos arrive pre-compressed (~100-250 KB, see photo.js) so a queued image
   // fits localStorage; the base64 is dropped from the item once the hub has it.
   const enqueue = useCallback(
-    ({ text, category, people_count, location, image_base64 = null, image_mime = null }) => {
+    ({ text, category, people_count, location, image_base64 = null, image_mime = null, lat, lon, accuracy }) => {
       const item = {
         localId: makeLocalId(),
         text,
@@ -65,9 +65,13 @@ export function useOutbox(sourceDevice, reportedBy = null) {
         image_base64,
         image_mime: image_base64 ? image_mime || 'image/jpeg' : null,
         has_image: Boolean(image_base64),
+        // Best-effort phone GPS captured at compose time (null when denied).
+        lat: lat ?? null,
+        lon: lon ?? null,
+        accuracy: accuracy ?? null,
         source_device: sourceDevice,
         reported_by: reportedBy,
-        lang: 'es',
+        lang,
         status: 'QUEUED',
         report_id: null,
         incident_id: null,
@@ -80,7 +84,7 @@ export function useOutbox(sourceDevice, reportedBy = null) {
       return item.localId
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [sourceDevice, reportedBy],
+    [sourceDevice, reportedBy, lang],
   )
 
   const flush = useCallback(async () => {
@@ -111,9 +115,11 @@ export function useOutbox(sourceDevice, reportedBy = null) {
             lang: it.lang,
             client_ref: it.localId,
             reported_by: it.reported_by ?? null,
-            date: it.created_at,
             image_base64: it.image_base64 ?? null,
             image_mime: it.image_mime ?? null,
+            lat: it.lat ?? null,
+            lon: it.lon ?? null,
+            accuracy: it.accuracy ?? null,
           })
           sawSuccess = true
           const incidentId =

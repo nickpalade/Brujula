@@ -6,7 +6,17 @@ import express from "express";
 
 import { logger } from "../logger.js";
 import * as store from "../store.js";
-import { CrewStatusRequest, DispatchActionRequest, HubReportRequest, RegisterRequest } from "../schemas.js";
+import { geocodeLabel } from "../geocode.js";
+import {
+  AlertRequest,
+  CrewStatusRequest,
+  DispatchActionRequest,
+  DispatchStatusRequest,
+  HubReportRequest,
+  IncidentPatchRequest,
+  RegisterRequest,
+  ResourcePatchRequest,
+} from "../schemas.js";
 
 // Agent HUB — the hub data layer's REST API (CONTRACTS §3, PRD §5B/§6).
 // Mounted once by server/main.js (`app.use(hubRouter)`); routes carry their
@@ -16,6 +26,16 @@ const HERE = path.dirname(fileURLToPath(import.meta.url));
 
 function envelope(res, { data = null, error = null, status = 200 } = {}) {
   res.status(status).json({ success: error === null, data, error });
+}
+
+// Normalize a person's name for matching: lowercase, remove accents, collapse whitespace.
+function normalizePersonName(name) {
+  return name
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/\p{Diacritic}/gu, "")
+    .replace(/\s+/g, " ")
+    .trim();
 }
 
 // ---- pipeline plug-in (agent PIPELINE, server/pipeline/index.js) -----------
@@ -82,10 +102,22 @@ export const hubRouter = express.Router();
 const REPORT_ACK_TIMEOUT_MS = Number(process.env.REPORT_ACK_TIMEOUT_MS ?? 20_000);
 const ACK_TIMEOUT = Symbol("ack-timeout");
 
+// Where does an incident's map pin come from? Phone GPS on the report when
+// the browser granted it, else the offline gazetteer resolves the parsed
+// location label. Either way {lat, lon} or {} — the map simply skips
+// incidents without coordinates. (Exported for tests.)
+export function resolveCoords(reportCoords, locationLabel) {
+  if (Number.isFinite(reportCoords?.lat) && Number.isFinite(reportCoords?.lon)) {
+    return { lat: reportCoords.lat, lon: reportCoords.lon };
+  }
+  const hit = geocodeLabel(locationLabel);
+  return hit ? { lat: hit.lat, lon: hit.lon } : {};
+}
+
 // Full pipeline for one stored report: parse → dedup → merge/add incident →
 // match. Returns the incident, or null when the report stays pending. Never
 // throws — this also runs detached (post-ack), where a throw would be fatal.
-async function runReportPipeline(reportId, { text, lang, images }) {
+async function runReportPipeline(reportId, { text, lang, images, coords }) {
   let incident = null;
   try {
     const pipeline = await loadPipeline();
@@ -106,17 +138,70 @@ async function runReportPipeline(reportId, { text, lang, images }) {
       logger.warn(`[hub] dedupCheck failed, treating as new incident: ${err.message}`);
     }
 
+    const resolved = resolveCoords(coords, fields.location);
+
     if (dedup?.is_duplicate && dedup.matching_incident_id) {
       const existing = store.getIncident(dedup.matching_incident_id);
       if (existing) {
-        incident = mergeReportIntoIncident(existing, reportId, fields);
+        incident = mergeReportIntoIncident(existing, reportId, fields, resolved);
       }
     }
     if (!incident) {
-      incident = store.addIncident({ ...fields, merged_report_ids: [reportId] });
+      incident = store.addIncident({ ...fields, ...resolved, merged_report_ids: [reportId] });
     }
 
     store.updateReport(reportId, { parsed_into: incident.id });
+
+    // 2.5. PERSONS — extract missing-persons registry from parsed fields.
+    // Wrapped in try-catch so person handling can never break report processing.
+    try {
+      const persons = Array.isArray(fields.persons) ? fields.persons : [];
+      for (const person of persons) {
+        if (!person.name) continue;
+        const nameKey = normalizePersonName(person.name);
+        const existing = store.findPersonByNameKey(nameKey);
+        const newDetail = person.detail ?? "";
+
+        if (existing) {
+          // Check if statuses differ: missing vs. found/safe
+          const existingIsMissing = existing.status === "missing";
+          const newIsMissing = person.status === "missing";
+          if (existingIsMissing && !newIsMissing) {
+            // Update to found/safe, mark as matched
+            const combinedDetail = existing.detail && newDetail
+              ? `${existing.detail} | ${newDetail}`
+              : (newDetail || existing.detail);
+            store.updatePerson(existing.id, {
+              status: person.status,
+              detail: combinedDetail,
+              matched: true,
+            });
+          } else if (!existingIsMissing && newIsMissing) {
+            // Don't downgrade found/safe to missing
+            if (newDetail && !existing.detail) {
+              store.updatePerson(existing.id, { detail: newDetail });
+            }
+          } else {
+            // Same status; just update detail if new info
+            if (newDetail && (!existing.detail || newDetail.length > existing.detail.length)) {
+              store.updatePerson(existing.id, { detail: newDetail });
+            }
+          }
+        } else {
+          // Insert new person
+          store.addPerson({
+            name: person.name,
+            name_key: nameKey,
+            status: person.status,
+            detail: newDetail || null,
+            report_id: reportId,
+            incident_id: incident.id,
+          });
+        }
+      }
+    } catch (err) {
+      logger.warn(`[hub] person handling failed, continuing: ${err.message}`);
+    }
 
     // 3. MATCH — for a need, propose the best available resource (proposal
     // only; the coordinator confirms via POST /api/incidents/:id/dispatch).
@@ -169,6 +254,9 @@ hubRouter.post("/api/reports", async (req, res) => {
     client_ref = null,
     reported_by = null,
     date = null,
+    lat = null,
+    lon = null,
+    accuracy = null,
   } = parsed.data;
 
   // Idempotent replay: the field outbox resends with the same client_ref until
@@ -187,6 +275,10 @@ hubRouter.post("/api/reports", async (req, res) => {
   // persisted — the stored report just records that a photo informed it.
   const images = image_base64 ? [{ base64: image_base64, mime: image_mime }] : undefined;
 
+  // GPS is all-or-nothing: a lone lat (its pair mangled away by validation)
+  // is meaningless, so store null coords rather than half a fix.
+  const hasGps = Number.isFinite(lat) && Number.isFinite(lon);
+
   const report = store.addReport({
     raw_text: text ?? "",
     source_device,
@@ -194,9 +286,18 @@ hubRouter.post("/api/reports", async (req, res) => {
     has_image: Boolean(image_base64),
     client_ref,
     reported_by,
+    date,
+    lat: hasGps ? lat : null,
+    lon: hasGps ? lon : null,
+    accuracy: hasGps && Number.isFinite(accuracy) ? accuracy : null,
   });
 
-  const work = runReportPipeline(report.id, { text, lang, images });
+  const work = runReportPipeline(report.id, {
+    text,
+    lang,
+    images,
+    coords: hasGps ? { lat, lon } : null,
+  });
   const outcome = await Promise.race([
     work,
     new Promise((resolve) => {
@@ -219,7 +320,8 @@ hubRouter.post("/api/reports", async (req, res) => {
 // Merge a new report's parsed fields into an existing incident. Raises what we
 // know (max urgency, max people_count, fill missing location) and records the
 // merged report id — the dedup evidence the Command UI renders.
-function mergeReportIntoIncident(incident, reportId, fields) {
+// (Exported for tests.)
+export function mergeReportIntoIncident(incident, reportId, fields, coords = {}) {
   const patch = {
     merged_report_ids: [...(incident.merged_report_ids ?? []), reportId],
   };
@@ -234,6 +336,11 @@ function mergeReportIntoIncident(incident, reportId, fields) {
   }
   if (incident.location == null && fields.location != null) {
     patch.location = fields.location;
+  }
+  // First non-null coordinates win — later reports never move an existing pin.
+  if (incident.lat == null && Number.isFinite(coords.lat) && Number.isFinite(coords.lon)) {
+    patch.lat = coords.lat;
+    patch.lon = coords.lon;
   }
   return store.updateIncident(incident.id, patch);
 }
@@ -407,7 +514,23 @@ hubRouter.post("/api/incidents/:id/dispatch", (req, res) => {
 
   const updated = store.updateDispatch(dispatch.id, patch);
   // Confirmed = the crew is now en route; engaged crews leave the match pool.
-  store.updateResource(updated.resource_id, { status: "committed", field_status: "traveling" });
+  // Handle resource quantity: if quantity is a number, decrement; if it becomes 0, commit fully.
+  const resource = store.getResource(updated.resource_id);
+  if (resource) {
+    const resourcePatch = { field_status: "traveling" };
+    if (typeof resource.quantity === "number") {
+      const newQuantity = Math.max(0, resource.quantity - 1);
+      resourcePatch.quantity = newQuantity;
+      if (newQuantity === 0) {
+        resourcePatch.status = "committed";
+      } else {
+        resourcePatch.status = "available";
+      }
+    } else {
+      resourcePatch.status = "committed";
+    }
+    store.updateResource(updated.resource_id, resourcePatch);
+  }
   store.updateIncident(incident.id, { status: "dispatched" });
 
   envelope(res, { data: updated });
@@ -486,6 +609,332 @@ hubRouter.get("/api/sitrep", async (req, res) => {
     logger.warn(`[hub] generateSitrep failed, using fallback: ${err.message}`);
   }
   envelope(res, { data: { text, generated_at: new Date().toISOString() } });
+});
+
+// ---- Broadcast alerts ---------------------------------------------------
+
+// POST /api/alerts — create a broadcast alert.
+hubRouter.post("/api/alerts", (req, res) => {
+  const parsed = AlertRequest.safeParse(req.body);
+  if (!parsed.success) {
+    return envelope(res, {
+      error:
+        "body must be {\"message\": \"<1-500 chars>\", \"severity\": \"info\"|\"warning\"|\"critical\", \"zone\"?: string}",
+      status: 400,
+    });
+  }
+  const { message, severity, zone = null } = parsed.data;
+  const alert = store.addAlert({ message, severity, zone });
+  envelope(res, { data: alert });
+});
+
+// POST /api/alerts/:id/deactivate — deactivate an alert.
+hubRouter.post("/api/alerts/:id/deactivate", (req, res) => {
+  const alert = store.getAlert(req.params.id);
+  if (!alert) {
+    return envelope(res, { error: `no alert ${req.params.id}`, status: 404 });
+  }
+  const updated = store.updateAlert(req.params.id, { active: false });
+  envelope(res, { data: updated });
+});
+
+// GET /api/alerts — list all alerts.
+hubRouter.get("/api/alerts", (req, res) => {
+  envelope(res, { data: store.listAlerts() });
+});
+
+// ---- Incident correction ------------------------------------------------
+
+// PATCH /api/incidents/:id — human correction of incident fields.
+hubRouter.patch("/api/incidents/:id", (req, res) => {
+  const parsed = IncidentPatchRequest.safeParse(req.body);
+  if (!parsed.success) {
+    return envelope(res, {
+      error:
+        "body must be at least one of: {\"category\", \"location\", \"people_count\", " +
+        "\"urgency\", \"summary\", \"status\"}",
+      status: 400,
+    });
+  }
+
+  const incident = store.getIncident(req.params.id);
+  if (!incident) {
+    return envelope(res, { error: `no incident ${req.params.id}`, status: 404 });
+  }
+
+  const patch = {};
+  for (const [key, val] of Object.entries(parsed.data)) {
+    if (val !== undefined) patch[key] = val;
+  }
+  patch.corrected_by_human = true;
+
+  const updated = store.updateIncident(req.params.id, patch);
+  envelope(res, { data: updated });
+});
+
+// POST /api/incidents/:id/rematch — escalation watchdog: rematch a need incident.
+hubRouter.post("/api/incidents/:id/rematch", async (req, res) => {
+  const incident = store.getIncident(req.params.id);
+  if (!incident) {
+    return envelope(res, { error: `no incident ${req.params.id}`, status: 404 });
+  }
+
+  let newDispatch = null;
+  try {
+    const pipeline = await loadPipeline();
+    if (!pipeline || typeof pipeline.proposeMatch !== "function") {
+      return envelope(res, { data: { dispatch: null } });
+    }
+
+    const match = await pipeline.proposeMatch(incident, store.matchableResources());
+    if (match && match.resource_id && store.getResource(match.resource_id)) {
+      // Withdraw the old proposed dispatch if one exists
+      if (incident.proposed_dispatch_id) {
+        const oldDispatch = store.getDispatch(incident.proposed_dispatch_id);
+        if (oldDispatch && oldDispatch.state === "proposed") {
+          store.updateDispatch(oldDispatch.id, { state: "withdrawn" });
+        }
+      }
+
+      // Create new dispatch
+      newDispatch = store.addDispatch({
+        incident_id: incident.id,
+        resource_id: match.resource_id,
+        rationale: [match.rationale, match.distance_note].filter(Boolean).join(" "),
+        proposed_by_ai: true,
+      });
+
+      // Update incident with new proposed dispatch
+      store.updateIncident(incident.id, {
+        proposed_dispatch_id: newDispatch.id,
+      });
+    }
+  } catch (err) {
+    logger.warn(`[hub] rematch failed: ${err.message}`);
+  }
+
+  envelope(res, { data: { dispatch: newDispatch } });
+});
+
+// ---- Assignment lifecycle -----------------------------------------------
+
+// POST /api/dispatches/:id/status — update dispatch state through lifecycle.
+hubRouter.post("/api/dispatches/:id/status", (req, res) => {
+  const parsed = DispatchStatusRequest.safeParse(req.body);
+  if (!parsed.success) {
+    return envelope(res, {
+      error:
+        "body must be {\"state\": \"accepted\"|\"en_route\"|\"on_site\"|\"done\", \"outcome\"?: string}",
+      status: 400,
+    });
+  }
+
+  const dispatch = store.getDispatch(req.params.id);
+  if (!dispatch) {
+    return envelope(res, { error: `no dispatch ${req.params.id}`, status: 404 });
+  }
+
+  const { state, outcome = null } = parsed.data;
+
+  // State lifecycle validation: must move forward in order
+  // Allowed states after confirmation: confirmed → accepted → en_route → on_site → done
+  const stateOrder = ["confirmed", "accepted", "en_route", "on_site", "done"];
+  const currentIdx = stateOrder.indexOf(dispatch.state);
+  const newIdx = stateOrder.indexOf(state);
+
+  if (currentIdx === -1) {
+    return envelope(res, {
+      error: `dispatch state '${dispatch.state}' not in lifecycle order`,
+      status: 400,
+    });
+  }
+
+  if (newIdx === -1) {
+    return envelope(res, {
+      error: `unknown state '${state}'`,
+      status: 400,
+    });
+  }
+
+  if (newIdx <= currentIdx) {
+    return envelope(res, {
+      error: `cannot move backward in lifecycle (current: ${dispatch.state}, requested: ${state})`,
+      status: 400,
+    });
+  }
+
+  // Build patch
+  const patch = { state, status_updated_at: new Date().toISOString() };
+  if (state === "done" && outcome) {
+    patch.outcome = outcome;
+  }
+
+  const updated = store.updateDispatch(req.params.id, patch);
+
+  // On done: free the resource and update incident outcome
+  if (state === "done") {
+    const resource = store.getResource(dispatch.resource_id);
+    if (resource) {
+      store.updateResource(dispatch.resource_id, {
+        status: "available",
+        field_status: "returning",
+      });
+    }
+
+    const incident = store.getIncident(dispatch.incident_id);
+    if (incident && outcome) {
+      store.updateIncident(dispatch.incident_id, { outcome });
+    }
+  }
+
+  const resource = store.getResource(dispatch.resource_id);
+  const incident = store.getIncident(dispatch.incident_id);
+
+  envelope(res, {
+    data: {
+      dispatch: updated,
+      resource: resource || null,
+      incident: incident || null,
+    },
+  });
+});
+
+// ---- Resource quantity --------------------------------------------------
+
+// PATCH /api/resources/:id — update resource quantity/unit/status.
+hubRouter.patch("/api/resources/:id", (req, res) => {
+  const parsed = ResourcePatchRequest.safeParse(req.body);
+  if (!parsed.success) {
+    return envelope(res, {
+      error:
+        "body must be at least one of: {\"quantity\": int|null, \"unit\": string|null, \"status\": \"available\"|\"committed\"}",
+      status: 400,
+    });
+  }
+
+  const resource = store.getResource(req.params.id);
+  if (!resource) {
+    return envelope(res, { error: `no resource ${req.params.id}`, status: 404 });
+  }
+
+  const patch = {};
+  for (const [key, val] of Object.entries(parsed.data)) {
+    if (val !== undefined) patch[key] = val;
+  }
+
+  const updated = store.updateResource(req.params.id, patch);
+  envelope(res, { data: updated });
+});
+
+// ---- Missing-persons registry -------------------------------------------
+
+// GET /api/persons — list all persons in the registry.
+hubRouter.get("/api/persons", (req, res) => {
+  envelope(res, { data: store.listPersons() });
+});
+
+// ---- Trends (deterministic analytics) -----------------------------------
+
+// GET /api/trends?window=120 — compare incident trends over time windows.
+hubRouter.get("/api/trends", (req, res) => {
+  const windowMinutes = Math.min(
+    1440,
+    Math.max(15, Number.parseInt(req.query.window ?? "120", 10) || 120)
+  );
+  const now = new Date();
+  const currentStart = new Date(now.getTime() - windowMinutes * 60000);
+  const prevStart = new Date(now.getTime() - 2 * windowMinutes * 60000);
+  const prevEnd = currentStart;
+
+  // Count reports by category/location in each window
+  const allReports = store.listReports();
+  const allIncidents = store.listIncidents();
+  const allDispatches = store.listDispatches();
+
+  // Build incident lookup
+  const incidentById = {};
+  for (const inc of allIncidents) {
+    incidentById[inc.id] = inc;
+  }
+
+  const categoryMap = {};
+  const locationMap = {};
+
+  for (const report of allReports) {
+    const timestamp = new Date(report.created_at);
+    const isCurrent = timestamp >= currentStart;
+    const isPrev = timestamp >= prevStart && timestamp < prevEnd;
+
+    if (!isCurrent && !isPrev) continue;
+
+    // Resolve category and location via incident
+    let category = "pending";
+    let location = "unknown";
+
+    if (report.parsed_into) {
+      const incident = incidentById[report.parsed_into];
+      if (incident) {
+        category = incident.category ?? "pending";
+        location = incident.location ?? "unknown";
+      }
+    }
+
+    // Update category counts
+    if (!categoryMap[category]) {
+      categoryMap[category] = { current: 0, previous: 0, delta: 0 };
+    }
+    if (isCurrent) {
+      categoryMap[category].current += 1;
+    } else if (isPrev) {
+      categoryMap[category].previous += 1;
+    }
+
+    // Update location counts
+    if (!locationMap[location]) {
+      locationMap[location] = { current: 0, previous: 0, delta: 0 };
+    }
+    if (isCurrent) {
+      locationMap[location].current += 1;
+    } else if (isPrev) {
+      locationMap[location].previous += 1;
+    }
+  }
+
+  // Compute deltas and filter
+  const categories = Object.entries(categoryMap)
+    .map(([category, counts]) => ({
+      category,
+      current: counts.current,
+      previous: counts.previous,
+      delta: counts.current - counts.previous,
+    }))
+    .filter((c) => c.current > 0 || c.previous > 0)
+    .sort((a, b) => {
+      const deltaDiff = Math.abs(b.delta) - Math.abs(a.delta);
+      return deltaDiff !== 0 ? deltaDiff : b.current - a.current;
+    });
+
+  const locations = Object.entries(locationMap)
+    .map(([location, counts]) => ({
+      location,
+      current: counts.current,
+      previous: counts.previous,
+      delta: counts.current - counts.previous,
+    }))
+    .filter((l) => l.current > 0 || l.previous > 0)
+    .sort((a, b) => {
+      const deltaDiff = Math.abs(b.delta) - Math.abs(a.delta);
+      return deltaDiff !== 0 ? deltaDiff : b.current - a.current;
+    });
+
+  envelope(res, {
+    data: {
+      generated_at: now.toISOString(),
+      window_minutes: windowMinutes,
+      categories,
+      locations,
+    },
+  });
 });
 
 // POST /api/advise (agent KB-MOCK, server/routes/advise.js) — mounted here if

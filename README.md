@@ -28,11 +28,18 @@ powershell -ExecutionPolicy Bypass -File bootstrap.ps1
 bash bootstrap.sh          # or: make bootstrap
 ```
 
-Node deps and the React app (one time):
+Node deps and the React app (one time — npm workspaces install root + app together):
 
 ```bash
 npm install
-cd app && npm install && npm run build && cd ..
+npm run build
+```
+
+Offline map tiles for the Command Post map (one time, needs internet —
+downloads the demo region from OpenStreetMap into `data/tiles/`):
+
+```bash
+npm run fetch:tiles
 ```
 
 ## 2. Start the server
@@ -59,6 +66,7 @@ With the server running (and the model warm — `POST /warmup` first):
 npm run verify:hub         # the demo as 15 PASS/FAIL checks (/api stack)
 npm run verify             # 3 sample reports through /parse-report (quick smoke)
 npm run seed               # reset + reseed the demo board between runs
+npm test                   # unit/endpoint tests (geocoding, GPS, map tiles) — 39 checks, no model needed
 ```
 
 `verify:hub` replays the full PRD §7 flow: report → parse → dedup merge →
@@ -85,9 +93,10 @@ Everything is served from the one Express server; phones need ONE LAN URL.
 ```
 
 - **`http://<lan-ip>:8000/command`** — Command Post (laptop, judges' screen):
-  prioritized action feed, AI dispatch proposals with confirm/override,
-  resource inventory, incident drawer with dedup evidence + protocol
-  advisory, one-click SITREP.
+  offline incident map (pre-downloaded tiles, urgency-colored pins from phone
+  GPS or the built-in gazetteer), prioritized action feed, AI dispatch
+  proposals with confirm/override, resource inventory, incident drawer with
+  dedup evidence + protocol advisory, one-click SITREP.
 - **`http://<lan-ip>:8000/field`** — Field client (phones). Installable:
   Safari/Chrome → **Add to Home Screen** → compass icon, opens fullscreen.
 
@@ -108,11 +117,76 @@ Everything is served from the one Express server; phones need ONE LAN URL.
   when the hub is reachable (SYNCED), and show PARSED when the pipeline
   lands. Retries are idempotent (`client_ref`), so flaky radio can't
   duplicate reports.
-- **Voice input** (es-VE speech recognition) and **photo triage** — 📷 Añadir
-  foto attaches a camera/gallery photo (compressed on-device to ~100-250 KB so
-  it fits the offline outbox; photo-only reports allowed). Multimodal Gemma
-  reads damage/hazards/people from it — a photo can raise urgency or fill
-  fields the text missed.
+- **Voice input** — phone records audio, sends it over the LAN to the laptop
+  hub, the hub transcribes with a local STT model/command, then the phone shows
+  an editable confirmation before the text enters the report. This follows the
+  Meetily-style privacy posture: audio and transcript stay on your machine.
+- **Photo triage** — 📷 Añadir foto attaches a camera/gallery photo (compressed
+  on-device to ~100-250 KB so it fits the offline outbox; photo-only reports
+  allowed). Multimodal Gemma reads damage/hazards/people from it — a photo can
+  raise urgency or fill fields the text missed.
+- **Best-effort GPS** — composing a report requests the phone's location and
+  attaches `lat`/`lon`/`accuracy` when granted (a chip shows "Ubicación GPS
+  adjunta"). Denied/unavailable is silent — browsers block geolocation on
+  plain-HTTP LAN origins, so in the field most pins come from the gazetteer
+  fallback (below), not the phone.
+
+#### Local voice transcription
+
+Configure the laptop STT command before starting the server. The included
+wrapper uses local Whisper through `faster-whisper` (`pip install faster-whisper`;
+make sure `ffmpeg` is on PATH for phone `webm/opus` clips). The command runs
+locally and may print plain transcript text to stdout, JSON like `{"text":"..."}`,
+or write to `{output}`.
+
+```powershell
+$env:BRUJULA_TRANSCRIBE_COMMAND = 'python .\scripts\transcribe-local.py {input} {lang}'
+npm start
+```
+
+For a Whisper/Parakeet wrapper, use `{input}`, `{lang}`, and optionally
+`{output}` placeholders:
+
+```bash
+BRUJULA_TRANSCRIBE_COMMAND='python scripts/transcribe-local.py {input} {lang}' npm start
+```
+
+### Offline incident map (Command Post)
+
+The Command Post shows a Leaflet map of the demo region with one
+urgency-colored pin per located incident (click a pin → the incident drawer).
+Fully offline: Leaflet is bundled into the app build and tiles are served by
+the hub from disk at `/tiles/{z}/{x}/{y}.png`.
+
+**Where pins come from** (resolved when the pipeline creates/merges an
+incident, first hit wins, in this order):
+
+1. Phone GPS on the report (`lat`/`lon` — additive fields on
+   `POST /api/reports`; mangled/out-of-range values are nulled, never a 400).
+2. **Offline gazetteer** (`server/geocode.js` + `fixtures/gazetteer.json`):
+   ~17 Vargas-coast places matched against the parsed `location` label —
+   accent/case-insensitive, whole-word, longest (most specific) name wins.
+   No GPS and no gazetteer hit → the incident simply isn't plotted (the map
+   badge counts "N sin ubicación"). Dedup merges never move an existing pin.
+
+**Tile prefetch** (the "pre-downloaded map" model — like the bootstrap model
+pull, run once with internet before deploying):
+
+```bash
+npm run fetch:tiles        # ~4k tiles / ~6 MB → data/tiles/ (gitignored)
+```
+
+Defaults cover the La Guaira / Vargas coast at zooms 11–16 from CARTO's
+dark basemap (OSM data; do NOT point it at tile.openstreetmap.org — bulk
+downloads violate their policy and get blocked mid-fetch). Region/zoom/source
+are overridable for a different scenario:
+
+```bash
+TILES_BBOX="10.50,-67.12,10.70,-66.68" TILES_ZOOM="11-16" npm run fetch:tiles
+```
+
+The map clamps panning to this region so the coordinator never scrolls into
+un-downloaded blank space. Missing tiles 404 harmlessly (blank squares).
 
 ### The agent pipeline (the coordinator's brain)
 
@@ -141,7 +215,8 @@ CPU; incidents surface through `/api/sync` when ready.
 
 | Endpoint | What it does |
 |---|---|
-| `POST /api/reports` | `{text?, image_base64?, image_mime?, source_device?, lang?, client_ref?, reported_by?}` → `{report, incident\|null}` (idempotent by `client_ref`) |
+| `POST /api/transcribe` | `{audio_base64, audio_mime?, lang?}` → `{text, model}` from the laptop local STT command |
+| `POST /api/reports` | `{text?, image_base64?, image_mime?, lat?, lon?, accuracy?, source_device?, lang?, client_ref?, reported_by?}` → `{report, incident\|null}` (idempotent by `client_ref`; bad GPS nulled, never 400) |
 | `GET /api/reports?ids=a,b` | report bodies (dedup evidence for the drawer); omit `ids` for all |
 | `GET /api/incidents` | priority-ordered board |
 | `POST /api/incidents/:id/dispatch` | `{dispatch_id, action: confirm\|override, resource_id?}` — the human-in-command step |
@@ -251,6 +326,8 @@ local Ollama. **Leave unset in the field.**
 |---|---|
 | bootstrap (Ollama install + model pull) | **Yes, once** |
 | npm install (root + app) | **Yes, once** |
+| map tile prefetch (`npm run fetch:tiles`) | **Yes, once** |
+| Command Post map (Leaflet + `/tiles/*`) | No — bundled JS + local tiles |
 | Ollama inference | No — localhost only |
 | Express hub + React app + field phones | No — LAN only |
 | knowledge-service advisories | No — localhost only |
@@ -264,15 +341,18 @@ bootstrap.ps1 / bootstrap.sh   # install + pull + verify Ollama (+ Node check)
 DEMO.md                        # the 1-minute demo runbook (+ Q&A cut beats)
 CONSOLIDATION.md               # why there were two stacks; agent/ now deleted
 app/                           # React app: /command + /field (Vite → app/dist)
-server/main.js                 # Express entry: model mgmt + routers + static
+server/main.js                 # Express entry: model mgmt + routers + static (+ /tiles)
 server/routes/hub.js           # /api/* hub (reports, dispatch, register, sync)
 server/routes/advise.js        # /api/advise proxy + local KB fallback
 server/pipeline/               # Gemma steps: parse/dedup/prioritize/match/sitrep
 server/store.js                # SQLite board store (data/hub.db)
+server/geocode.js              # offline gazetteer: location label -> lat/lon
 server/providers/              # ollama (default) | cloud (env-keyed)
 knowledge-service/             # Rares' FastAPI protocol matcher (:8100)
 design/                        # brand: tokens, logo SVGs (rings/compass/animated)
-fixtures/ + scripts/seed.js    # demo board seeds (npm run seed)
+fixtures/ + scripts/seed.js    # demo board seeds (npm run seed) + gazetteer.json
+scripts/fetch-tiles.mjs        # one-time offline map tile prefetch (npm run fetch:tiles)
+tests/                         # node:test suites (npm test) — geocode/GPS/map data
 verify-hub.js                  # THE acceptance test (npm run verify:hub)
 verify.js                      # legacy /parse-report smoke test
 ```

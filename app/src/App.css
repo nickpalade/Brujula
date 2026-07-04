@@ -1,184 +1,425 @@
-.counter {
-  font-size: 16px;
-  padding: 5px 10px;
-  border-radius: 5px;
-  color: var(--accent);
-  background: var(--accent-bg);
-  border: 2px solid transparent;
-  transition: border-color 0.3s;
-  margin-bottom: 24px;
+/*
+ * Brújula landing ("/") — the mission-select console.
+ *
+ * Aesthetic: industrial / utilitarian tactical console. Deep "bosque" field,
+ * faint tactical grid + scanlines, monospaced readouts, garnet brand, and two
+ * console panels you "deploy" into. Front door of an offline-first disaster
+ * coordinator — it should read like booting a field terminal, not a SaaS hero.
+ *
+ * The App shell (App.jsx) only imports THIS file on the "/" route, so we pull
+ * in the whole design system here (tokens + .bru-app base + components).
+ */
+@import './shared/styles.css';
 
-  &:hover {
-    border-color: var(--accent-border);
-  }
-  &:focus-visible {
-    outline: 2px solid var(--accent);
-    outline-offset: 2px;
-  }
-}
-
-.hero {
+.bru-landing {
   position: relative;
-
-  .base,
-  .framework,
-  .vite {
-    inset-inline: 0;
-    margin: 0 auto;
-  }
-
-  .base {
-    width: 170px;
-    position: relative;
-    z-index: 0;
-  }
-
-  .framework,
-  .vite {
-    position: absolute;
-  }
-
-  .framework {
-    z-index: 1;
-    top: 34px;
-    height: 28px;
-    transform: perspective(2000px) rotateZ(300deg) rotateX(44deg) rotateY(39deg)
-      scale(1.4);
-  }
-
-  .vite {
-    z-index: 0;
-    top: 107px;
-    height: 26px;
-    width: auto;
-    transform: perspective(2000px) rotateZ(300deg) rotateX(40deg) rotateY(39deg)
-      scale(0.8);
-  }
-}
-
-#center {
   display: flex;
   flex-direction: column;
-  gap: 25px;
-  place-content: center;
-  place-items: center;
-  flex-grow: 1;
+  min-height: 100svh;
+  overflow: hidden;
+  isolation: isolate;
+}
 
-  @media (max-width: 1024px) {
-    padding: 32px 20px 24px;
-    gap: 18px;
+/* Equipment-frame overlay: hard edge, no glow. */
+.bru-landing::before {
+  content: '';
+  position: absolute;
+  inset: clamp(12px, 2vw, 24px);
+  z-index: -1;
+  pointer-events: none;
+  border: 1px solid rgba(140, 170, 150, 0.08);
+  border-left-color: rgba(176, 58, 70, 0.24);
+}
+
+/* Sparse scanlines without tonal fades. Sits above the grid, below content. */
+.bru-landing__scan {
+  position: absolute;
+  inset: -2px;
+  z-index: -1;
+  pointer-events: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='4' height='4'%3E%3Cpath d='M0 .5H4' stroke='%238caa96' stroke-opacity='0.045'/%3E%3C/svg%3E");
+  opacity: 0.8;
+  animation: bru-scan-drift 8s linear infinite;
+}
+
+@keyframes bru-scan-drift {
+  to {
+    transform: translateY(4px);
   }
 }
 
-#next-steps {
+/* ---------------- Top status bar ---------------- */
+.bru-landing__bar {
+  flex: none;
   display: flex;
-  border-top: 1px solid var(--border);
-  text-align: left;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--bru-s-3);
+  padding: var(--bru-s-3) clamp(var(--bru-s-4), 4vw, var(--bru-s-6));
+  border-bottom: 1px solid var(--bru-border);
+  background: var(--bru-bg-1);
+}
 
-  & > div {
-    flex: 1 1 0;
-    padding: 32px;
-    @media (max-width: 1024px) {
-      padding: 24px 20px;
-    }
+.bru-landing__brandmark {
+  font-family: var(--bru-mono);
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 5px;
+  color: var(--bru-brand);
+  padding-inline-start: 2px;
+}
+
+.bru-landing__status {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--bru-s-2);
+  font-family: var(--bru-mono);
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 1.6px;
+  text-transform: uppercase;
+  color: var(--bru-text-mute);
+  white-space: nowrap;
+}
+
+.bru-landing__pulse {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--bru-ok);
+  box-shadow: 0 0 0 0 var(--bru-ok);
+  animation: bru-blink 1.6s ease-in-out infinite;
+}
+
+/* ---------------- Main / hero ---------------- */
+.bru-landing__main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: clamp(var(--bru-s-5), 4vw, var(--bru-s-6));
+  width: 100%;
+  max-width: 960px;
+  margin: 0 auto;
+  padding: clamp(var(--bru-s-5), 5vw, 64px) clamp(var(--bru-s-4), 5vw, var(--bru-s-6));
+}
+
+.bru-landing__hero {
+  display: flex;
+  align-items: center;
+  gap: clamp(var(--bru-s-4), 3vw, var(--bru-s-6));
+  animation: bru-landing-rise 0.7s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.bru-landing__compass {
+  flex: none;
+  width: clamp(84px, 12vw, 132px);
+  height: auto;
+  border-radius: 50%;
+}
+
+.bru-landing__wordmark {
+  min-width: 0;
+}
+
+.bru-landing__wordmark h1 {
+  font-family: var(--bru-mono);
+  font-weight: 700;
+  font-size: clamp(2.6rem, 9vw, 5.2rem);
+  line-height: 0.92;
+  letter-spacing: -0.02em;
+  color: var(--bru-text);
+  margin: 0;
+}
+
+/* Split the wordmark: solid mark + hollow/dim tail, like stenciled kit. */
+.bru-landing__wordmark h1 span {
+  color: transparent;
+  -webkit-text-stroke: 1.5px var(--bru-text-dim);
+}
+
+.bru-landing__tagline {
+  margin-top: var(--bru-s-3);
+  font-size: clamp(0.95rem, 1.6vw, 1.15rem);
+  line-height: 1.45;
+  color: var(--bru-text-dim);
+  max-width: 44ch;
+}
+
+.bru-landing__tagline em {
+  font-style: normal;
+  font-weight: 600;
+  color: var(--bru-brand);
+}
+
+.bru-landing__prompt {
+  display: flex;
+  align-items: center;
+  gap: var(--bru-s-2);
+  font-family: var(--bru-mono);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: var(--bru-text-mute);
+  animation: bru-landing-rise 0.7s cubic-bezier(0.22, 1, 0.36, 1) 0.06s both;
+}
+
+.bru-landing__prompt-tick {
+  color: var(--bru-brand);
+  animation: bru-blink 1.4s step-start infinite;
+}
+
+/* ---------------- Console grid ---------------- */
+.bru-landing__grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: clamp(var(--bru-s-3), 2vw, var(--bru-s-4));
+}
+
+/* Each station card = a bordered field console you deploy into. */
+.bru-console {
+  --c: var(--bru-brand);
+  --c-bg: var(--bru-accent-bg);
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: var(--bru-s-4);
+  padding: clamp(var(--bru-s-4), 2.4vw, var(--bru-s-5));
+  min-height: 236px;
+  border: 1px solid var(--bru-border);
+  border-radius: var(--bru-r-lg);
+  background: var(--bru-bg-1);
+  color: var(--bru-text);
+  text-decoration: none;
+  overflow: hidden;
+  transition:
+    transform var(--bru-t-base),
+    border-color var(--bru-t-base);
+  animation: bru-landing-rise 0.7s cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation-delay: var(--reveal-delay, 0.12s);
+}
+
+.bru-console[data-accent='field'] {
+  --c: var(--bru-ok);
+  --c-bg: var(--bru-ok-bg);
+}
+
+/* Left spine in the station's accent — instant identity, like the cards
+   in /command's action feed. */
+.bru-console::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 3px;
+  background: var(--c);
+  opacity: 1;
+}
+
+/* Flat accent plate that appears on hover, like a stamped dispatch label. */
+.bru-console::after {
+  content: '';
+  position: absolute;
+  right: var(--bru-s-4);
+  bottom: var(--bru-s-4);
+  width: 72px;
+  height: 10px;
+  z-index: 0;
+  pointer-events: none;
+  background: var(--c);
+  opacity: 0;
+  transition: opacity var(--bru-t-base);
+}
+
+.bru-console:hover,
+.bru-console:focus-visible {
+  transform: translateY(-4px);
+  border-color: var(--c);
+  outline: none;
+}
+
+.bru-console:hover::after,
+.bru-console:focus-visible::after {
+  opacity: 1;
+}
+
+/* Corner brackets — targeting reticle detailing. */
+.bru-console__corner {
+  position: absolute;
+  width: 14px;
+  height: 14px;
+  z-index: 1;
+  border: 1.5px solid var(--bru-border-strong);
+  transition: border-color var(--bru-t-base);
+}
+.bru-console__corner--tl {
+  top: 10px;
+  left: 10px;
+  border-right: none;
+  border-bottom: none;
+}
+.bru-console__corner--br {
+  right: 10px;
+  bottom: 10px;
+  border-left: none;
+  border-top: none;
+}
+.bru-console:hover .bru-console__corner,
+.bru-console:focus-visible .bru-console__corner {
+  border-color: var(--c);
+}
+
+.bru-console > * {
+  position: relative;
+  z-index: 1;
+}
+
+.bru-console__head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--bru-s-3);
+}
+
+.bru-console__index {
+  font-family: var(--bru-mono);
+  font-size: clamp(2rem, 4vw, 2.6rem);
+  font-weight: 700;
+  line-height: 1;
+  color: transparent;
+  -webkit-text-stroke: 1.5px var(--bru-border-strong);
+  transition: -webkit-text-stroke-color var(--bru-t-base);
+}
+.bru-console:hover .bru-console__index,
+.bru-console:focus-visible .bru-console__index {
+  -webkit-text-stroke-color: var(--c);
+}
+
+.bru-console__route {
+  font-family: var(--bru-mono);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 1px;
+  color: var(--c);
+  background: var(--c-bg);
+  border: 1px solid var(--bru-border-strong);
+  border-radius: 999px;
+  padding: 4px 10px;
+}
+
+.bru-console__title {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin-top: auto;
+}
+.bru-console__title h2 {
+  font-family: var(--bru-sans);
+  font-size: clamp(1.25rem, 2.4vw, 1.6rem);
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  color: var(--bru-text);
+}
+.bru-console__subtitle {
+  font-family: var(--bru-mono);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: var(--bru-text-mute);
+}
+
+.bru-console__desc {
+  font-size: 13.5px;
+  line-height: 1.5;
+  color: var(--bru-text-dim);
+  max-width: 40ch;
+}
+
+.bru-console__foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--bru-s-3);
+  padding-top: var(--bru-s-3);
+  border-top: 1px solid var(--bru-border);
+}
+
+.bru-console__device {
+  font-family: var(--bru-mono);
+  font-size: 10.5px;
+  letter-spacing: 0.6px;
+  color: var(--bru-text-mute);
+}
+
+.bru-console__enter {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--bru-s-2);
+  font-family: var(--bru-mono);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 2px;
+  color: var(--c);
+}
+
+.bru-console__arrow {
+  display: inline-block;
+  transition: transform var(--bru-t-base);
+}
+.bru-console:hover .bru-console__arrow,
+.bru-console:focus-visible .bru-console__arrow {
+  transform: translateX(5px);
+}
+
+/* ---------------- Footer readout ---------------- */
+.bru-landing__foot {
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: var(--bru-s-3);
+  padding: var(--bru-s-3) var(--bru-s-4);
+  border-top: 1px solid var(--bru-border);
+  font-family: var(--bru-mono);
+  font-size: 10px;
+  letter-spacing: 1.4px;
+  text-transform: uppercase;
+  color: var(--bru-text-mute);
+}
+.bru-landing__foot-dot {
+  color: var(--bru-border-strong);
+}
+
+/* ---------------- Motion ---------------- */
+@keyframes bru-landing-rise {
+  from {
+    opacity: 0;
+    transform: translateY(22px);
   }
-
-  .icon {
-    margin-bottom: 16px;
-    width: 22px;
-    height: 22px;
+  to {
+    opacity: 1;
+    transform: translateY(0);
   }
+}
 
-  @media (max-width: 1024px) {
+/* ---------------- Responsive ---------------- */
+@media (max-width: 720px) {
+  .bru-landing__grid {
+    grid-template-columns: 1fr;
+  }
+  .bru-landing__hero {
     flex-direction: column;
     text-align: center;
-  }
-}
-
-#docs {
-  border-right: 1px solid var(--border);
-
-  @media (max-width: 1024px) {
-    border-right: none;
-    border-bottom: 1px solid var(--border);
-  }
-}
-
-#next-steps ul {
-  list-style: none;
-  padding: 0;
-  display: flex;
-  gap: 8px;
-  margin: 32px 0 0;
-
-  .logo {
-    height: 18px;
-  }
-
-  a {
-    color: var(--text-h);
-    font-size: 16px;
-    border-radius: 6px;
-    background: var(--social-bg);
-    display: flex;
-    padding: 6px 12px;
     align-items: center;
-    gap: 8px;
-    text-decoration: none;
-    transition: box-shadow 0.3s;
-
-    &:hover {
-      box-shadow: var(--shadow);
-    }
-    .button-icon {
-      height: 18px;
-      width: 18px;
-    }
   }
-
-  @media (max-width: 1024px) {
-    margin-top: 20px;
-    flex-wrap: wrap;
-    justify-content: center;
-
-    li {
-      flex: 1 1 calc(50% - 8px);
-    }
-
-    a {
-      width: 100%;
-      justify-content: center;
-      box-sizing: border-box;
-    }
+  .bru-landing__tagline {
+    margin-inline: auto;
   }
-}
-
-#spacer {
-  height: 88px;
-  border-top: 1px solid var(--border);
-  @media (max-width: 1024px) {
-    height: 48px;
-  }
-}
-
-.ticks {
-  position: relative;
-  width: 100%;
-
-  &::before,
-  &::after {
-    content: '';
-    position: absolute;
-    top: -4.5px;
-    border: 5px solid transparent;
-  }
-
-  &::before {
-    left: 0;
-    border-left-color: var(--border);
-  }
-  &::after {
-    right: 0;
-    border-right-color: var(--border);
+  .bru-console {
+    min-height: 200px;
   }
 }

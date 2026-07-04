@@ -106,7 +106,15 @@ const VARIANTS = {
     noFocus: false
   },
   // Brújula: garnet shimmer on the Bosque dark — used for incoming taskings.
+  // ("garnet" is an alias — both names are in use across the app.)
   granate: {
+    activeColor: '#b03a46',
+    gap: 6,
+    speed: 30,
+    colors: '#3a2026,#7d2530,#b03a46',
+    noFocus: true
+  },
+  garnet: {
     activeColor: '#b03a46',
     gap: 6,
     speed: 30,
@@ -139,7 +147,6 @@ export default function PixelCard({
   const canvasRef = useRef(null);
   const pixelsRef = useRef([]);
   const animationRef = useRef(null);
-  const settleTimerRef = useRef(null);
   const timePreviousRef = useRef(performance.now());
   const reducedMotion = useRef(window.matchMedia('(prefers-reduced-motion: reduce)').matches).current;
 
@@ -230,16 +237,14 @@ export default function PixelCard({
     if (containerRef.current) {
       observer.observe(containerRef.current);
     }
-    // Brújula: flag incoming — shimmer in on mount, settle out after 4 s so a
-    // phone screen full of assignments doesn't burn battery on rAF forever.
+    // Brújula: flag in-flight state — shimmer for as long as the card is
+    // wrapped (callers unwrap on ack/sync, which unmounts this and stops rAF).
     if (autoAnimate && !reducedMotion) {
       handleAnimation('appear');
-      settleTimerRef.current = setTimeout(() => handleAnimation('disappear'), 4000);
     }
     return () => {
       observer.disconnect();
       cancelAnimationFrame(animationRef.current);
-      clearTimeout(settleTimerRef.current);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [finalGap, finalSpeed, finalColors, finalNoFocus, autoAnimate]);

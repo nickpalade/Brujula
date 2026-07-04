@@ -4,6 +4,8 @@
     "type": "machinery",
     "label": "Excavator + 5-person crew (idle)",
     "location": "Caraballeda",
+    "lat": 10.6119,
+    "lon": -66.8528,
     "capacity": "1 excavator, 5-person operating crew",
     "status": "available"
   },
@@ -12,6 +14,8 @@
     "type": "medical",
     "label": "Improvised clinic with spare capacity",
     "location": "Av. Principal, Catia La Mar",
+    "lat": 10.6031,
+    "lon": -67.0303,
     "capacity": "12 beds free, 2 volunteer doctors on shift",
     "status": "available"
   },
@@ -20,7 +24,11 @@
     "type": "water",
     "label": "Water tanker (cisterna) standing by",
     "location": "Puerto de La Guaira staging area",
+    "lat": 10.6103,
+    "lon": -66.9339,
     "capacity": "10,000 L potable water per trip",
+    "quantity": 4,
+    "unit": "trips",
     "status": "available"
   }
 ]

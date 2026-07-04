@@ -1,0 +1,18 @@
+---
+description: How to start the server for this project
+alwaysApply: true
+---
+
+# Starting the server
+
+When the user asks to "start the server", "restart the server", or "run the server",
+**default to running the Vite dev server**:
+
+```bash
+npm run dev
+```
+
+- Run it from the `app/` directory (that's where the `dev` script lives).
+- Prefer this over `npm start` / `node server/main.js`, which only serves the
+  pre-built `app/dist` bundle and will NOT reflect frontend source changes.
+- Start it in the background (long-running process); don't block on it.
