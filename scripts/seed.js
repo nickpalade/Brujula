@@ -9,9 +9,9 @@
 //   1. Live reset — if the hub is running and exposes POST /api/board/reset,
 //      hit it so the running server's in-memory board refreshes immediately
 //      (no restart needed). Optional endpoint; absence is not an error.
-//   2. File reset — always run store.reset(), which wipes data/hub.json and
-//      reseeds from fixtures/seed_incidents.json + fixtures/seed_resources.json.
-//      This is what a cold `npm start` will load.
+//   2. File reset — always run store.reset(), which wipes the SQLite store
+//      (data/hub.db) and reseeds from fixtures/seed_incidents.json +
+//      fixtures/seed_resources.json. This is what a cold `npm start` will load.
 
 import { reset, listIncidents, listResources } from "../server/store.js";
 
@@ -59,7 +59,7 @@ async function main() {
   if (live) {
     console.log("  Live hub refreshed via POST /api/board/reset — no restart needed.");
   } else {
-    console.log("  data/hub.json rewritten. If the hub is RUNNING, restart it");
+    console.log("  data/hub.db rewritten. If the hub is RUNNING, restart it");
     console.log("  (Ctrl+C then `npm start`) so it reloads the fresh board.");
     console.log("  (Ollama stays warm across a Node restart — re-warm not needed.)");
   }

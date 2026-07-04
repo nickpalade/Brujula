@@ -69,7 +69,7 @@ React UI), served from this same Express server. Phones need only ONE LAN URL.
                  │   │     POST /api/reports → parse→dedup→prioritize→match │
                  │   │       (server/pipeline/* → Ollama gemma3:4b)         │
                  │   ├─ /api/advise       → routes/advise.js (proxy+local)  │
-                 │   └─ data/hub.json     → JSON store (survives restart)   │
+                 │   └─ data/hub.db       → SQLite store (survives restart) │
                  └────────────────────────────────────────────────────────┘
                                       │ optional, one env var
                                       ▼
@@ -180,7 +180,7 @@ is set on the machine (it force-disables GPU discovery).
 
 Every report POSTed to `/reports` runs the full agent pipeline —
 **parse → dedup → prioritize → match → advise → emit** — against a persistent
-incident board (`brujula_board.json`):
+incident board (SQLite `hub.db`):
 
 1. **Parse**: Gemma extracts `{kind: need|resource|status, category, location, people_estimate, urgency, summary}`. A report may attach a photo (`image_base64`) — Gemma reads damage/hazards/people from it to enrich the record (needs a multimodal model, e.g. any `gemma3`/`gemma4` vision variant).
 2. **Dedup**: Gemma compares the new report against open incidents and merges duplicates (`duplicate_of` is schema-constrained to real board ids — the model cannot hallucinate one).

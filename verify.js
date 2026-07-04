@@ -23,12 +23,15 @@
 
 import fs from "node:fs";
 import path from "node:path";
+import { DatabaseSync } from "node:sqlite";
 import { fileURLToPath } from "node:url";
 import { parseArgs } from "node:util";
 
 const ROOT = path.dirname(fileURLToPath(import.meta.url));
 const APP_DIST = path.join(ROOT, "app", "dist");
-const STORE_FILE = path.join(ROOT, "data", "hub.json");
+// The hub store is SQLite (server/store.js → data/hub.db), not the old JSON
+// file. The restart-survival drill opens it read-only and queries directly.
+const STORE_FILE = path.join(ROOT, "data", "hub.db");
 
 // ---- tiny result tracker ---------------------------------------------------
 
@@ -512,26 +515,33 @@ async function runDrills(base, e2e) {
 
   // --- store persistence / restart survival -------------------------------
   // Full repro needs an operator to Ctrl-C and restart the hub; here we prove
-  // the write reached disk, which is what makes a restart non-destructive.
+  // the write reached the SQLite file, which is what makes a restart
+  // non-destructive. WAL mode means committed rows are on disk immediately.
   if (fs.existsSync(STORE_FILE)) {
-    let disk;
+    let db;
     try {
-      disk = JSON.parse(fs.readFileSync(STORE_FILE, "utf8"));
+      db = new DatabaseSync(STORE_FILE, { readOnly: true });
     } catch (err) {
-      disk = null;
-      note(`could not read ${STORE_FILE}: ${err.message}`);
+      db = null;
+      note(`could not open ${STORE_FILE}: ${err.message}`);
     }
-    if (disk) {
-      const persistedIncidents = disk.incidents?.length ?? 0;
-      const persistedReports = disk.reports?.length ?? 0;
-      const found = serverUp && e2e.incidentId
-        ? (disk.incidents ?? []).some((i) => i.id === e2e.incidentId)
-        : persistedIncidents > 0;
-      if (found) {
-        pass("store persists to disk", `data/hub.json holds ${persistedIncidents} incidents + ${persistedReports} reports on disk — survives a hub restart`);
-        note("Full restart drill (MANUAL): Ctrl-C the hub mid-demo, run `npm start` again, GET /api/incidents — the board must return identical.");
-      } else {
-        fail("store persists to disk", `data/hub.json does not contain the E2E incident (${e2e?.incidentId}) — writes may not be flushing; a restart would lose the board`);
+    if (db) {
+      try {
+        const persistedIncidents = db.prepare("SELECT COUNT(*) AS c FROM incidents").get().c;
+        const persistedReports = db.prepare("SELECT COUNT(*) AS c FROM reports").get().c;
+        const found = serverUp && e2e.incidentId
+          ? Boolean(db.prepare("SELECT 1 FROM incidents WHERE id = ?").get(e2e.incidentId))
+          : persistedIncidents > 0;
+        if (found) {
+          pass("store persists to disk", `data/hub.db holds ${persistedIncidents} incidents + ${persistedReports} reports on disk — survives a hub restart`);
+          note("Full restart drill (MANUAL): Ctrl-C the hub mid-demo, run `npm start` again, GET /api/incidents — the board must return identical.");
+        } else {
+          fail("store persists to disk", `data/hub.db does not contain the E2E incident (${e2e?.incidentId}) — writes may not be committing; a restart would lose the board`);
+        }
+      } catch (err) {
+        note(`could not query ${STORE_FILE}: ${err.message}`);
+      } finally {
+        db.close();
       }
     }
   } else {
