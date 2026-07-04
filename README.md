@@ -154,9 +154,9 @@ All responses use the envelope `{"success": bool, "data": ..., "error": ...}`.
 JSON output is enforced with Ollama structured outputs (zod schema passed as
 `format`), then validated again server-side.
 
-> A legacy first-generation agent stack (`server/agent/*`, `POST /reports`,
-> `npm run verify:agent`) still ships alongside; `/api` is canonical and the
-> legacy stack is slated for deletion — see [CONSOLIDATION.md](CONSOLIDATION.md).
+> The legacy first-generation agent stack (`server/agent/*`, `POST /reports`)
+> has been deleted; `/api` is the single pipeline. History and rationale:
+> [CONSOLIDATION.md](CONSOLIDATION.md).
 
 ### The one env-var switch — protocol advisories (Rares' knowledge-service)
 

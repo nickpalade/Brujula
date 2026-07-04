@@ -305,6 +305,53 @@
   bottom: 10px;
 }
 
+/* Photo attach ------------------------------------------------------------ */
+.photo-btn {
+  appearance: none;
+  width: 100%;
+  margin-top: 10px;
+  padding: 12px 14px;
+  border: 1px dashed var(--f-border);
+  border-radius: 12px;
+  background: var(--f-surface);
+  color: var(--f-text-dim);
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  min-height: 48px;
+}
+.photo-btn:disabled {
+  opacity: 0.5;
+  cursor: wait;
+}
+.photo-preview {
+  margin-top: 10px;
+  border: 1px solid var(--f-border);
+  border-radius: 12px;
+  background: var(--f-surface);
+  overflow: hidden;
+}
+.photo-preview img {
+  display: block;
+  width: 100%;
+  max-height: 180px;
+  object-fit: cover;
+}
+.photo-preview-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 8px 12px;
+  font-size: 12px;
+  color: var(--f-text-dim);
+}
+.photo-error {
+  margin-top: 8px;
+  font-size: 13px;
+  color: var(--f-critical);
+}
+
 /* Category chips ---------------------------------------------------------- */
 .chip-row {
   display: flex;

@@ -108,8 +108,19 @@ export const api = {
   // date: when the report was actually composed/sent on the phone (ISO string)
   // — distinct from the hub's own receipt time, since a queued report can sit
   // offline for a while before this call ever reaches the server.
-  async submitReport({ text, source_device = null, lang = 'es', client_ref = null, reported_by = null, date = null }) {
-    if (USE_MOCKS) return mock.submitReport({ text, source_device, lang })
+  // image_base64/image_mime: optional photo (pre-compressed by the field app);
+  // the hub's parse step reads it multimodally, text may be null when present.
+  async submitReport({
+    text,
+    source_device = null,
+    lang = 'es',
+    client_ref = null,
+    reported_by = null,
+    date = null,
+    image_base64 = null,
+    image_mime = null,
+  }) {
+    if (USE_MOCKS) return mock.submitReport({ text: text || '(foto)', source_device, lang })
     return request('/api/reports', {
       method: 'POST',
       body: {
@@ -119,6 +130,7 @@ export const api = {
         ...(client_ref ? { client_ref } : {}),
         ...(reported_by ? { reported_by } : {}),
         ...(date ? { date } : {}),
+        ...(image_base64 ? { image_base64, image_mime: image_mime || 'image/jpeg' } : {}),
       },
     })
   },

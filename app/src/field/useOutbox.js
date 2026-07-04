@@ -52,14 +52,19 @@ export function useOutbox(sourceDevice, reportedBy = null) {
   }, [])
 
   // Enqueue a new report — saved locally immediately, sent on the next flush.
+  // Photos arrive pre-compressed (~100-250 KB, see photo.js) so a queued image
+  // fits localStorage; the base64 is dropped from the item once the hub has it.
   const enqueue = useCallback(
-    ({ text, category, people_count, location }) => {
+    ({ text, category, people_count, location, image_base64 = null, image_mime = null }) => {
       const item = {
         localId: makeLocalId(),
         text,
         category: category || null,
         people_count: people_count ?? null,
         location: location || null,
+        image_base64,
+        image_mime: image_base64 ? image_mime || 'image/jpeg' : null,
+        has_image: Boolean(image_base64),
         source_device: sourceDevice,
         reported_by: reportedBy,
         lang: 'es',
@@ -92,19 +97,23 @@ export function useOutbox(sourceDevice, reportedBy = null) {
         try {
           // Compose the raw text the hub/pipeline parses. Category + counts are
           // hints appended so a hand-typed field note still carries structure.
-          const parts = [it.text]
+          // Photo-only reports send no text at all — the hub accepts either.
+          const parts = []
+          if (it.text) parts.push(it.text)
           if (it.category) parts.push(`[categoría: ${it.category}]`)
           if (it.people_count != null) parts.push(`[personas: ${it.people_count}]`)
           if (it.location) parts.push(`[ubicación: ${it.location}]`)
           const text = parts.join(' ')
 
           const data = await api.submitReport({
-            text,
+            text: text || null,
             source_device: it.source_device,
             lang: it.lang,
             client_ref: it.localId,
             reported_by: it.reported_by ?? null,
             date: it.created_at,
+            image_base64: it.image_base64 ?? null,
+            image_mime: it.image_mime ?? null,
           })
           sawSuccess = true
           const incidentId =
@@ -114,6 +123,9 @@ export function useOutbox(sourceDevice, reportedBy = null) {
             report_id: data?.report?.id || null,
             incident_id: incidentId,
             error: null,
+            // Hub has the photo now — free the localStorage quota.
+            image_base64: null,
+            image_mime: null,
           })
         } catch (err) {
           sawFailure = true
