@@ -66,6 +66,12 @@ db.exec(`
     seq INTEGER NOT NULL,
     data TEXT NOT NULL
   );
+
+  CREATE TABLE IF NOT EXISTS personnel (
+    id TEXT PRIMARY KEY,
+    seq INTEGER NOT NULL,
+    data TEXT NOT NULL
+  );
 `);
 
 function now() {
@@ -230,7 +236,7 @@ export function board() {
 
 // ---- writes ----------------------------------------------------------------
 
-export function addReport({ raw_text, source_device = null, lang = null, parsed_into = null, has_image = false, client_ref = null }) {
+export function addReport({ raw_text, source_device = null, lang = null, parsed_into = null, has_image = false, client_ref = null, reported_by = null }) {
   const report = {
     id: newId("rep"),
     raw_text,
@@ -240,6 +246,7 @@ export function addReport({ raw_text, source_device = null, lang = null, parsed_
     parsed_into,
     has_image,
     client_ref,
+    reported_by,
     _seq: bump(),
   };
   db.prepare("INSERT INTO reports (id, seq, data) VALUES (?, ?, ?)").run(
@@ -357,6 +364,51 @@ export function updateDispatch(id, patch) {
   return publicView(dispatch);
 }
 
+// ---- personnel (field registrations: reporter / volunteer / crew) ----------
+
+export function addPersonnel(fields) {
+  const person = {
+    id: newId("per"),
+    role: "reporter",
+    name: "",
+    skill: null,
+    location: null,
+    team_size: null,
+    device_id: null,
+    resource_id: null,
+    created_at: now(),
+    ...fields,
+    _seq: bump(),
+  };
+  db.prepare("INSERT INTO personnel (id, seq, data) VALUES (?, ?, ?)").run(
+    person.id,
+    person._seq,
+    JSON.stringify(person),
+  );
+  return publicView(person);
+}
+
+export function updatePersonnel(id, patch) {
+  const row = db.prepare("SELECT data FROM personnel WHERE id = ?").get(id);
+  if (!row) return null;
+  const person = { ...JSON.parse(row.data), ...patch, _seq: bump() };
+  db.prepare("UPDATE personnel SET seq = ?, data = ? WHERE id = ?").run(
+    person._seq,
+    JSON.stringify(person),
+    id,
+  );
+  return publicView(person);
+}
+
+export function listPersonnel() {
+  return listAll("personnel");
+}
+
+export function getPersonnelByDevice(deviceId) {
+  if (!deviceId) return null;
+  return listAll("personnel").find((p) => p.device_id === deviceId) ?? null;
+}
+
 // ---- sync ------------------------------------------------------------------
 
 // Records whose _seq > since. `since` omitted/invalid → 0 → full board.
@@ -383,6 +435,7 @@ export function reset() {
     DELETE FROM incidents;
     DELETE FROM resources;
     DELETE FROM reports;
+    DELETE FROM personnel;
     UPDATE meta SET seq = 0 WHERE id = 1;
   `);
   seedIfEmpty();

@@ -79,14 +79,32 @@ export const api = {
     return request('/health')
   },
 
+  // POST /api/register — sign this device up as reporter/volunteer/crew.
+  // Upsert by device_id (safe to call on every launch). Volunteers/crews also
+  // become available resources the agent can propose dispatching.
+  async register({ role, name, skill = null, location = null, team_size = null, device_id }) {
+    if (USE_MOCKS) return { personnel: { role, name, device_id }, resource: null }
+    return request('/api/register', {
+      method: 'POST',
+      body: { role, name, skill, location, team_size, device_id },
+    })
+  },
+
   // POST /api/reports  → { report, incident|null }
   // client_ref: idempotency key (the outbox localId) — retries with the same
   // ref replay the stored report instead of duplicating it on the hub.
-  async submitReport({ text, source_device = null, lang = 'es', client_ref = null }) {
+  // reported_by: "Name · rol" from the device profile, stored on the report.
+  async submitReport({ text, source_device = null, lang = 'es', client_ref = null, reported_by = null }) {
     if (USE_MOCKS) return mock.submitReport({ text, source_device, lang })
     return request('/api/reports', {
       method: 'POST',
-      body: { text, source_device, lang, ...(client_ref ? { client_ref } : {}) },
+      body: {
+        text,
+        source_device,
+        lang,
+        ...(client_ref ? { client_ref } : {}),
+        ...(reported_by ? { reported_by } : {}),
+      },
     })
   },
 

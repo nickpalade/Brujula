@@ -6,7 +6,7 @@ import express from "express";
 
 import { logger } from "../logger.js";
 import * as store from "../store.js";
-import { DispatchActionRequest, HubReportRequest } from "../schemas.js";
+import { DispatchActionRequest, HubReportRequest, RegisterRequest } from "../schemas.js";
 
 // Agent HUB — the hub data layer's REST API (CONTRACTS §3, PRD §5B/§6).
 // Mounted once by server/main.js (`app.use(hubRouter)`); routes carry their
@@ -165,6 +165,7 @@ hubRouter.post("/api/reports", async (req, res) => {
     source_device = null,
     lang = null,
     client_ref = null,
+    reported_by = null,
   } = parsed.data;
 
   // Idempotent replay: the field outbox resends with the same client_ref until
@@ -189,6 +190,7 @@ hubRouter.post("/api/reports", async (req, res) => {
     lang,
     has_image: Boolean(image_base64),
     client_ref,
+    reported_by,
   });
 
   const work = runReportPipeline(report.id, { text, lang, images });
@@ -232,6 +234,90 @@ function mergeReportIntoIncident(incident, reportId, fields) {
   }
   return store.updateIncident(incident.id, patch);
 }
+
+// ---- personnel registration -------------------------------------------------
+
+const SKILL_LABEL = {
+  rescue: "rescate",
+  medical: "médico",
+  water: "agua",
+  shelter: "refugio",
+  food: "comida",
+  machinery: "maquinaria",
+};
+
+function resourceFieldsFor(person) {
+  if (person.role === "volunteer") {
+    return {
+      type: "volunteer",
+      label: `${person.name} — equipo voluntario${person.team_size ? ` ×${person.team_size}` : ""}`,
+      location: person.location ?? null,
+      capacity: person.team_size ?? null,
+    };
+  }
+  // crew: the resource carries the actual capability so the matcher can use it.
+  const skill = person.skill ?? "rescue";
+  return {
+    type: skill,
+    label: `${person.name} — equipo ${SKILL_LABEL[skill] ?? skill}${person.team_size ? ` ×${person.team_size}` : ""}`,
+    location: person.location ?? null,
+    capacity: person.team_size ?? null,
+  };
+}
+
+// POST /api/register — field device signs up as reporter / volunteer / crew.
+// Upsert by device_id (safe to call on every app launch). Volunteers and crews
+// also get (or refresh) a linked resource on the board, which the pipeline's
+// match step reads — Gemma proposes dispatching them like any other resource.
+hubRouter.post("/api/register", (req, res) => {
+  const parsed = RegisterRequest.safeParse(req.body);
+  if (!parsed.success) {
+    return envelope(res, {
+      error:
+        "body must be {\"role\": \"reporter\"|\"volunteer\"|\"crew\", \"name\", \"device_id\", " +
+        "\"skill\"? (crew), \"location\"?, \"team_size\"?}",
+      status: 400,
+    });
+  }
+  const { role, name, skill = null, location = null, team_size = null, device_id } = parsed.data;
+
+  let person = store.getPersonnelByDevice(device_id);
+  const fields = { role, name, skill, location, team_size, device_id };
+  person = person
+    ? store.updatePersonnel(person.id, fields)
+    : store.addPersonnel(fields);
+
+  let resource = null;
+  if (role === "volunteer" || role === "crew") {
+    const rf = resourceFieldsFor(person);
+    const existing = person.resource_id ? store.getResource(person.resource_id) : null;
+    if (existing) {
+      // Refresh profile fields; keep dispatch status (committed stays committed).
+      resource = store.updateResource(existing.id, rf);
+    } else {
+      resource = store.addResource({ ...rf, status: "available" });
+      person = store.updatePersonnel(person.id, { resource_id: resource.id });
+    }
+    logger.info(`[hub] registered ${role} '${name}' (${device_id}) → resource ${resource.id}`);
+  } else {
+    // Role switched to reporter: their old resource is no longer offerable.
+    if (person.resource_id) {
+      const old = store.getResource(person.resource_id);
+      if (old && old.status === "available") {
+        store.updateResource(old.id, { status: "unavailable" });
+      }
+      person = store.updatePersonnel(person.id, { resource_id: null });
+    }
+    logger.info(`[hub] registered reporter '${name}' (${device_id})`);
+  }
+
+  envelope(res, { data: { personnel: person, resource } });
+});
+
+// GET /api/personnel — the roster (registered devices), for the command side.
+hubRouter.get("/api/personnel", (req, res) => {
+  envelope(res, { data: store.listPersonnel() });
+});
 
 // GET /api/incidents — priority-ordered board.
 hubRouter.get("/api/incidents", async (req, res) => {

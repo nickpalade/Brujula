@@ -50,8 +50,11 @@ installed on the phone** like a native app.
 
 6. **Phone setup** (one-time; survives reboots): join the laptop hotspot,
    open `http://192.168.137.1:8000/field` in Safari → Share → **Add to Home
-   Screen**. The Brújula compass icon appears and opens fullscreen. Command
-   laptop: open `http://localhost:8000/command`.
+   Screen**. The Brújula compass icon appears and opens fullscreen. First
+   open asks for a role — pick **Reportero** for the demo phone (volunteers /
+   specialized crews get registered on the board as dispatchable resources;
+   a good second-phone beat, and "cambiar" in the header switches role).
+   Command laptop: open `http://localhost:8000/command`.
 
 7. **Kill the uplink** (unplug ethernet / disconnect laptop Wi-Fi from the
    venue network — the hotspot keeps running). Verify `GET /health` still ok

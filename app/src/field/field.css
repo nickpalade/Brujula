@@ -101,7 +101,9 @@
   flex: 1;
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
-  padding: 16px 16px 24px;
+  /* Reporters have no bottom tab bar, so the body itself must clear the
+     iOS home indicator. */
+  padding: 16px 16px calc(24px + env(safe-area-inset-bottom, 0px));
 }
 
 /* Tabs (bottom, thumb-reachable) ------------------------------------------ */
@@ -152,6 +154,66 @@
   border-radius: 999px;
   background: var(--f-critical);
   color: #fff;
+}
+
+/* Onboarding (first-open role signup) -------------------------------------- */
+.onboard-title {
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--f-text);
+  margin: 4px 0 6px;
+}
+.onboard-sub {
+  font-size: 14px;
+  color: var(--f-text-dim);
+  margin: 0 0 18px;
+  line-height: 1.45;
+}
+.role-cards {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 6px;
+}
+.role-card {
+  appearance: none;
+  text-align: left;
+  background: var(--f-surface);
+  border: 1px solid var(--f-border);
+  border-radius: 14px;
+  padding: 14px 16px;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.role-card.selected {
+  border-color: var(--f-accent);
+  background: var(--f-surface-2);
+}
+.role-card-title {
+  font-size: 17px;
+  font-weight: 700;
+  color: var(--f-text);
+}
+.role-card.selected .role-card-title {
+  color: var(--f-accent);
+}
+.role-card-desc {
+  font-size: 13px;
+  color: var(--f-text-dim);
+  line-height: 1.4;
+}
+
+.link-btn {
+  appearance: none;
+  background: none;
+  border: none;
+  padding: 0;
+  font-size: 12px;
+  color: var(--f-accent);
+  cursor: pointer;
+  text-decoration: underline;
 }
 
 /* Report form ------------------------------------------------------------- */

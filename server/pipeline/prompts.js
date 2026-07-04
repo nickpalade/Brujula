@@ -92,6 +92,13 @@ incident and a list of AVAILABLE resources, pick the single best resource to
 dispatch:
 - the capability must actually serve the need: machinery for people trapped
   under rubble, medical capacity for casualties, water supply for water needs.
+- resources with type "volunteer" are registered volunteer teams: general
+  labor only — shelter setup, food/water distribution, welfare checks, light
+  debris clearing. NEVER send volunteers to technical rescue, medical care, or
+  machinery work; prefer a specialized team when one fits the need.
+- specialized field crews appear with their capability as the type (rescue,
+  medical, water, shelter, food, machinery) — treat them like any other
+  resource of that type.
 - among those that fit, prefer the nearest by the locations given.
 - if NO available resource genuinely fits, return null — never force a bad match.
 
