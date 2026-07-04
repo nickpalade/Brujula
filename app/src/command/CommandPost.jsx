@@ -14,7 +14,8 @@ import IncidentDrawer from './IncidentDrawer.jsx';
 import SitrepModal from './SitrepModal.jsx';
 import MapPanel from './MapPanel.jsx';
 import ConnectModal from './ConnectModal.jsx';
-import LanguagePicker from './LanguagePicker.jsx';
+import CommandSettings from './CommandSettings.jsx';
+import { loadCommandDensity, saveCommandDensity } from './commandSettingsStorage.js';
 import {
   USE_MOCKS,
   getSync,
@@ -66,6 +67,7 @@ function CommandPost() {
   const [connectOpen, setConnectOpen] = useState(false);
   const [alertComposerOpen, setAlertComposerOpen] = useState(false);
   const agentBusy = useAgentBusy();
+  const [density, setDensity] = useState(loadCommandDensity);
 
   const seqRef = useRef(0);
 
@@ -175,8 +177,13 @@ function CommandPost() {
 
   const criticalCount = ordered.filter((i) => i.urgency === 'critical' && i.status === 'open').length;
 
+  const changeDensity = (next) => {
+    setDensity(next);
+    saveCommandDensity(next);
+  };
+
   return (
-    <div className="bru-app cmd-root">
+    <div className={`bru-app cmd-root${density === 'compact' ? ' cmd-root--compact' : ''}`}>
       <header className="cmd-topbar">
         <div className="cmd-topbar__brand">
           <BrujulaMark size={60} spinning={agentBusy} title="Brújula — Command Post" />
@@ -212,20 +219,22 @@ function CommandPost() {
               MOCK DATA
             </Badge>
           )}
-          <LanguagePicker />
           <Button variant="default" onClick={() => setAlertComposerOpen(true)} title="Broadcast an alert to field" aria-label="Broadcast alert">
             <Icon name="alert" />
             Alert
-          </Button>
-          <Button variant="default" onClick={() => setConnectOpen(true)} title="Show a QR code to connect a phone">
-            <Icon name="phone" />
-            Connect phone
           </Button>
           <Button variant="primary" onClick={openSitrep}>
             <Icon name="sitrep" />
             SITREP
           </Button>
         </div>
+          <CommandSettings
+            density={density}
+            onDensityChange={changeDensity}
+            onConnectPhone={() => setConnectOpen(true)}
+            onRefresh={refresh}
+            refreshing={loading}
+          />
       </header>
 
       {/* --- Active alerts strip --- */}
