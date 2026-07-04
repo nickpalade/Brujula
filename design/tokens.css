@@ -1,0 +1,32 @@
+/* Brújula design tokens — FINAL: Field · Bosque (team pick, 2026-07-04).
+   Drop this :root into the React app; every design/option-* tile uses the
+   same variable names, so restyling later is a token swap, not a rebuild. */
+:root {
+  /* base */
+  --bg:        #0e1411;   /* deep tactical forest, gray-leaning */
+  --surface:   #17211b;   /* cards */
+  --surface-2: #1f2d25;   /* raised panels, reason blocks */
+  --line:      #2e4436;   /* hairlines, input borders */
+
+  /* text */
+  --ink:       #eff4f1;
+  --ink-dim:   #9cb3a5;
+
+  /* brand — identity + primary action ONLY, never urgency */
+  --brand:     #b03a46;   /* granate, lifted to pop against green */
+  --brand-deep:#7d2530;   /* hover/active */
+
+  /* urgency ladder — solid road-signage fills, never used for brand */
+  --critical:  #ff453a;
+  --high:      #ff9500;
+  --medium:    #ffcc00;
+  --low:       #87988e;
+
+  /* status */
+  --ok:        #3ddc84;   /* brighter than bg family so it reads as signal */
+
+  /* shape & type */
+  --radius: 12px;
+  --font: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; /* offline: no webfonts */
+  --font-mono: ui-monospace, Consolas, monospace;                   /* IDs: INC-003, RES-001 */
+}

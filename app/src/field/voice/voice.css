@@ -1,0 +1,117 @@
+/* Voice input — recording state + live transcript preview (agent VOICE).
+   Scoped to voice classes only; reuses the .field-app --f-* tokens that cascade
+   from the field client. Does NOT edit field.css or the base .mic-btn rule. */
+
+/* Recording state: red, pulsing halo so it's obvious the mic is live. */
+.mic-btn.recording {
+  background: var(--f-critical, #ef4444);
+  border-color: var(--f-critical, #ef4444);
+  color: #fff;
+  animation: voice-pulse 1.4s ease-out infinite;
+}
+.mic-btn.recording:active {
+  transform: scale(0.96);
+}
+
+@keyframes voice-pulse {
+  0% {
+    box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.55);
+  }
+  70% {
+    box-shadow: 0 0 0 12px rgba(239, 68, 68, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(239, 68, 68, 0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mic-btn.recording {
+    animation: none;
+    box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.4);
+  }
+}
+
+/* Floating live-transcript preview shown above the mic while recording.
+   Interim words only — final segments are committed to the textarea. */
+.voice-live {
+  position: absolute;
+  right: 0;
+  bottom: 58px;
+  max-width: min(280px, 78vw);
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: var(--f-surface-2, #1e222d);
+  border: 1px solid var(--f-critical, #ef4444);
+  color: var(--f-text, #e7eaf0);
+  font-size: 14px;
+  line-height: 1.35;
+  text-align: left;
+  z-index: 30;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
+}
+.voice-live::after {
+  content: '';
+  position: absolute;
+  right: 18px;
+  bottom: -6px;
+  width: 12px;
+  height: 12px;
+  background: var(--f-surface-2, #1e222d);
+  border-right: 1px solid var(--f-critical, #ef4444);
+  border-bottom: 1px solid var(--f-critical, #ef4444);
+  transform: rotate(45deg);
+}
+.voice-live-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--f-critical, #ef4444);
+  margin-bottom: 4px;
+}
+.voice-live-label .rec-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--f-critical, #ef4444);
+  animation: voice-blink 1s steps(2, start) infinite;
+}
+@keyframes voice-blink {
+  50% {
+    opacity: 0.2;
+  }
+}
+.voice-live-text {
+  color: var(--f-text, #e7eaf0);
+  word-break: break-word;
+}
+.voice-live-text.placeholder {
+  color: var(--f-text-dim, #98a0b0);
+  font-style: italic;
+}
+
+/* Small inline error/hint under the mic (offline, permission denied). */
+.voice-hint {
+  position: absolute;
+  right: 0;
+  bottom: 58px;
+  max-width: min(260px, 74vw);
+  padding: 8px 10px;
+  border-radius: 10px;
+  background: var(--f-surface-2, #1e222d);
+  border: 1px solid var(--f-border, #2a2f3c);
+  color: var(--f-text-dim, #98a0b0);
+  font-size: 12px;
+  line-height: 1.35;
+  text-align: left;
+  z-index: 30;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+}
+
+.mic-btn.offline {
+  opacity: 0.5;
+}

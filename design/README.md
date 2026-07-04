@@ -1,4 +1,12 @@
-# Brújula — Design Philosophy Options
+# Brújula — Design
+
+> **DECIDED (2026-07-04): Field · Bosque.** Tokens live in [`tokens.css`](tokens.css)
+> — Nick, that `:root` block is the design system. Logo starting point:
+> [`logo-brujula.svg`](logo-brujula.svg). Prompts for generated brand art:
+> [`brand-image-prompts.md`](brand-image-prompts.md). Everything below is the
+> exploration that led here (kept for the record / future revisits).
+
+## Design Philosophy Options (exploration)
 
 Three directions built around **granate** (dark red / garnet), the working
 brand color. Open each `option-*.html` in a browser — they're self-contained
@@ -10,6 +18,17 @@ it's the wrong design for this product**).
 | `option-1-sala-de-crisis.html` | **Sala de Crisis** | Dark command-center. Near-black UI, granate as the brand thread, information glows. For long night shifts. |
 | `option-2-granate-institucional.html` | **Granate Institucional** | Light, humanitarian-official. Paper background, deep granate authority. Feels like an institution you trust. |
 | `option-3-brujula-field.html` | **Brújula Field** | Utilitarian field tool. Cool dark slate + granate, oversized touch targets, sunlight-legible. Built for gloves and cracked screens. |
+
+**Field won the team vote**, but the bluish slate base didn't. Same Field
+system (components, targets, signal colors untouched), three background
+temperatures to pick from:
+
+| File | Base | One-liner |
+|---|---|---|
+| `option-3a-field-grafito.html` | **Grafito** | Pure neutral graphite. The background disappears; only granate + signal colors speak. Military-radio sobriety. Doesn't tint field photos. |
+| `option-3b-field-tierra.html` | **Tierra** | Warm umber/earth. The context of the work — dust, rubble, dusk. Granate harmonizes naturally; easier on eyes at night. |
+| `option-3c-field-vino.html` | **Vino** | Granate itself, desaturated and sunk to near-black. Full brand commitment, maximum personality on a demo screen. |
+| `option-3d-field-bosque.html` | **Bosque** | Tactical forest green — rescue-gear, civil-protection energy. Granate pops hardest here (exact complement); green kept gray-leaning so it never reads festive. |
 
 ## Shared principles (whichever option wins)
 

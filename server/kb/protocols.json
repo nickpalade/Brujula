@@ -1,0 +1,115 @@
+{
+  "_note": "Offline FALLBACK protocol content for server/routes/advise.js (agent KB-MOCK). Served when Rares' knowledge-service is unreachable / RARES_KB_URL unset / upstream error / empty guidance (context/decisions.md D1). Keyed by our Incident.category vocabulary (CONTRACTS §2). Coverage mirrors Rares' four domains (structural_collapse/USAR, casualty_triage/START, water_sanitation/Sphere, shelter_disease/PAHO-WHO) so the advisory panel looks identical whether or not his box is up. Operational protocol for TRAINED RESPONDERS ONLY — never patient medical advice (PRD §9).",
+  "standard_caution": "Operational protocol for trained responders — not medical advice or patient diagnosis.",
+  "protocols": {
+    "rescue": {
+      "incident_type": "rescue",
+      "steps": [
+        "Enforce periodic silence on site (all machinery and voices stop) to listen for trapped survivors.",
+        "Size up structural stability before any entry — do not enter unstable structures; shore or crib voids before committing responders.",
+        "Mark searched areas with standard USAR/INSARAG markings to prevent duplicate searches across shifts.",
+        "Triage every extricated casualty with START; anticipate crush injuries after prolonged entrapment.",
+        "Log void spaces and voice-contact locations with time and exact position for the next shift."
+      ],
+      "source_label": "INSARAG USAR field guidance (condensed)",
+      "cautions": [
+        "Operational protocol for trained responders — not medical advice or patient diagnosis.",
+        "Aftershocks: agree on an evacuation signal and safe assembly point before starting work."
+      ]
+    },
+    "machinery": {
+      "incident_type": "machinery",
+      "steps": [
+        "Heavy machinery operates under USAR direction only — never lift-and-pull on a structure that may hold live victims.",
+        "Enforce silence periods before machinery starts at any site with possible trapped survivors.",
+        "Confirm shoring and void assessment are complete before applying any load to the structure.",
+        "Stage fuel, spotters and operator rotation before committing equipment to a multi-hour extrication."
+      ],
+      "source_label": "INSARAG heavy-rescue coordination (condensed)",
+      "cautions": [
+        "Operational protocol for trained responders — not medical advice or patient diagnosis.",
+        "One trained banksman/spotter controls each machine near a live-victim void."
+      ]
+    },
+    "medical": {
+      "incident_type": "medical",
+      "steps": [
+        "Apply START triage: direct the walking wounded aside first, then assess respirations, perfusion and mental status to sort immediate / delayed / minor / expectant.",
+        "Prioritize casualties freed after prolonged entrapment — crush-syndrome risk rises sharply after release.",
+        "Route red (immediate) casualties to the nearest facility with real capacity, not simply the nearest facility.",
+        "Record the name/description and destination of every evacuated casualty for family reunification."
+      ],
+      "source_label": "START mass-casualty triage (condensed)",
+      "cautions": [
+        "Operational protocol for trained responders — not medical advice or patient diagnosis.",
+        "Sorting and prioritization only — treatment decisions belong to qualified clinicians on scene."
+      ]
+    },
+    "water": {
+      "incident_type": "water",
+      "steps": [
+        "Minimum survival allocation: target ~15 L of water per person per day (Sphere).",
+        "Chlorinate distributed water; target ~0.5 mg/L free residual chlorine at the point of delivery.",
+        "If people are drinking from rivers or unknown sources, distribute purification tablets with instructions immediately.",
+        "Separate defecation areas from water sources; site latrines at least 30 m from any water point and downhill of it."
+      ],
+      "source_label": "Sphere Handbook — WASH minimum standards (condensed)",
+      "cautions": [
+        "Operational protocol for trained responders — not medical advice or patient diagnosis.",
+        "Reports of untreated-water consumption → flag the health lead for a diarrhoeal-disease watch."
+      ]
+    },
+    "shelter": {
+      "incident_type": "shelter",
+      "steps": [
+        "Target a minimum of ~3.5 m² covered living space per person; avoid dense open-floor crowding that accelerates disease spread.",
+        "Register occupants on entry (headcount, unaccompanied minors, medical needs) for tracking and reunification.",
+        "In crowded shelters with low vaccination coverage, prioritize measles vaccination and isolate suspected measles/cholera cases (PAHO/WHO).",
+        "Scale water, latrines and handwashing points with occupancy — apply the WASH minimums as headcount grows."
+      ],
+      "source_label": "Sphere shelter standards + PAHO/WHO shelter disease-control guidance (condensed)",
+      "cautions": [
+        "Operational protocol for trained responders — not medical advice or patient diagnosis.",
+        "Set up a triage/isolation corner away from the main sleeping area before an outbreak, not after."
+      ]
+    },
+    "food": {
+      "incident_type": "food",
+      "steps": [
+        "Distribute through registered lists per shelter/zone to avoid duplicate and missed households.",
+        "Prioritize infants, pregnant women, the elderly and people with medical dietary needs.",
+        "Provide ready-to-eat rations where cooking water or fuel is not assured."
+      ],
+      "source_label": "Sphere food-security standards (condensed)",
+      "cautions": [
+        "Operational protocol for trained responders — not medical advice or patient diagnosis."
+      ]
+    },
+    "hazard": {
+      "incident_type": "hazard",
+      "steps": [
+        "Establish and mark a perimeter; assign one access-control point.",
+        "Report gas leaks, fire and unstable structures up the chain before committing responders inside the perimeter.",
+        "Isolate suspected gas or live electrical hazards before any powered tools are used.",
+        "Reassess the zone after every significant aftershock."
+      ],
+      "source_label": "General incident hazard-zone practice (condensed)",
+      "cautions": [
+        "Operational protocol for trained responders — not medical advice or patient diagnosis."
+      ]
+    }
+  },
+  "generic": {
+    "incident_type": "other",
+    "steps": [
+      "Size up the scene and confirm it is safe before committing responders; establish a marked perimeter and one access point.",
+      "Identify the primary need (rescue, medical, water, shelter) and report it up the chain with location and headcount.",
+      "Apply the relevant humanitarian standard for the confirmed need; escalate to a specialist team where one exists.",
+      "Reassess after every significant aftershock and hand off with a written status for the next shift."
+    ],
+    "source_label": "General disaster-response size-up practice (condensed)",
+    "cautions": [
+      "Operational protocol for trained responders — not medical advice or patient diagnosis."
+    ]
+  }
+}

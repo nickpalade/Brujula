@@ -26,3 +26,25 @@ export const ReportRequest = z.object({
 export function parsedReportJsonSchema() {
   return z.toJSONSchema(ParsedReport);
 }
+
+// ---- Hub API request schemas (agent HUB, CONTRACTS §3) ---------------------
+
+// POST /api/reports — only `text` is required.
+export const HubReportRequest = z.object({
+  text: z.string().min(1).max(8000),
+  source_device: z.string().max(200).nullish(),
+  lang: z.string().max(20).nullish(),
+});
+
+// POST /api/incidents/:id/dispatch — confirm or override a proposed dispatch.
+// `resource_id` is required iff action === "override".
+export const DispatchActionRequest = z
+  .object({
+    dispatch_id: z.string().min(1),
+    action: z.enum(["confirm", "override"]),
+    resource_id: z.string().min(1).nullish(),
+  })
+  .refine((v) => v.action !== "override" || !!v.resource_id, {
+    message: "resource_id is required when action is \"override\"",
+    path: ["resource_id"],
+  });

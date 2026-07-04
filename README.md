@@ -56,6 +56,63 @@ node verify.js --url http://192.168.137.1:8000   # from the LAN side
 Sends 3 sample Spanish field reports (in `fixtures/`) to `/parse-report` and
 prints the structured JSON. Ends with a single SUCCESS/FAILURE line.
 
+## Brújula app — Command Post + Field client (the demo)
+
+The demo runs on the multi-agent **`/api/*`** stack (hub + Gemma pipeline +
+React UI), served from this same Express server. Phones need only ONE LAN URL.
+
+```
+                 ┌─────────────────── laptop (offline) ───────────────────┐
+  field phones   │  Express :8000                                          │
+  (hotspot)  ───►│   ├─ /field, /command  → built React app (app/dist)     │
+                 │   ├─ /api/*            → hub (store.js + routes/hub.js)  │
+                 │   │     POST /api/reports → parse→dedup→prioritize→match │
+                 │   │       (server/pipeline/* → Ollama gemma3:4b)         │
+                 │   ├─ /api/advise       → routes/advise.js (proxy+local)  │
+                 │   └─ data/hub.json     → JSON store (survives restart)   │
+                 └────────────────────────────────────────────────────────┘
+                                      │ optional, one env var
+                                      ▼
+                         Rares' knowledge-service :8100 (RARES_KB_URL)
+```
+
+### Run the full system
+
+```powershell
+npm install                 # root: express, zod
+cd app; npm install; npm run build; cd ..   # builds app/dist (the React UI)
+npm start                   # serves API + UI on :8000
+```
+
+Then open, on the laptop or any phone on the hotspot:
+- **`http://<lan-ip>:8000/command`** — Command Post (laptop, judges' screen)
+- **`http://<lan-ip>:8000/field`** — Field client (phones)
+
+The startup banner prints `<lan-ip>`. Pre-warm Gemma before demoing:
+`POST /warmup` (or click through one report) so the first parse isn't cold.
+
+> Rebuild `app/dist` (`cd app && npm run build`) after any UI change — Express
+> serves the built bundle, not the Vite dev server. For UI development use
+> `cd app && npm run dev` (Vite on :5173, set `VITE_API_BASE=http://localhost:8000`).
+
+### The one env-var switch — protocol advisories (Rares' knowledge-service)
+
+`POST /api/advise` (the incident drawer's protocol panel) is a
+**proxy-with-local-fallback** to Rares' `knowledge-service/` (`decisions.md` D1):
+
+| `RARES_KB_URL` | Behaviour |
+|---|---|
+| **unset** (default) | Serves the local offline KB (`server/kb/protocols.json`) — full USAR / triage / WASH / shelter-disease content. No internet, no 5xx. |
+| `http://<rares-host>:8100` | Proxies to Rares' service, normalizes his `{guidance, safety_flags, disclaimer, source_standards}` into our Advisory shape. Falls back to local automatically if he's unreachable. |
+
+```powershell
+$env:RARES_KB_URL = "http://<rares-host>:8100"   # turn Rares' box on
+npm start                                          # unset it to go local-only
+```
+
+Alias `PROTOCOL_KB_URL` is also honoured (legacy name). Nothing else changes —
+this one flag is the entire "turn Rares on" switch.
+
 ## Embedded Ollama — no Ollama app
 
 Brujula owns the Ollama backend. On startup the server spawns a headless
