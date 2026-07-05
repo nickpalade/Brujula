@@ -1,10 +1,10 @@
 <img src="design/logo-animated.svg" width="96" align="right" alt="Brújula logo">
 
-# Brújula — offline disaster-response coordination
+# Brújula: offline disaster-response coordination
 
 **RAISE Summit Hackathon 2026 · Google DeepMind Remote (Edge / On-Device Gemma)**  
 **Repo:** [github.com/nickpalade/Brujula](https://github.com/nickpalade/Brujula) (public, built during the event)  
-**Team (remote, 4):** Pepe / José María (AI agent + integration), Ceco (hub backend + offline sync), Nick (shared React frontend — laptop + mobile), Rares (offline protocol knowledge base)
+**Team (remote, 4):** Pepe / José María (AI agent + integration), Ceco (hub backend + offline sync), Nick (shared React frontend, laptop + mobile), Rares (offline protocol knowledge base)
 
 Built in the spirit of the Google DeepMind track mission: **build AI efficiently to benefit humanity**.
 
@@ -12,13 +12,13 @@ Built in the spirit of the Google DeepMind track mission: **build AI efficiently
 
 ## The problem
 
-On June 24, 2026, twin earthquakes (M7.2 + M7.5) struck northwestern Venezuela — the La Guaira / Caracas corridor. Comms and power failed. Dozens of agencies, volunteer crews, and survivors were all reporting at once — by voice, text, and photo — in Spanish, often messy and contradictory.
+On June 24, 2026, twin earthquakes (M7.2 + M7.5) struck northwestern Venezuela along the La Guaira / Caracas corridor. Comms and power failed. Dozens of agencies, volunteer crews, and survivors were all reporting at once, by voice, text, and photo, in Spanish, often messy and contradictory.
 
 The coordination failure: duplicate teams sent to one collapse while another site waits, water trucks idle near shelters with no drinking water, missing-person names scattered across radios and chat threads. Responders fall back to whiteboards because the digital tools need connectivity they don't have.
 
 ## Why offline-first
 
-In the disaster zone the network is down or oversubscribed. Cloud AI is unreachable **exactly when the tool matters most**. Brújula is built on the assumption that **there is no internet in the field** — only a laptop hotspot and phones on local Wi‑Fi. After a one-time bootstrap (model pull, npm install, map tiles), **nothing touches the public internet** during operation.
+In the disaster zone the network is down or oversubscribed. Cloud AI is unreachable exactly when the tool matters most. Brújula is built on one assumption: **there is no internet in the field**, only a laptop hotspot and phones on local Wi‑Fi. After a one-time bootstrap (model pull, npm install, map tiles), nothing touches the public internet during operation.
 
 That is not a preference. It is the only architecture that works in the scenario we built for.
 
@@ -26,10 +26,10 @@ That is not a preference. It is the only architecture that works in the scenario
 
 Brújula is an **offline coordination agent**, not a form and not a dashboard.
 
-1. **Field phones** submit reports — voice, text, photo, GPS when available — through a store-and-forward outbox that survives radio drops.
-2. **Gemma on the command-post laptop** runs a multi-step agent workflow: parse → dedup → prioritize → match. Retrieval (protocol KB, open incidents, resource inventory) is one tool inside that workflow — not the product.
+1. **Field phones** submit reports (voice, text, photo, GPS when available) through a store-and-forward outbox that survives radio drops.
+2. **Gemma on the command-post laptop** runs a multi-step agent workflow: parse → dedup → prioritize → match. Retrieval (protocol KB, open incidents, resource inventory) is one tool inside that workflow, not the product.
 3. **The coordinator confirms** every dispatch. Gemma proposes; humans decide. Override, edit, rematch, and broadcast alerts stay in human hands.
-4. **Assignments sync back** to field phones over the LAN — **crews and volunteers get tasking to go to the place**: incident location, summary, and why they were sent. They accept the mission, mark En camino → En el sitio, and report when done. Late-registering volunteers trigger new match proposals for open needs.
+4. **Assignments sync back** to field phones over the LAN. Crews and volunteers get tasking to go to the place: incident location, summary, and why they were sent. They accept the mission, mark En camino → En el sitio, and report when done. Late-registering volunteers trigger new match proposals for open needs.
 
 The **command graph** makes this visible: field reports flow into a central **Gemma brain** node, structured incidents and dispatches connect out. The agent's reasoning is the product; feed, map, and graph are windows onto it.
 
@@ -55,27 +55,27 @@ After confirmation, the graph keeps the operational chain visible: report eviden
 
 ## Privacy by design
 
-Reports contain missing-person identities, medical status, and locations of vulnerable people — in a politically charged setting. Routing that through a foreign cloud is unacceptable.
+Reports contain missing-person identities, medical status, and locations of vulnerable people, in a politically charged setting. Routing that through a foreign cloud is unacceptable.
 
 | What | Stays local |
 |---|---|
 | Gemma inference | `localhost:11434` (Ollama on the hub laptop) |
-| Reports, incidents, persons | SQLite on the hub — not sent to Google/OpenAI in field config |
+| Reports, incidents, persons | SQLite on the hub; not sent to Google/OpenAI in field config |
 | Voice audio | Transcribed on hub; not stored |
 | Photos | Parsed by Gemma once; only a `has_image` flag persisted |
 | Protocol guidance | Local KB or Rares' service on `localhost:8100` |
 
-`CLOUD_API_KEY` exists for dev convenience only — **leave unset in the field.**
+`CLOUD_API_KEY` exists for dev convenience only. Leave it unset in the field.
 
 ## Scalable & deployable
 
-Brújula is designed to run **anywhere one laptop can host a hotspot**:
+Brújula is designed to run anywhere one laptop can host a hotspot:
 
-- **One server, many phones** — Express hub at `:8000` serves the React app, API, tiles, and model. Phones install the field PWA from a QR code; no app store, no cloud account.
-- **Hub-and-spoke topology** — the laptop is the edge device running Gemma; phones are spokes that sync over LAN with delta polling and idempotent `client_ref`.
-- **Graceful degradation** — model hiccups store reports as pending; the board keeps working. Protocol KB falls back locally if the knowledge service is down.
-- **Hardware-flexible** — `gemma3n:e4b` runs on a laptop GPU or CPU; GPU/CPU toggle and model manager built in. Size up or down without re-architecting.
-- **Same codebase, two surfaces** — one React app renders Command Post (laptop) and Field client (mobile) from the same design system and API contracts.
+- **One server, many phones.** Express hub at `:8000` serves the React app, API, tiles, and model. Phones install the field PWA from a QR code; no app store, no cloud account.
+- **Hub-and-spoke topology.** The laptop is the edge device running Gemma; phones are spokes that sync over LAN with delta polling and idempotent `client_ref`.
+- **Graceful degradation.** Model hiccups store reports as pending; the board keeps working. Protocol KB falls back locally if the knowledge service is down.
+- **Hardware-flexible.** `gemma3n:e4b` runs on a laptop GPU or CPU; GPU/CPU toggle and model manager built in. Size up or down without re-architecting.
+- **Same codebase, two surfaces.** One React app renders Command Post (laptop) and Field client (mobile) from the same design system and API contracts.
 
 Bootstrap once with internet, deploy offline indefinitely.
 
@@ -85,26 +85,26 @@ Bootstrap once with internet, deploy offline indefinitely.
 
 | Requirement | How Brújula meets it |
 |---|---|
-| **Track** | Google DeepMind **Remote** — Gemma runs **locally on the command-post laptop** via Ollama (`gemma3n:e4b` default). Offline, privacy-first inference is load-bearing, not optional. |
+| **Track** | Google DeepMind **Remote**: Gemma runs locally on the command-post laptop via Ollama (`gemma3n:e4b` default). Offline, privacy-first inference is load-bearing, not optional. |
 | **Open source** | Public repo, Apache-2.0 Gemma models. |
 | **New work only** | Built Sat 11:30 → Sun 12:00. No pre-existing product repackaged. |
-| **Not a banned category** | Not basic RAG, Streamlit, medical-advice bot, or "dashboard as the product." A **multi-step Gemma agent** plans, retrieves context, calls tools, and proposes outcomes; views (feed, graph, map) are **windows onto agent output**. |
+| **Not a banned category** | Not basic RAG, Streamlit, medical-advice bot, or "dashboard as the product." A multi-step Gemma agent plans, retrieves context, calls tools, and proposes outcomes; views (feed, graph, map) are windows onto agent output. |
 | **Demo video** | ≤1 min recorded from the live app: field report → Gemma parse/dedup/match → human confirm → field assignment sync. |
 | **What judges should see as ours** | Gemma pipeline (parse → dedup → prioritize → match → advise → emit), offline LAN sync, field store-and-forward, human confirm/override, protocol KB integration, command graph with Gemma as the central brain node, contextual chat that proposes board changes. |
 
-**Submit:** [Cerebral Valley submission form](https://cerebralvalley.ai/e/raise-summit-hackathon/hackathon/submit) — demo video (YouTube/Loom) + this repo + short description.
+**Submit:** [Cerebral Valley submission form](https://cerebralvalley.ai/e/raise-summit-hackathon/hackathon/submit) with demo video (YouTube/Loom) + this repo + short description.
 
 ---
 
 ## Why Gemma is the brain (track argument)
 
-Brújula is not "a form with AI sprinkled on top." **Gemma is the reasoning core** — every messy report passes through a multi-step workflow before a human ever sees a dispatch card.
+Brújula is not "a form with AI sprinkled on top." Gemma is the reasoning core: every messy report passes through a multi-step workflow before a human ever sees a dispatch card.
 
 1. **Offline is mandatory.** In the disaster zone, connectivity is down or saturated. A cloud model fails exactly when the tool matters. Gemma on the command-post laptop produces outputs regardless of network status.
 2. **Privacy is mandatory.** Reports contain missing-person identities, medical status, and locations of vulnerable people. Routing that through a foreign cloud is unacceptable. On-device inference keeps sensitive data in the command post.
-3. **Structured agency, not one-shot RAG.** The pipeline **plans** (parse → compare board → rank → match), **retrieves** when needed (open incidents for dedup, resource inventory for match, protocol KB for advise), **calls tools** (geocoder, KB HTTP, board store), and **emits** proposals the coordinator confirms. That is an agent workflow, not retrieve-then-answer.
+3. **Structured agency, not one-shot RAG.** The pipeline plans (parse → compare board → rank → match), retrieves when needed (open incidents for dedup, resource inventory for match, protocol KB for advise), calls tools (geocoder, KB HTTP, board store), and emits proposals the coordinator confirms. That is an agent workflow, not retrieve-then-answer.
 
-In the **command graph** (`/command/graph`), Gemma is literally the central **brain node**: reports connect in, incidents and dispatches connect out. The operator inspects any node, asks Gemma contextual questions, and applies one-click graph mutations Gemma proposes — always with human review.
+In the command graph (`/command/graph`), Gemma is literally the central brain node: reports connect in, incidents and dispatches connect out. The operator inspects any node, asks Gemma contextual questions, and applies one-click graph mutations Gemma proposes, always with human review.
 
 **Model:** `gemma3n:e4b` (QAT, multimodal text + vision) via **Ollama** on the hub laptop. Research brief: [GEMMA.md](GEMMA.md). Product spec: [PRD-Brujula.md](PRD-Brujula.md).
 
@@ -132,17 +132,17 @@ raw report (voice/text/photo, any language)
 
 **Human in command:** nothing dispatches until the coordinator confirms or overrides. Proposed dispatches show a gold accent on the graph; an approval bar surfaces pending items without hunting the board.
 
-**Graceful degradation:** if Gemma fails mid-pipeline (except parse), the hub stores the report and keeps the board working — no 5xx to field phones. Parse failures mark the report `pending` for retry.
+**Graceful degradation:** if Gemma fails mid-pipeline (except parse), the hub stores the report and keeps the board working, with no 5xx to field phones. Parse failures mark the report `pending` for retry.
 
-**Chat brain (command post):** `POST /api/chat` grounds answers in the live board + offline KB. On the command station, Gemma may attach `proposed_actions` (edit incident, create alert, update resource) — each re-validated server-side and applied only when the operator clicks **Apply**.
+**Chat brain (command post):** `POST /api/chat` grounds answers in the live board + offline KB. On the command station, Gemma may attach `proposed_actions` (edit incident, create alert, update resource), each re-validated server-side and applied only when the operator clicks **Apply**.
 
-**Field assistant:** `POST /api/ask` — grounded Q&A for responders; cannot dispatch or mutate the board.
+**Field assistant:** `POST /api/ask` gives responders grounded Q&A; it cannot dispatch or mutate the board.
 
 ---
 
 ## JSON schemas (Gemma structured output)
 
-All pipeline steps use Ollama `format: <json_schema>` plus server-side Zod re-validation. Malformed output retries once, then falls back — never crashes the hub.
+All pipeline steps use Ollama `format: <json_schema>` plus server-side Zod re-validation. Malformed output retries once, then falls back; it never crashes the hub.
 
 ### 1. PARSE (`server/pipeline/schemas.js`)
 
@@ -159,7 +159,7 @@ All pipeline steps use Ollama `format: <json_schema>` plus server-side Zod re-va
 }
 ```
 
-Multimodal: optional `image_base64` on the report; image goes to parse only — **never persisted**.
+Multimodal: optional `image_base64` on the report; the image goes to parse only and is never persisted.
 
 ### 2. DEDUP
 
@@ -171,7 +171,7 @@ Multimodal: optional `image_base64` on the report; image goes to parse only — 
 }
 ```
 
-`matching_incident_id` is **enum-locked** to real board ids (model cannot hallucinate). Server derives `is_duplicate` and applies a **category-compatibility backstop** (e.g. rescue ↔ machinery merges allowed; unrelated categories blocked).
+`matching_incident_id` is enum-locked to real board ids (the model cannot hallucinate one). Server derives `is_duplicate` and applies a category-compatibility backstop (e.g. rescue ↔ machinery merges allowed; unrelated categories blocked).
 
 ### 3. MATCH
 
@@ -183,7 +183,7 @@ Multimodal: optional `image_base64` on the report; image goes to parse only — 
 }
 ```
 
-`resource_id` enum-locked to matchable resources (available, not engaged on mission).
+`resource_id` is enum-locked to matchable resources (available, not engaged on mission).
 
 ### 4. SITREP
 
@@ -191,7 +191,7 @@ Multimodal: optional `image_base64` on the report; image goes to parse only — 
 { "sitrep": "plain-language situation report, few short lines" }
 ```
 
-### 5. CHAT — command station (`POST /api/chat`)
+### 5. CHAT, command station (`POST /api/chat`)
 
 ```json
 {
@@ -209,7 +209,7 @@ Multimodal: optional `image_base64` on the report; image goes to parse only — 
 }
 ```
 
-Field station chat omits `proposed_actions` — ask only, never edit.
+Field station chat omits `proposed_actions`: ask only, never edit.
 
 ---
 
@@ -224,12 +224,12 @@ Field station chat omits `proposed_actions` — ask only, never edit.
 | Protocol advisories | Local `server/kb/protocols.json` or Rares' service on `localhost:8100` | **No** |
 | Missing-person names | Parsed into `persons[]` on incidents; visible to coordinator only | **No** |
 | Map tiles | Downloaded once to `data/tiles/` on laptop; phones fetch via hotspot | **No** after prefetch |
-| Cloud fallback | Only if `CLOUD_API_KEY` is set (Anthropic) — **leave unset in the field** | Yes — dev convenience only |
+| Cloud fallback | Only if `CLOUD_API_KEY` is set (Anthropic); leave unset in the field | Yes (dev convenience only) |
 
 **Operational boundaries (DQ compliance):**
-- Advisory content is **humanitarian protocol for trained responders** (INSARAG, START triage, Sphere WASH, PAHO shelter guidance) — not patient diagnosis.
+- Advisory content is humanitarian protocol for trained responders (INSARAG, START triage, Sphere WASH, PAHO shelter guidance), not patient diagnosis.
 - Coordinator confirms every dispatch; Gemma proposes, humans decide.
-- Field outbox is store-and-forward: reports save on the phone first, sync when the hub is reachable — radio can drop without data loss.
+- Field outbox is store-and-forward: reports save on the phone first and sync when the hub is reachable, so radio can drop without data loss.
 
 ---
 
@@ -237,19 +237,19 @@ Field station chat omits `proposed_actions` — ask only, never edit.
 
 | PRD plan | What shipped |
 |---|---|
-| FastAPI hub (Python) | **Node.js Express** hub — same contracts, faster integration with the React app and Ollama |
-| `/agent` + `/api` two stacks | **Single `/api` pipeline** — `server/agent/*` deleted; see [CONSOLIDATION.md](CONSOLIDATION.md) |
-| Prioritized action feed (MVP) | Feed **+ command graph** — React Flow board with Gemma brain node, SmartEdge routing, Organise layout, inspector sidebar, filters, drag/zoom |
-| Dedup (V2) | **Shipped** — enum-locked ids + category backstop |
-| Protocol advisory (Rares) | **Shipped** — proxy to `knowledge-service/` with local fallback |
-| Voice field reporting | **Shipped** — phone records → hub local STT (`BRUJULA_TRANSCRIBE_COMMAND`) → editable confirmation |
-| Photo triage (stretch) | **Shipped** — multimodal parse; compressed on-device before outbox |
-| Sitrep (V2) | **Shipped** — one-click from Command Post |
-| Map as stretch view | **Shipped** — offline Leaflet + pre-download UI (Settings → Offline maps) |
-| Gemma 3n on phone (stretch) | Not in MVP — hub-laptop Gemma is the edge device for the demo |
+| FastAPI hub (Python) | **Node.js Express** hub: same contracts, faster integration with the React app and Ollama |
+| `/agent` + `/api` two stacks | **Single `/api` pipeline**; `server/agent/*` deleted, see [CONSOLIDATION.md](CONSOLIDATION.md) |
+| Prioritized action feed (MVP) | Feed **+ command graph**: React Flow board with Gemma brain node, SmartEdge routing, Organise layout, inspector sidebar, filters, drag/zoom |
+| Dedup (V2) | **Shipped**: enum-locked ids + category backstop |
+| Protocol advisory (Rares) | **Shipped**: proxy to `knowledge-service/` with local fallback |
+| Voice field reporting | **Shipped**: phone records → hub local STT (`BRUJULA_TRANSCRIBE_COMMAND`) → editable confirmation |
+| Photo triage (stretch) | **Shipped**: multimodal parse; compressed on-device before outbox |
+| Sitrep (V2) | **Shipped**: one-click from Command Post |
+| Map as stretch view | **Shipped**: offline Leaflet + pre-download UI (Settings → Offline maps) |
+| Gemma 3n on phone (stretch) | Not in MVP; hub-laptop Gemma is the edge device for the demo |
 | Gradium STT | Optional; local Whisper path is default for privacy |
 
-**Banned-list check (still true):** not basic RAG, not Streamlit, not a medical bot, not "dashboard as main feature" — the **agent reasoning and human-confirm loop** are what we demo; graph/map/feed visualize Gemma's decisions.
+**Banned-list check (still true):** not basic RAG, not Streamlit, not a medical bot, not "dashboard as main feature." The agent reasoning and human-confirm loop are what we demo; graph/map/feed visualize Gemma's decisions.
 
 ---
 
@@ -272,9 +272,9 @@ Field station chat omits `proposed_actions` — ask only, never edit.
                knowledge-service :8100 (Rares' protocol matcher)
 ```
 
-- **`/command`** — prioritized feed, map, dispatch confirm/override, SITREP, settings.
-- **`/command/graph`** — relationship graph: reports → **Gemma brain** → incidents → dispatches → resources; contextual chat; approval queue for proposed dispatches.
-- **`/field`** — PWA field client: role signup, voice/photo reports, store-and-forward outbox, assignments inbox, crew status.
+- **`/command`**: prioritized feed, map, dispatch confirm/override, SITREP, settings.
+- **`/command/graph`**: relationship graph (reports → Gemma brain → incidents → dispatches → resources), contextual chat, approval queue for proposed dispatches.
+- **`/field`**: PWA field client with role signup, voice/photo reports, store-and-forward outbox, assignments inbox, crew status.
 
 Phones install from the hub URL (Add to Home Screen). One LAN address for everything.
 
@@ -282,7 +282,7 @@ Phones install from the hub URL (Add to Home Screen). One LAN address for everyt
 
 ## Features (full inventory)
 
-Everything below was built during the hackathon. Views (feed, graph, map) are **windows onto Gemma's agent output** — the product is the reasoning + confirm loop, not a static dashboard.
+Everything below was built during the hackathon. Views (feed, graph, map) are windows onto Gemma's agent output; the product is the reasoning + confirm loop, not a static dashboard.
 
 ### Gemma agent & pipeline
 
@@ -290,18 +290,18 @@ Everything below was built during the hackathon. Views (feed, graph, map) are **
 |---|---|
 | **Multi-step agent** | Parse → dedup → prioritize → match on every report; advise + sitrep on demand |
 | **Structured JSON** | Every Gemma step uses Ollama `format` + server-side Zod validation; enum-locked ids for dedup/match |
-| **Multimodal parse** | Text, voice transcript, and/or photo — Gemma reads damage, hazards, people from images |
+| **Multimodal parse** | Text, voice transcript, and/or photo; Gemma reads damage, hazards, people from images |
 | **Photo privacy** | Image goes to parse only; hub stores `has_image: true`, never the bytes |
-| **Persons registry** | Named individuals extracted as `{name, status, detail}` — missing / found / safe |
-| **Dedup merge** | Two reports of the same event → one incident; merged report ids kept as evidence |
+| **Persons registry** | Named individuals extracted as `{name, status, detail}`: missing / found / safe |
+| **Dedup merge** | Two reports of the same event become one incident; merged report ids kept as evidence |
 | **Explicit correction** | Reports like *"not 180 people, actually 60"* merge to the right incident and update headcount |
 | **Cross-kind guard** | Resource offers cannot dedup-merge into need incidents (server backstop) |
 | **Category backstop** | Rescue ↔ machinery merges allowed; unrelated categories blocked even if Gemma guesses wrong |
-| **Deterministic prioritize** | Urgency × people × age — 0 model calls, always explainable |
+| **Deterministic prioritize** | Urgency × people × age, 0 model calls, always explainable |
 | **Capability-aware match** | Gemma picks resources by fit + distance, not just proximity (e.g. rejects water truck for collapse) |
-| **Late-resource matching** | Crew registers after a need exists → hub auto-proposes dispatches for unmatched open incidents |
+| **Late-resource matching** | Crew registers after a need exists and the hub auto-proposes dispatches for unmatched open incidents |
 | **Rematch** | Coordinator can re-run match on an incident (`POST /api/incidents/:id/rematch`) |
-| **Graceful degradation** | Model failure mid-pipeline → report stored, board keeps working; no 5xx to phones |
+| **Graceful degradation** | Model failure mid-pipeline stores the report and keeps the board working; no 5xx to phones |
 | **Fast ack** | Hub accepts report in ≤20 s; slow parse finishes in background |
 | **20+ summary languages** | Reports in any language; one-line board summary in configurable output language |
 
@@ -310,11 +310,11 @@ Everything below was built during the hackathon. Views (feed, graph, map) are **
 | Feature | What it does |
 |---|---|
 | **Phone GPS** | Field app requests `lat` / `lon` / `accuracy` on compose; chip shows *"Ubicación GPS adjunta"* when granted |
-| **Best-effort, silent fallback** | Browsers often deny geolocation on plain-HTTP LAN — failure is silent; report still sends |
-| **Offline gazetteer** | `fixtures/gazetteer.json` — ~17 Vargas-coast place names matched from parsed `location` text (accent-insensitive, longest match wins) |
+| **Best-effort, silent fallback** | Browsers often deny geolocation on plain-HTTP LAN; failure is silent and the report still sends |
+| **Offline gazetteer** | `fixtures/gazetteer.json`: ~17 Vargas-coast place names matched from parsed `location` text (accent-insensitive, longest match wins) |
 | **Pin resolution order** | Phone GPS → gazetteer label → no pin (incident still on board, counted as *"sin ubicación"*) |
 | **Dedup pin stability** | Merging reports never moves an existing incident's coordinates |
-| **Offline incident map** | Leaflet map on Command Post — urgency-colored pins, click → incident drawer |
+| **Offline incident map** | Leaflet map on Command Post: urgency-colored pins, click opens incident drawer |
 | **Offline map tiles** | Pre-download areas (Settings → Offline maps or `npm run fetch:tiles`); hub serves `/tiles/*` to phones over hotspot |
 | **Map panel** | Compact map overlay from graph/command topbar |
 | **GPS in graph inspector** | Report nodes show coordinates when present; inspector displays `GPS lat, lon` |
@@ -323,25 +323,25 @@ Everything below was built during the hackathon. Views (feed, graph, map) are **
 
 | Feature | What it does |
 |---|---|
-| **Installable PWA** | Add to Home Screen from hub URL — fullscreen, compass icon |
+| **Installable PWA** | Add to Home Screen from hub URL; fullscreen, compass icon |
 | **Role onboarding** | Reporter / volunteer / specialized crew (rescue, medical, water, shelter, food, machinery) |
 | **Crew → resource** | Volunteers and crews register on hub and become dispatchable inventory |
 | **Store-and-forward outbox** | Reports saved locally first (QUEUED) → sync (SYNCED) → pipeline (PARSED); survives radio drops |
 | **Idempotent sync** | `client_ref` prevents duplicate reports on flaky reconnect |
-| **Voice reporting** | Record on phone → hub **local STT** (`POST /api/transcribe`) → editable text before send |
+| **Voice reporting** | Record on phone → hub local STT (`POST /api/transcribe`) → editable text before send |
 | **Photo reporting** | Camera/gallery → compressed on-device (~100–250 KB) → rides outbox; photo-only reports allowed |
 | **Category chips** | Quick-tap incident category on compose screen |
 | **People count + location** | Optional fields on report form |
-| **Assignment inbox — go to the place** | When the coordinator **Confirm**s a dispatch, the crew's phone shows the task in **Asignaciones**: destination (location + summary), AI/coordinator rationale, urgency. Tap **Aceptar** → **En camino** → **En el sitio** → **Completar** with an outcome note. New assignments pulse on screen; inbox tab shows a badge count. Polls hub every ~4 s while the app is open. |
-| **Crew mission status** | One-tap Disponible / En camino / En el sitio / Regresando on the status bar — engaged crews excluded from new matching |
-| **Field assistant** | Ask tab — grounded Q&A from live board + KB (`POST /api/ask`); cannot dispatch |
+| **Assignment inbox (go to the place)** | When the coordinator **Confirm**s a dispatch, the crew's phone shows the task in **Asignaciones**: destination (location + summary), AI/coordinator rationale, urgency. Tap **Aceptar** → **En camino** → **En el sitio** → **Completar** with an outcome note. New assignments pulse on screen; inbox tab shows a badge count. Polls hub every ~4 s while the app is open. |
+| **Crew mission status** | One-tap Disponible / En camino / En el sitio / Regresando on the status bar; engaged crews excluded from new matching |
+| **Field assistant** | Ask tab: grounded Q&A from live board + KB (`POST /api/ask`); cannot dispatch |
 | **Alert banner** | Hub broadcast alerts surface on field client |
 | **20-language UI** | Full field interface translated (language picker) |
 | **Interactive DotGrid** | Same pixel-dot backdrop as command graph |
 | **Demo test modal** | Built-in sample reports for rehearsal without typing |
 | **Connection indicator** | Hub conectado / offline pills |
 
-**Who gets assignments:** volunteers and specialized crews — not plain reporters (reporters only submit reports). **How it works end-to-end:** messy report in → Gemma proposes a resource → coordinator confirms on the Command Post → the assigned crew's phone receives the task with **where to go** and **what to do there** → crew drives the mission to completion from the field app. In-app tasking while the PWA is open (no lock-screen push notifications — the field network is a local hotspot, not the public internet).
+**Who gets assignments:** volunteers and specialized crews, not plain reporters (reporters only submit reports). **How it works end-to-end:** messy report in → Gemma proposes a resource → coordinator confirms on the Command Post → the assigned crew's phone receives the task with where to go and what to do there → crew drives the mission to completion from the field app. In-app tasking while the PWA is open (no lock-screen push notifications; the field network is a local hotspot, not the public internet).
 
 ### Command Post (laptop)
 
@@ -349,17 +349,17 @@ Everything below was built during the hackathon. Views (feed, graph, map) are **
 |---|---|
 | **Prioritized action feed** | Incidents ranked by agent prioritize step |
 | **Incident drawer** | Full detail, dedup evidence, protocol advisory, edit/resolve, dispatch confirm/override |
-| **Human corrections** | PATCH incidents/resources — `corrected_by_human` badge on coordinator edits |
+| **Human corrections** | PATCH incidents/resources; `corrected_by_human` badge on coordinator edits |
 | **Dispatch lifecycle** | proposed → confirmed → accepted → en_route → on_site → done (with outcome notes) |
 | **SITREP** | One-click plain-language situation report + structured briefing modal |
-| **Protocol advisory** | INSARAG, START triage, Sphere WASH, PAHO shelter — local KB or Rares' service |
+| **Protocol advisory** | INSARAG, START triage, Sphere WASH, PAHO shelter; local KB or Rares' service |
 | **Broadcast alerts** | Compose critical/warning/info alerts with optional zone |
 | **Escalation watchdog** | Unattended critical (10 min) / high (30 min) incidents flagged automatically |
 | **Trends** | Board trend summary endpoint for situational awareness |
 | **Persons list** | Missing-persons registry across incidents |
 | **Connect phone** | QR code + copyable link to field URL (uses hub LAN address) |
 | **Command settings** | Display density (compact), sync now, offline maps, fullscreen |
-| **LAN access control** | Command Post / graph blocked from remote phones — coordinator station only |
+| **LAN access control** | Command Post / graph blocked from remote phones; coordinator station only |
 | **Intro splash** | Animated compass + BRÚJULA wordmark on first load |
 | **BorderGlow** | Pointer-reactive edge lighting on panels, graph nodes, inspector |
 
@@ -367,12 +367,12 @@ Everything below was built during the hackathon. Views (feed, graph, map) are **
 
 | Feature | What it does |
 |---|---|
-| **Gemma brain node** | Central node — reports flow in, incidents and dispatches flow out |
+| **Gemma brain node** | Central node: reports flow in, incidents and dispatches flow out |
 | **All entity types** | Reports, persons, incidents, dispatches (all states), resources, alerts, section labels |
 | **SmartEdge routing** | Bezier edges route around cards they would otherwise cross |
 | **Organise layout** | One-click column restack using real card heights + crossing minimisation |
-| **Approval queue** | Pending dispatches surfaced in top bar — approve or review without hunting the graph |
-| **Graph inspector** | Click any node → full relationship context, actions, GPS, merged reports |
+| **Approval queue** | Pending dispatches surfaced in top bar; approve or review without hunting the graph |
+| **Graph inspector** | Click any node for full relationship context, actions, GPS, merged reports |
 | **Filters** | All / Critical / Open / Dispatch / People / Reports + edge legend |
 | **Drag + zoom** | Hand-arrange nodes; positions survive 4 s poll; Reset layout chip |
 | **Ask Gemma chat** | Contextual Q&A; proposes board edits (`proposed_actions`) you Apply with one click |
@@ -386,21 +386,21 @@ Everything below was built during the hackathon. Views (feed, graph, map) are **
 | Feature | What it does |
 |---|---|
 | **Single Express server** | API + built React app + tile server + model mgmt on `:8000` |
-| **SQLite store** | `data/hub.db` — survives restart; `npm run seed` resets demo board |
-| **Delta sync** | `GET /api/sync?since=<seq>` — monotonic seq, phones poll for updates |
+| **SQLite store** | `data/hub.db` survives restart; `npm run seed` resets demo board |
+| **Delta sync** | `GET /api/sync?since=<seq>` with monotonic seq; phones poll for updates |
 | **Embedded Ollama** | Hub spawns headless `ollama serve`; no desktop app needed |
 | **Model manager** | Web console: install, switch, pull progress; `POST /warmup` pre-loads model |
 | **GPU / CPU toggle** | Persisted compute mode; `/health` reports actual `gpu_in_use` |
 | **Mock provider** | `BRUJULA_PROVIDER=mock` for UI/tests without Gemma |
-| **Verify harness** | `npm run verify:hub` — 15-check end-to-end demo replay |
+| **Verify harness** | `npm run verify:hub` runs a 15-check end-to-end demo replay |
 
 ### Protocol knowledge base (Rares)
 
 | Feature | What it does |
 |---|---|
-| **Offline matcher** | `knowledge-service/` — keyword + incident-type routing to protocol steps |
+| **Offline matcher** | `knowledge-service/` routes keyword + incident-type queries to protocol steps |
 | **Proxy + fallback** | `RARES_KB_URL` set → proxy; unreachable → built-in `server/kb/protocols.json` |
-| **Sourced guidance** | Steps cite INSARAG / Sphere / PAHO / START — operational, not patient diagnosis |
+| **Sourced guidance** | Steps cite INSARAG / Sphere / PAHO / START; operational, not patient diagnosis |
 
 ---
 
@@ -487,14 +487,14 @@ verify-hub.js           acceptance test (npm run verify:hub)
 | Bootstrap + model pull | **Once** |
 | npm install + tile prefetch | **Once** |
 | Gemma inference (Ollama) | **No** |
-| Hub + field sync | **No** — LAN only |
+| Hub + field sync | **No**, LAN only |
 | Protocol KB | **No** |
-| `CLOUD_API_KEY` cloud provider | **Yes — dev only; unset in field** |
+| `CLOUD_API_KEY` cloud provider | **Yes** (dev only; unset in field) |
 
 ---
 
 ## Team & acknowledgements
 
-Built for **RAISE Summit Hackathon 2026**, Google DeepMind Remote track. Thanks to the organizers and Gemma team for the edge/on-device brief — it maps directly onto a scenario where cloud AI is literally unavailable.
+Built for **RAISE Summit Hackathon 2026**, Google DeepMind Remote track. Thanks to the organizers and Gemma team for the edge/on-device brief: it maps directly onto a scenario where cloud AI is literally unavailable.
 
 For judging, the quickest proof path is **Quick start** → **Verify** → screenshots above.
