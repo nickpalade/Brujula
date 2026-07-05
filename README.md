@@ -6,13 +6,15 @@
 **Repo:** [github.com/nickpalade/Brujula](https://github.com/nickpalade/Brujula) (public, built during the event)  
 **Team (remote, 4):** Pepe / José María (AI agent + integration), Ceco (hub backend + offline sync), Nick (shared React frontend — laptop + mobile), Rares (offline protocol knowledge base)
 
+Built in the spirit of the Google DeepMind track mission: **build AI efficiently to benefit humanity**.
+
 ---
 
 ## The problem
 
 On June 24, 2026, twin earthquakes (M7.2 + M7.5) struck northwestern Venezuela — the La Guaira / Caracas corridor. Comms and power failed. Dozens of agencies, volunteer crews, and survivors were all reporting at once — by voice, text, and photo — in Spanish, often messy and contradictory.
 
-The coordination failure is not that needs and resources don't exist. It's that they **don't get matched**: duplicate teams sent to one collapse while another site waits, water trucks idle near shelters with no drinking water, missing-person names scattered across radios and chat threads. Responders fall back to whiteboards because the digital tools need connectivity they don't have.
+The coordination failure: duplicate teams sent to one collapse while another site waits, water trucks idle near shelters with no drinking water, missing-person names scattered across radios and chat threads. Responders fall back to whiteboards because the digital tools need connectivity they don't have.
 
 ## Why offline-first
 
@@ -87,7 +89,7 @@ Bootstrap once with internet, deploy offline indefinitely.
 | **Open source** | Public repo, Apache-2.0 Gemma models. |
 | **New work only** | Built Sat 11:30 → Sun 12:00. No pre-existing product repackaged. |
 | **Not a banned category** | Not basic RAG, Streamlit, medical-advice bot, or "dashboard as the product." A **multi-step Gemma agent** plans, retrieves context, calls tools, and proposes outcomes; views (feed, graph, map) are **windows onto agent output**. |
-| **Demo video** | ≤1 min — see [VIDEO_GUIDE.md](VIDEO_GUIDE.md) and [DEMO.md](DEMO.md) |
+| **Demo video** | ≤1 min recorded from the live app: field report → Gemma parse/dedup/match → human confirm → field assignment sync. |
 | **What judges should see as ours** | Gemma pipeline (parse → dedup → prioritize → match → advise → emit), offline LAN sync, field store-and-forward, human confirm/override, protocol KB integration, command graph with Gemma as the central brain node, contextual chat that proposes board changes. |
 
 **Submit:** [Cerebral Valley submission form](https://cerebralvalley.ai/e/raise-summit-hackathon/hackathon/submit) — demo video (YouTube/Loom) + this repo + short description.
@@ -465,7 +467,6 @@ Responses: `{"success": bool, "data": ..., "error": ...}`.
 
 ```
 PRD-Brujula.md          product spec + demo narrative
-DEMO.md                 1-minute rehearsal runbook
 GEMMA.md                Gemma 4 research brief for the track pitch
 CONSOLIDATION.md        why /api is the single pipeline
 app/                    React — /command, /command/graph, /field
@@ -496,4 +497,4 @@ verify-hub.js           acceptance test (npm run verify:hub)
 
 Built for **RAISE Summit Hackathon 2026**, Google DeepMind Remote track. Thanks to the organizers and Gemma team for the edge/on-device brief — it maps directly onto a scenario where cloud AI is literally unavailable.
 
-Questions during judging: see [DEMO.md](DEMO.md) cut-beats (dedup, advisory, sitrep, photo triage, crew roles).
+For judging, the quickest proof path is **Quick start** → **Verify** → screenshots above.
