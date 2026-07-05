@@ -27,7 +27,7 @@ Brújula is an **offline coordination agent**, not a form and not a dashboard.
 1. **Field phones** submit reports — voice, text, photo, GPS when available — through a store-and-forward outbox that survives radio drops.
 2. **Gemma on the command-post laptop** runs a multi-step agent workflow: parse → dedup → prioritize → match. Retrieval (protocol KB, open incidents, resource inventory) is one tool inside that workflow — not the product.
 3. **The coordinator confirms** every dispatch. Gemma proposes; humans decide. Override, edit, rematch, and broadcast alerts stay in human hands.
-4. **Assignments sync back** to field phones over the LAN. Crews update mission status; late-registering volunteers trigger new match proposals for open needs.
+4. **Assignments sync back** to field phones over the LAN — **crews and volunteers get tasking to go to the place**: incident location, summary, and why they were sent. They accept the mission, mark En camino → En el sitio, and report when done. Late-registering volunteers trigger new match proposals for open needs.
 
 The **command graph** makes this visible: field reports flow into a central **Gemma brain** node, structured incidents and dispatches connect out. The agent's reasoning is the product; feed, map, and graph are windows onto it.
 
@@ -310,14 +310,16 @@ Everything below was built during the hackathon. Views (feed, graph, map) are **
 | **Photo reporting** | Camera/gallery → compressed on-device (~100–250 KB) → rides outbox; photo-only reports allowed |
 | **Category chips** | Quick-tap incident category on compose screen |
 | **People count + location** | Optional fields on report form |
-| **Assignment inbox** | Confirmed dispatches appear on phone; acknowledge when seen |
-| **Crew mission status** | One-tap Disponible / En camino / En el sitio / Regresando — engaged crews excluded from matching |
+| **Assignment inbox — go to the place** | When the coordinator **Confirm**s a dispatch, the crew's phone shows the task in **Asignaciones**: destination (location + summary), AI/coordinator rationale, urgency. Tap **Aceptar** → **En camino** → **En el sitio** → **Completar** with an outcome note. New assignments pulse on screen; inbox tab shows a badge count. Polls hub every ~4 s while the app is open. |
+| **Crew mission status** | One-tap Disponible / En camino / En el sitio / Regresando on the status bar — engaged crews excluded from new matching |
 | **Field assistant** | Ask tab — grounded Q&A from live board + KB (`POST /api/ask`); cannot dispatch |
 | **Alert banner** | Hub broadcast alerts surface on field client |
 | **20-language UI** | Full field interface translated (language picker) |
 | **Interactive DotGrid** | Same pixel-dot backdrop as command graph |
 | **Demo test modal** | Built-in sample reports for rehearsal without typing |
 | **Connection indicator** | Hub conectado / offline pills |
+
+**Who gets assignments:** volunteers and specialized crews — not plain reporters (reporters only submit reports). **How it works end-to-end:** messy report in → Gemma proposes a resource → coordinator confirms on the Command Post → the assigned crew's phone receives the task with **where to go** and **what to do there** → crew drives the mission to completion from the field app. In-app tasking while the PWA is open (no lock-screen push notifications — the field network is a local hotspot, not the public internet).
 
 ### Command Post (laptop)
 
