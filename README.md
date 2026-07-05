@@ -31,6 +31,26 @@ Brújula is an **offline coordination agent**, not a form and not a dashboard.
 
 The **command graph** makes this visible: field reports flow into a central **Gemma brain** node, structured incidents and dispatches connect out. The agent's reasoning is the product; feed, map, and graph are windows onto it.
 
+## Screenshots
+
+<img src="design/assets/screenshots/command-graph-approvals.png" alt="Command graph with dispatch approvals awaiting coordinator review" width="100%">
+
+Live command graph: reports, people, incidents, proposed dispatches, resources, and alerts stay connected around the local Gemma brain. The approval bar keeps human-confirmed dispatches front and center.
+
+<img src="design/assets/screenshots/command-graph-confirmed.png" alt="Command graph after dispatches have been confirmed and resources are traveling" width="100%">
+
+After confirmation, the graph keeps the operational chain visible: report evidence, deduped incidents, confirmed dispatches, and resources moving toward the right place.
+
+| Command graph + Ask Gemma | Mobile field reporting |
+|---|---|
+| <img src="design/assets/screenshots/command-ask-gemma.png" alt="Command graph with Gemma context panel" width="720"> | <img src="design/assets/screenshots/field-report.png" alt="Mobile field report form" width="360"> |
+| Gemma sits at the center of the command graph: reports flow in, incidents and dispatch proposals flow out, and the coordinator can ask grounded questions before confirming. | Responders submit messy voice/text/photo reports from the field client; the phone stores reports locally first and syncs when the hub is reachable. |
+
+| Shared launch experience | Field role onboarding |
+|---|---|
+| <img src="design/assets/screenshots/intro-splash.png" alt="Brujula intro splash screen" width="720"> | <img src="design/assets/screenshots/field-onboarding.png" alt="Field client role onboarding" width="360"> |
+| The same command-post visual language runs across the laptop and phone surfaces. | Reporters, volunteers, and specialized crews register from the phone so the hub knows who can report and who can be dispatched. |
+
 ## Privacy by design
 
 Reports contain missing-person identities, medical status, and locations of vulnerable people — in a politically charged setting. Routing that through a foreign cloud is unacceptable.
