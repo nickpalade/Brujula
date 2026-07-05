@@ -32,6 +32,7 @@ const DB_FILE = process.env.BRUJULA_DB_FILE
 const FIXTURES_DIR = path.join(HERE, "..", "fixtures");
 const SEED_INCIDENTS = path.join(FIXTURES_DIR, "seed_incidents.json");
 const SEED_RESOURCES = path.join(FIXTURES_DIR, "seed_resources.json");
+const SEED_DISPATCHES = path.join(FIXTURES_DIR, "seed_dispatches.json");
 
 fs.mkdirSync(DATA_DIR, { recursive: true });
 // A file that doesn't exist yet means a true first boot — seed it below.
@@ -151,13 +152,22 @@ function insertResourceRow(resource) {
   );
 }
 
+function insertDispatchRow(dispatch) {
+  db.prepare("INSERT INTO dispatches (id, seq, data) VALUES (?, ?, ?)").run(
+    dispatch.id,
+    dispatch._seq,
+    JSON.stringify(dispatch),
+  );
+}
+
 // On first boot (store empty), load the fixtures so the board is never blank.
 function seedIfEmpty() {
   if (!rowsEmpty()) return;
 
   const incidents = readJsonArray(SEED_INCIDENTS);
   const resources = readJsonArray(SEED_RESOURCES);
-  if (incidents.length === 0 && resources.length === 0) return;
+  const dispatches = readJsonArray(SEED_DISPATCHES);
+  if (incidents.length === 0 && resources.length === 0 && dispatches.length === 0) return;
 
   for (const inc of incidents) {
     insertIncidentRow({
@@ -170,8 +180,16 @@ function seedIfEmpty() {
   for (const res of resources) {
     insertResourceRow({ ...res, _seq: bump() });
   }
+  for (const dsp of dispatches) {
+    insertDispatchRow({
+      proposed_by_ai: true,
+      confirmed_by_human_at: null,
+      ...dsp,
+      _seq: bump(),
+    });
+  }
   logger.info(
-    `[store] seeded from fixtures: ${incidents.length} incidents, ${resources.length} resources`,
+    `[store] seeded from fixtures: ${incidents.length} incidents, ${resources.length} resources, ${dispatches.length} dispatches`,
   );
 }
 
@@ -562,6 +580,14 @@ export function syncSince(since) {
 // ---- lifecycle helpers (used by tests / reseed) ----------------------------
 
 export function reset() {
+  wipe();
+  seedIfEmpty();
+  return board();
+}
+
+// Like reset(), but WITHOUT re-seeding: leaves a completely empty board for
+// starting a brand-new situation from scratch.
+export function wipe() {
   db.exec(`
     DELETE FROM dispatches;
     DELETE FROM incidents;
@@ -572,7 +598,6 @@ export function reset() {
     DELETE FROM persons;
     UPDATE meta SET seq = 0 WHERE id = 1;
   `);
-  seedIfEmpty();
   return board();
 }
 
@@ -582,4 +607,79 @@ export function reset() {
 // handle itself still serves correct data.
 export function _reloadFromDisk() {
   return board();
+}
+
+// ---- db snapshot export / import (Settings → Database) ----------------------
+
+const SNAPSHOT_TABLES = [
+  "reports",
+  "incidents",
+  "resources",
+  "dispatches",
+  "personnel",
+  "alerts",
+  "persons",
+];
+
+// Flush the WAL into hub.db so the file on disk is a complete snapshot,
+// then hand back its path for the export route to stream.
+export function exportDbPath() {
+  db.exec("PRAGMA wal_checkpoint(TRUNCATE);");
+  return DB_FILE;
+}
+
+// Replace the live board with the contents of an uploaded hub.db snapshot.
+// The upload is opened as a second read-only connection and copied row-by-row
+// inside one transaction — the live connection (and its WAL) never swaps out,
+// so no restart is needed. Throws on anything that is not a hub snapshot.
+export function importFromSnapshot(buffer) {
+  if (!Buffer.isBuffer(buffer) || buffer.length < 16 ||
+      !buffer.subarray(0, 16).equals(Buffer.from("SQLite format 3\0", "latin1"))) {
+    throw new Error("not a SQLite database file");
+  }
+
+  const tmpFile = path.join(DATA_DIR, `import_${crypto.randomBytes(4).toString("hex")}.db`);
+  fs.writeFileSync(tmpFile, buffer);
+
+  let src;
+  try {
+    src = new DatabaseSync(tmpFile, { readOnly: true });
+    const have = new Set(
+      src.prepare("SELECT name FROM sqlite_master WHERE type = 'table'").all().map((r) => r.name),
+    );
+    const missing = [...SNAPSHOT_TABLES, "meta"].filter((t) => !have.has(t));
+    if (missing.length > 0) {
+      throw new Error(`not a hub snapshot (missing tables: ${missing.join(", ")})`);
+    }
+
+    const rowsByTable = {};
+    for (const table of SNAPSHOT_TABLES) {
+      rowsByTable[table] = src.prepare(`SELECT * FROM ${table} ORDER BY rowid ASC`).all();
+    }
+    const srcSeq = src.prepare("SELECT seq FROM meta WHERE id = 1").get()?.seq ?? 0;
+
+    db.exec("BEGIN");
+    try {
+      for (const table of SNAPSHOT_TABLES) {
+        db.prepare(`DELETE FROM ${table}`).run();
+        for (const row of rowsByTable[table]) {
+          const cols = Object.keys(row);
+          db.prepare(
+            `INSERT INTO ${table} (${cols.join(", ")}) VALUES (${cols.map(() => "?").join(", ")})`,
+          ).run(...cols.map((c) => row[c]));
+        }
+      }
+      db.prepare("UPDATE meta SET seq = ? WHERE id = 1").run(srcSeq);
+      db.exec("COMMIT");
+    } catch (err) {
+      db.exec("ROLLBACK");
+      throw err;
+    }
+
+    logger.info(`[store] imported snapshot: seq ${srcSeq}, ${rowsByTable.incidents.length} incidents, ${rowsByTable.resources.length} resources`);
+    return board();
+  } finally {
+    try { src?.close(); } catch { /* already closed */ }
+    try { fs.unlinkSync(tmpFile); } catch { /* best effort */ }
+  }
 }

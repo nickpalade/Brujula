@@ -405,6 +405,122 @@ export const api = {
     return request('/api/tiles', { method: 'DELETE' })
   },
 
+  // ------------------------------------------------------------------
+  // AI model management (Settings → Manage AI models) — hub Ollama admin.
+  // These are the server's root-level model endpoints (not /api/*); the
+  // hub's own test page (server/static/index.html) uses the same ones.
+  // ------------------------------------------------------------------
+
+  // GET /health → { provider, model, ollama_reachable, compute_mode, gpu_in_use, ... }
+  async getModelHealth() {
+    if (USE_MOCKS) return mock.getModelHealth()
+    return request('/health')
+  },
+
+  // GET /models → { models: [{ name, size }] } — installed Ollama models.
+  async getModels() {
+    if (USE_MOCKS) return mock.getModels()
+    return request('/models')
+  },
+
+  // GET /models/recommended → { models: [{ name, size, note, installed }] }
+  async getRecommendedModels() {
+    if (USE_MOCKS) return mock.getRecommendedModels()
+    return request('/models/recommended')
+  },
+
+  // GET /model-config → { selected, active }
+  async getModelConfig() {
+    if (USE_MOCKS) return mock.getModelConfig()
+    return request('/model-config')
+  },
+
+  // POST /model-config { name } → { selected } — 400 if not installed.
+  async setActiveModel(name) {
+    if (USE_MOCKS) return mock.setActiveModel(name)
+    return request('/model-config', { method: 'POST', body: { name } })
+  },
+
+  // POST /models/pull { name } → { started } — kicks off a background pull.
+  // 503 when Ollama is down, 409 when the same model is already downloading.
+  async pullModel(name) {
+    if (USE_MOCKS) return mock.pullModel(name)
+    return request('/models/pull', { method: 'POST', body: { name } })
+  },
+
+  // GET /models/pull-status → { downloads: { [name]: { status, progress, error } } }
+  async getPullStatus() {
+    if (USE_MOCKS) return mock.getPullStatus()
+    return request('/models/pull-status')
+  },
+
+  // POST /models/pull-status/clear { name } → { cleared }
+  async clearPullStatus(name) {
+    if (USE_MOCKS) return mock.clearPullStatus(name)
+    return request('/models/pull-status/clear', { method: 'POST', body: { name } })
+  },
+
+  // DELETE /models/{name} → { deleted }
+  async deleteModel(name) {
+    if (USE_MOCKS) return mock.deleteModel(name)
+    return request(`/models/${name}`, { method: 'DELETE' })
+  },
+
+  // POST /compute-config { mode: 'gpu'|'cpu' } → { mode } — unloads loaded models.
+  async setComputeMode(mode) {
+    if (USE_MOCKS) return mock.setComputeMode(mode)
+    return request('/compute-config', { method: 'POST', body: { mode } })
+  },
+
+  // ------------------------------------------------------------------
+  // Database snapshot admin (Settings → Database) — testing/demo tooling.
+  // ------------------------------------------------------------------
+
+  // GET /api/admin/db/export → Blob (the hub.db file). Raw download, not the
+  // JSON envelope, so it bypasses request().
+  async exportDb() {
+    if (USE_MOCKS) {
+      return new Blob([JSON.stringify(mockDB, null, 2)], { type: 'application/json' })
+    }
+    const res = await fetch(`${API_BASE}/api/admin/db/export`)
+    if (!res.ok) throw new Error(`export failed (HTTP ${res.status})`)
+    return res.blob()
+  },
+
+  // POST /api/admin/db/import (raw bytes) → { imported, incidents, resources, dispatches }
+  async importDb(file) {
+    if (USE_MOCKS) return Promise.reject(new Error('import is not available in mock mode'))
+    const res = await fetch(`${API_BASE}/api/admin/db/import`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/octet-stream' },
+      body: file,
+    })
+    let payload = null
+    try {
+      payload = await res.json()
+    } catch {
+      throw new Error(`import failed (HTTP ${res.status})`)
+    }
+    if (payload && typeof payload === 'object' && 'success' in payload) {
+      if (payload.success) return payload.data
+      throw new Error(payload.error || `HTTP ${res.status}`)
+    }
+    if (!res.ok) throw new Error(`HTTP ${res.status}`)
+    return payload
+  },
+
+  // POST /api/admin/db/reset → { reset, incidents, resources, dispatches }
+  async resetDb() {
+    if (USE_MOCKS) return Promise.reject(new Error('reset is not available in mock mode'))
+    return request('/api/admin/db/reset', { method: 'POST', body: {} })
+  },
+
+  // POST /api/admin/db/wipe → { wiped } — empty board, no seed data.
+  async wipeDb() {
+    if (USE_MOCKS) return Promise.reject(new Error('wipe is not available in mock mode'))
+    return request('/api/admin/db/wipe', { method: 'POST', body: {} })
+  },
+
   // POST /api/chat → { answer, sources, generated_at }
   // Grounded Q&A over incidents, resources, reports, dispatches, persons and KB.
   async chatContext({ question, station = 'command' }) {
@@ -449,6 +565,20 @@ export const getTilesConnectivity = () => api.getTilesConnectivity()
 export const startTilesDownload = (bbox, name) => api.startTilesDownload(bbox, name)
 export const clearTiles = () => api.clearTiles()
 export const chatContext = (args) => api.chatContext(args)
+export const getModelHealth = () => api.getModelHealth()
+export const getModels = () => api.getModels()
+export const getRecommendedModels = () => api.getRecommendedModels()
+export const getModelConfig = () => api.getModelConfig()
+export const setActiveModel = (name) => api.setActiveModel(name)
+export const pullModel = (name) => api.pullModel(name)
+export const getPullStatus = () => api.getPullStatus()
+export const clearPullStatus = (name) => api.clearPullStatus(name)
+export const deleteModel = (name) => api.deleteModel(name)
+export const setComputeMode = (mode) => api.setComputeMode(mode)
+export const exportDb = () => api.exportDb()
+export const importDb = (file) => api.importDb(file)
+export const resetDb = () => api.resetDb()
+export const wipeDb = () => api.wipeDb()
 
 // ===========================================================================
 // MOCK LAYER — fixture-shaped, in-memory, stateful.
@@ -590,6 +720,17 @@ const mockDB = {
   // Offline tiles mock state — a fake download "runs" for ~6 s, then lands in
   // regions, mirroring GET /api/tiles/status semantics.
   tiles: { regions: [], download: null },
+  // AI-models mock state — mirrors the hub's Ollama admin endpoints. A fake
+  // pull "downloads" for ~5 s, then joins the installed list.
+  ollama: {
+    installed: [
+      { name: 'gemma3:4b', size: '3.3 GB' },
+      { name: 'qwen2.5:3b', size: '1.9 GB' },
+    ],
+    active: 'gemma3:4b',
+    compute: 'gpu',
+    downloads: {},
+  },
 }
 
 function bump() {
@@ -1030,6 +1171,97 @@ const mock = {
     t.regions = []
     t.download = null
     return delay({ cleared: true })
+  },
+
+  // ---- AI model management ----
+
+  getModelHealth() {
+    const o = mockDB.ollama
+    return delay({
+      status: 'ok',
+      provider: 'ollama',
+      model: o.active,
+      ollama_reachable: true,
+      compute_mode: o.compute,
+      gpu_in_use: o.compute === 'gpu',
+      detail: 'mock backend',
+    })
+  },
+
+  getModels() {
+    return delay({ models: mockDB.ollama.installed.map((m) => ({ ...m })) })
+  },
+
+  getRecommendedModels() {
+    const installed = new Set(mockDB.ollama.installed.map((m) => m.name))
+    return delay({
+      models: [
+        { name: 'gemma3:4b', size: '3.3 GB', note: 'best quality (default)' },
+        { name: 'gemma3:1b', size: '815 MB', note: 'fastest, low RAM' },
+        { name: 'qwen2.5:3b', size: '1.9 GB', note: 'good multilingual' },
+      ].map((m) => ({ ...m, installed: installed.has(m.name) })),
+    })
+  },
+
+  getModelConfig() {
+    return delay({ selected: mockDB.ollama.active, active: mockDB.ollama.active })
+  },
+
+  setActiveModel(name) {
+    const o = mockDB.ollama
+    if (!o.installed.some((m) => m.name === name)) {
+      return Promise.reject(new Error(`${name} is not installed.`))
+    }
+    o.active = name
+    return delay({ selected: name })
+  },
+
+  pullModel(name) {
+    const o = mockDB.ollama
+    if (o.downloads[name]?.status === 'downloading') {
+      return Promise.reject(new Error(`${name} is already being downloaded.`))
+    }
+    o.downloads[name] = { status: 'downloading', progress: 0, error: null, _startedMs: Date.now() }
+    return delay({ started: name })
+  },
+
+  getPullStatus() {
+    const o = mockDB.ollama
+    const out = {}
+    for (const [name, d] of Object.entries(o.downloads)) {
+      if (d.status === 'downloading') {
+        d.progress = Math.min(100, Math.round(((Date.now() - d._startedMs) / 5000) * 100))
+        if (d.progress >= 100) {
+          d.status = 'complete'
+          if (!o.installed.some((m) => m.name === name)) {
+            o.installed = [...o.installed, { name, size: '1.0 GB' }]
+          }
+        }
+      }
+      const { _startedMs, ...pub } = d
+      out[name] = pub
+    }
+    return delay({ downloads: out })
+  },
+
+  clearPullStatus(name) {
+    const d = mockDB.ollama.downloads[name]
+    if (d && d.status !== 'downloading') delete mockDB.ollama.downloads[name]
+    return delay({ cleared: name })
+  },
+
+  deleteModel(name) {
+    const o = mockDB.ollama
+    o.installed = o.installed.filter((m) => m.name !== name)
+    return delay({ deleted: name })
+  },
+
+  setComputeMode(mode) {
+    if (mode !== 'gpu' && mode !== 'cpu') {
+      return Promise.reject(new Error('mode must be "gpu" or "cpu"'))
+    }
+    mockDB.ollama.compute = mode
+    return delay({ mode })
   },
 
   chatContext({ question, station }) {

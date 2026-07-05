@@ -474,6 +474,31 @@
   background: var(--bru-critical);
 }
 
+.cmd-graph-inspector.border-glow-host {
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  height: 100svh;
+  max-height: 100svh;
+  overflow: hidden;
+  animation: cmd-graph-inspector-in 220ms ease-out;
+}
+
+@keyframes cmd-graph-inspector-in {
+  from {
+    transform: translateX(100%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+
+.cmd-graph-inspector .cmd-drawer__body {
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
 .cmd-graph-inspector-hero {
   padding: var(--bru-s-4);
   background: var(--bru-bg-0);

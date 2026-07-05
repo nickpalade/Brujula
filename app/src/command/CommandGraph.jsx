@@ -24,8 +24,8 @@ import MapPanel from './MapPanel.jsx';
 import AlertComposer from './AlertComposer.jsx';
 import ConnectModal from './ConnectModal.jsx';
 import OfflineMapsModal from './OfflineMapsModal.jsx';
+import OllamaModal from './OllamaModal.jsx';
 import CommandSettings from './CommandSettings.jsx';
-import { loadCommandDensity, saveCommandDensity } from './commandSettingsStorage.js';
 import ContextChat from '../shared/ContextChat.jsx';
 import DotGrid from '../vendor/DotGrid.jsx';
 import { useWatchdog } from './useWatchdog.js';
@@ -453,7 +453,7 @@ function CommandGraph() {
   const [alertComposerOpen, setAlertComposerOpen] = useState(false);
   const [connectOpen, setConnectOpen] = useState(false);
   const [offlineMapsOpen, setOfflineMapsOpen] = useState(false);
-  const [density, setDensity] = useState(loadCommandDensity);
+  const [ollamaOpen, setOllamaOpen] = useState(false);
   const seqRef = useRef(0);
   const flowRef = useRef(null);
 
@@ -1306,13 +1306,8 @@ function CommandGraph() {
     return [];
   }, [activeAlerts, selectedAlert, selectedIncident]);
 
-  const changeDensity = (next) => {
-    setDensity(next);
-    saveCommandDensity(next);
-  };
-
   return (
-    <div className={`bru-app cmd-root cmd-graph-root${density === 'compact' ? ' cmd-root--compact' : ''}`}>
+    <div className="bru-app cmd-root cmd-graph-root">
       <header className="cmd-topbar cmd-graph-topbar">
         <div className="cmd-topbar__brand">
           <img
@@ -1350,10 +1345,9 @@ function CommandGraph() {
             SITREP
           </Button>
           <CommandSettings
-            density={density}
-            onDensityChange={changeDensity}
             onConnectPhone={() => setConnectOpen(true)}
             onOfflineMaps={() => setOfflineMapsOpen(true)}
+            onManageModels={() => setOllamaOpen(true)}
             onRefresh={refresh}
             refreshing={loading}
           />
@@ -1584,6 +1578,8 @@ function CommandGraph() {
       <ConnectModal open={connectOpen} onClose={() => setConnectOpen(false)} />
 
       <OfflineMapsModal open={offlineMapsOpen} onClose={() => setOfflineMapsOpen(false)} />
+
+      <OllamaModal open={ollamaOpen} onClose={() => setOllamaOpen(false)} />
     </div>
   );
 }

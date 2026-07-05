@@ -1,0 +1,29 @@
+[
+  {
+    "id": "dsp-demo-water-macuto",
+    "incident_id": "inc-demo-water-macuto",
+    "resource_id": "res-demo-water-truck-puerto",
+    "state": "proposed",
+    "rationale": "Water convoy directly addresses the Macuto shelter shortage.",
+    "proposed_by_ai": true,
+    "confirmed_by_human_at": null
+  },
+  {
+    "id": "dsp-demo-medical-san-jose",
+    "incident_id": "inc-demo-medical-refugio-san-jose",
+    "resource_id": "res-demo-mobile-clinic-maiquetia",
+    "state": "proposed",
+    "rationale": "Mobile clinic can absorb the overloaded shelter triage queue.",
+    "proposed_by_ai": true,
+    "confirmed_by_human_at": null
+  },
+  {
+    "id": "dsp-demo-shelter-los-corales",
+    "incident_id": "inc-demo-shelter-los-corales",
+    "resource_id": "res-demo-shelter-team-caraballeda",
+    "state": "confirmed",
+    "rationale": "Shelter crew is already moving tarp kits and cots into Los Corales.",
+    "proposed_by_ai": true,
+    "confirmed_by_human_at": "2026-07-04T09:50:00.000Z"
+  }
+]

@@ -13,7 +13,7 @@
 //      (data/hub.db) and reseeds from fixtures/seed_incidents.json +
 //      fixtures/seed_resources.json. This is what a cold `npm start` will load.
 
-import { reset, listIncidents, listResources } from "../server/store.js";
+import { reset, listDispatches, listIncidents, listResources } from "../server/store.js";
 
 const HUB_URL = process.env.BRUJULA_URL || "http://localhost:8000";
 const RESET_ENDPOINT = `${HUB_URL}/api/board/reset`;
@@ -42,6 +42,7 @@ async function main() {
   reset();
   const incidents = listIncidents();
   const resources = listResources();
+  const dispatches = listDispatches();
 
   console.log("");
   console.log("  Brújula — demo board reset");
@@ -54,6 +55,10 @@ async function main() {
   console.log(`  Resources seeded: ${resources.length}`);
   for (const r of resources) {
     console.log(`    · ${r.type} · ${r.label} · ${r.location}`);
+  }
+  console.log(`  Dispatches seeded: ${dispatches.length}`);
+  for (const d of dispatches) {
+    console.log(`    · [${d.state.toUpperCase()}] ${d.incident_id} → ${d.resource_id}`);
   }
   console.log("  " + "-".repeat(46));
   if (live) {

@@ -7,7 +7,7 @@ export const LANGUAGES = [
   { code: 'en', name: 'English' },
 ]
 
-export const DEFAULT_LANG = 'es'
+export const DEFAULT_LANG = 'en'
 
 export function languageName(code) {
   return LANGUAGES.find((l) => l.code === code)?.name ?? code

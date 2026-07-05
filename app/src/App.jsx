@@ -16,27 +16,29 @@ const STATIONS = [
     to: '/graph',
     route: '/graph',
     accent: 'graph',
-    title: 'Grafo de Mando',
-    device: 'Portátil · Gemma como cerebro',
-    desc: 'Controla incidentes, recursos, alertas y decisiones como un flujo de nodos conectados.',
+    title: 'Command Graph',
+    device: 'Laptop · Gemma as the brain',
+    desc: 'Manage incidents, resources, alerts and decisions as a flow of connected nodes.',
+    primary: true,
   },
   {
     index: '02',
     to: '/command',
     route: '/command',
     accent: 'command',
-    title: 'Puesto de Mando',
-    device: 'Portátil · Sala de operaciones',
-    desc: 'Panorama completo de incidentes, despacho coordinado de recursos y avisos en tiempo real.',
+    title: 'Command Post',
+    device: 'Laptop · Operations room',
+    desc: 'Legacy view. Superseded by the Command Graph — kept for reference only.',
+    deprecated: true,
   },
   {
     index: '03',
     to: '/field',
     route: '/field',
     accent: 'field',
-    title: 'Cliente de Campo',
-    device: 'Móvil · Primera línea',
-    desc: 'Captura de reportes por voz y foto, cola sin conexión y recepción de asignaciones.',
+    title: 'Field Client',
+    device: 'Mobile · First line',
+    desc: 'Voice and photo report capture, offline queue and assignment delivery.',
   },
 ]
 
@@ -57,7 +59,7 @@ function Home() {
         <span className="bru-landing__brandmark">BRÚJULA</span>
         <span className="bru-landing__status">
           <i className="bru-landing__pulse" />
-          SISTEMA OPERATIVO · SIN CONEXIÓN REQUERIDA
+          SYSTEM OPERATIONAL · NO CONNECTION REQUIRED
         </span>
       </header>
 
@@ -66,7 +68,7 @@ function Home() {
           <img
             className="bru-landing__compass"
             src="/logo-animated.svg"
-            alt="Brújula — aguja girando"
+            alt="Brújula — spinning needle"
             width="132"
             height="132"
           />
@@ -75,15 +77,22 @@ function Home() {
               BRÚ<span>JULA</span>
             </h1>
             <p className="bru-landing__tagline">
-              Coordinación de emergencias que funciona{' '}
-              <em>cuando la red no</em>.
+              Emergency coordination that works{' '}
+              <em>when the network doesn't</em>.
             </p>
           </div>
         </section>
 
+        <p className="bru-landing__testnote" role="note">
+          <span className="bru-landing__testnote-tag">TESTING ONLY</span>
+          This station selector exists for local testing only. In a real
+          deployment, this machine would open the{' '}
+          <strong>Command Graph</strong> (/graph) directly.
+        </p>
+
         <p className="bru-landing__prompt">
-          <span className="bru-landing__prompt-tick">▸</span> Seleccione una
-          estación para desplegar
+          <span className="bru-landing__prompt-tick">▸</span> Select a station
+          to deploy
         </p>
 
         <nav className="bru-landing__grid">
@@ -96,7 +105,7 @@ function Home() {
             >
             <Link
               to={s.to}
-              className="bru-console"
+              className={`bru-console${s.deprecated ? ' bru-console--deprecated' : ''}`}
               data-accent={s.accent}
               style={{ '--reveal-delay': `${0.12 + i * 0.1}s` }}
             >
@@ -110,6 +119,16 @@ function Home() {
 
               <div className="bru-console__title">
                 <h2>{s.title}</h2>
+                {s.primary && (
+                  <span className="bru-console__flag bru-console__flag--primary">
+                    PRIMARY
+                  </span>
+                )}
+                {s.deprecated && (
+                  <span className="bru-console__flag bru-console__flag--deprecated">
+                    DEPRECATED
+                  </span>
+                )}
               </div>
 
               <p className="bru-console__desc">{s.desc}</p>
@@ -117,7 +136,8 @@ function Home() {
               <div className="bru-console__foot">
                 <span className="bru-console__device">{s.device}</span>
                 <span className="bru-console__enter">
-                  ENTRAR <span className="bru-console__arrow">→</span>
+                  {s.deprecated ? 'VIEW LEGACY' : 'ENTER'}{' '}
+                  <span className="bru-console__arrow">→</span>
                 </span>
               </div>
             </Link>

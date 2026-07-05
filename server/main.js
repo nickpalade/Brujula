@@ -139,8 +139,22 @@ const app = express();
 // 25mb: field reports may attach a photo as base64 (see POST /api/reports).
 app.use(express.json({ limit: "25mb" }));
 
-app.get("/", (req, res) => {
+// Model-server admin/test console moved to /admin so "/" can be the app landing.
+app.get("/admin", (req, res) => {
   res.sendFile("index.html", { root: STATIC_DIR });
+});
+
+// "/" lands on the React station chooser for the hosting machine (testing aid —
+// a real deployment would open /graph directly). Phones are sent to /field.
+// Falls back to the admin console when app/dist hasn't been built yet.
+app.get("/", (req, res) => {
+  if (!fs.existsSync(APP_DIST)) {
+    return res.sendFile("index.html", { root: STATIC_DIR });
+  }
+  if (!isHostingMachineRequest(req)) {
+    return res.redirect("/field");
+  }
+  res.sendFile("index.html", { root: APP_DIST });
 });
 
 app.get("/health", async (req, res) => {
@@ -448,7 +462,7 @@ if (!fs.existsSync(TILES_DIR)) {
 // serves; the areas registry lives at data/tiles/areas.json.
 app.use(createTilesRouter(createTilesService({ tilesDir: TILES_DIR })));
 
-// Built React app (Vite): serve app/dist assets + the two SPA routes so phones
+// Built React app (Vite): serve app/dist assets + the SPA routes so phones
 // and the command laptop need only the single LAN URL (INTEGRATION, Prompt 7.3).
 // The existing model-server admin UI stays at "/" (registered above); the React
 // client lives at /command and /field. If app/dist is missing (not built yet),
@@ -457,8 +471,9 @@ if (fs.existsSync(APP_DIST)) {
   app.use(express.static(APP_DIST));
   const sendApp = (req, res) => res.sendFile("index.html", { root: APP_DIST });
   app.get("/command", requireHostingMachine, sendApp);
+  app.get("/graph", requireHostingMachine, sendApp);
   app.get("/field", sendApp);
-  logger.info(`[web] serving built React app from ${APP_DIST} at /command and /field`);
+  logger.info(`[web] serving built React app from ${APP_DIST} at /command, /graph and /field`);
 } else {
   logger.warn(`[web] app/dist not found — run \`npm run build\` to serve the UI (${APP_DIST})`);
 }

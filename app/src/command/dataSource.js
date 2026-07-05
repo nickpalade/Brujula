@@ -54,3 +54,18 @@ export const {
   startTilesDownload,
   clearTiles,
 } = api;
+
+// AI model management (Settings → Manage AI models). Same deal as the tiles
+// block above: shared/api.js self-mocks on USE_MOCKS.
+export const {
+  getModelHealth,
+  getModels,
+  getRecommendedModels,
+  getModelConfig,
+  setActiveModel,
+  pullModel,
+  getPullStatus,
+  clearPullStatus,
+  deleteModel,
+  setComputeMode,
+} = api;

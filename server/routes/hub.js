@@ -1092,6 +1092,90 @@ hubRouter.get("/api/sync", (req, res) => {
   envelope(res, { data: store.syncSince(Number.isNaN(since) ? 0 : since) });
 });
 
+// ---- db snapshot admin (Settings → Database; testing/demo tooling) ---------
+
+// GET /api/admin/db/export — download the hub.db snapshot (WAL checkpointed).
+hubRouter.get("/api/admin/db/export", (req, res) => {
+  try {
+    const file = store.exportDbPath();
+    const stamp = new Date().toISOString().slice(0, 19).replace(/[:T]/g, "-");
+    // dotfiles:'allow' — the default 'ignore' 404s when ANY path segment
+    // starts with a dot (e.g. a project under ".PROJECTS.../data/hub.db").
+    res.download(file, `brujula-hub-${stamp}.db`, { dotfiles: "allow" }, (err) => {
+      if (err && !res.headersSent) {
+        logger.error(`[hub] db export failed: ${err.message}`);
+        envelope(res, { error: "could not export database", status: 500 });
+      }
+    });
+  } catch (err) {
+    logger.error(`[hub] db export failed: ${err.message}`);
+    envelope(res, { error: "could not export database", status: 500 });
+  }
+});
+
+// POST /api/admin/db/import — replace the live board with an uploaded hub.db
+// snapshot (raw bytes, Content-Type: application/octet-stream).
+hubRouter.post(
+  "/api/admin/db/import",
+  express.raw({ type: "application/octet-stream", limit: "64mb" }),
+  (req, res) => {
+    if (!Buffer.isBuffer(req.body) || req.body.length === 0) {
+      return envelope(res, {
+        error: "body must be the raw .db file bytes (Content-Type: application/octet-stream)",
+        status: 400,
+      });
+    }
+    try {
+      const brd = store.importFromSnapshot(req.body);
+      logger.info(`[hub] db import applied (${req.body.length} bytes)`);
+      envelope(res, {
+        data: {
+          imported: true,
+          incidents: brd.incidents.length,
+          resources: brd.resources.length,
+          dispatches: brd.dispatches.length,
+        },
+      });
+    } catch (err) {
+      logger.warn(`[hub] db import rejected: ${err.message}`);
+      envelope(res, { error: `import failed: ${err.message}`, status: 400 });
+    }
+  },
+);
+
+// POST /api/admin/db/reset — wipe every table and re-seed from fixtures,
+// giving a fresh demo situation.
+hubRouter.post("/api/admin/db/reset", (req, res) => {
+  try {
+    const brd = store.reset();
+    logger.info("[hub] db reset to seed fixtures");
+    envelope(res, {
+      data: {
+        reset: true,
+        incidents: brd.incidents.length,
+        resources: brd.resources.length,
+        dispatches: brd.dispatches.length,
+      },
+    });
+  } catch (err) {
+    logger.error(`[hub] db reset failed: ${err.message}`);
+    envelope(res, { error: "could not reset database", status: 500 });
+  }
+});
+
+// POST /api/admin/db/wipe — delete everything WITHOUT re-seeding: a fully
+// empty board for starting a brand-new situation from scratch.
+hubRouter.post("/api/admin/db/wipe", (req, res) => {
+  try {
+    store.wipe();
+    logger.info("[hub] db wiped to empty board");
+    envelope(res, { data: { wiped: true } });
+  } catch (err) {
+    logger.error(`[hub] db wipe failed: ${err.message}`);
+    envelope(res, { error: "could not wipe database", status: 500 });
+  }
+});
+
 // GET /api/sitrep — plain-language situation report.
 hubRouter.get("/api/sitrep", async (req, res) => {
   const brd = store.board();

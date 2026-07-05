@@ -23,7 +23,7 @@ export const SUPPORTED_LANGUAGES = [
   { code: "en", name: "English" },
 ];
 
-export const DEFAULT_SUMMARY_LANGUAGE = process.env.BRUJULA_LANG || "es";
+export const DEFAULT_SUMMARY_LANGUAGE = process.env.BRUJULA_LANG || "en";
 
 export const TAGS_TIMEOUT_MS = 5_000;
 export const GENERATE_TIMEOUT_MS = 180_000;

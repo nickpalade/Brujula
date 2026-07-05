@@ -38,6 +38,7 @@ test.describe('graph command interface', () => {
   });
 
   test('clicking an incident node opens the relationship inspector', async ({ page }) => {
+    await page.setViewportSize({ width: 1280, height: 520 });
     await openGraph(page);
 
     await page.getByTestId('graph-node-incident').first().click();
@@ -46,6 +47,29 @@ test.describe('graph command interface', () => {
     await expect(inspector).toContainText('Field Reports');
     await expect(inspector).toContainText('Dispatches & Resources');
     await expect(inspector).toContainText('People');
+
+    const viewport = page.viewportSize();
+    await expect
+      .poll(async () => {
+        const drawerBox = await inspector.boundingBox();
+        return Math.round((drawerBox?.x ?? 0) + (drawerBox?.width ?? 0));
+      })
+      .toBe(viewport?.width);
+    await expect
+      .poll(async () => {
+        const drawerBox = await inspector.boundingBox();
+        return drawerBox?.x ?? 0;
+      })
+      .toBeGreaterThan(0);
+
+    const drawerBody = inspector.locator('.cmd-drawer__body');
+    await expect
+      .poll(async () => drawerBody.evaluate((element) => element.scrollHeight > element.clientHeight))
+      .toBe(true);
+    await drawerBody.evaluate((element) => {
+      element.scrollTop = element.scrollHeight;
+    });
+    await expect.poll(async () => drawerBody.evaluate((element) => element.scrollTop)).toBeGreaterThan(0);
 
     // Focus lands on the close control when the inspector opens.
     await expect(inspector.getByRole('button', { name: 'Close graph inspector' })).toBeFocused();
